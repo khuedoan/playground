@@ -4,11 +4,11 @@ variable "project_id" {
 
 provider "google" {
   project = var.project_id
+  region  = "asia-southeast2"
 }
 
 # Enable Compute Engine API
-resource "google_project_service" "comput_engine_api" {
-  project                    = var.project_id
+resource "google_project_service" "compute_engine_api" {
   service                    = "compute.googleapis.com"
   disable_dependent_services = true
 }
@@ -17,6 +17,9 @@ resource "google_project_service" "comput_engine_api" {
 resource "google_compute_network" "kubernetes_vpc_network" {
   name                    = "kubernetes-the-hard-way"
   auto_create_subnetworks = false
+  depends_on = [
+    google_project_service.compute_engine_api
+  ]
 }
 
 # gcloud compute networks subnets create kubernetes \
@@ -64,7 +67,7 @@ resource "google_compute_firewall" "kubernetes_firewall_external" {
 
   allow {
     protocol = "tcp"
-    ports    = [
+    ports = [
       "22",
       "6443"
     ]
