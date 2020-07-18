@@ -84,7 +84,9 @@ resource "google_compute_firewall" "kubernetes_firewall_external" {
 
 # gcloud compute addresses create kubernetes-the-hard-way \
 #   --region $(gcloud config get-value compute/region)
-
+resource "google_compute_global_address" "default" {
+  name = "kubernetes-the-hard-way"
+}
 
 # for i in 0 1 2; do
 #   gcloud compute instances create controller-${i} \
