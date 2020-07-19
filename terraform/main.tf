@@ -102,7 +102,7 @@ resource "google_compute_global_address" "default" {
 #     --subnet kubernetes \
 #     --tags kubernetes-the-hard-way,controller
 # done
-resource "google_compute_instance" "kubernetes_controller" {
+resource "google_compute_instance" "kubernetes_controllers" {
   count          = 3
   name           = "controller-${count.index}"
   machine_type   = "e2-standard-2"
@@ -151,3 +151,41 @@ resource "google_compute_instance" "kubernetes_controller" {
 #     --subnet kubernetes \
 #     --tags kubernetes-the-hard-way,worker
 # done
+resource "google_compute_instance" "kubernetes_workers" {
+  count          = 3
+  name           = "worker-${count.index}"
+  machine_type   = "e2-standard-2"
+  can_ip_forward = true
+
+  boot_disk {
+    initialize_params {
+      size = 200
+      image = "ubuntu-os-cloud/ubuntu-2004-lts"
+    }
+  }
+
+  network_interface {
+    subnetwork = google_compute_subnetwork.kubernetes_subnetwork.id
+    network_ip = "10.240.0.2${count.index}"
+  }
+
+  service_account {
+    scopes = [
+      "compute-rw",
+      "storage-ro",
+      "service-management",
+      "service-control",
+      "logging-write",
+      "monitoring"
+    ]
+  }
+
+  metadata = {
+    pod-cidr = "10.200.${count.index}.0/24"
+  }
+
+  tags = [
+    "kubernetes-the-hard-way",
+    "worker"
+  ]
+}
