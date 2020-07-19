@@ -103,7 +103,7 @@ resource "google_compute_global_address" "default" {
 #     --tags kubernetes-the-hard-way,controller
 # done
 resource "google_compute_instance" "kubernetes_controllers" {
-  count          = 3
+  count          = 2
   name           = "controller-${count.index}"
   machine_type   = "e2-standard-2"
   can_ip_forward = true
@@ -152,7 +152,7 @@ resource "google_compute_instance" "kubernetes_controllers" {
 #     --tags kubernetes-the-hard-way,worker
 # done
 resource "google_compute_instance" "kubernetes_workers" {
-  count          = 3
+  count          = 2
   name           = "worker-${count.index}"
   machine_type   = "e2-standard-2"
   can_ip_forward = true
