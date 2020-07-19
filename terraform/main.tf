@@ -5,6 +5,7 @@ variable "project_id" {
 provider "google" {
   project = var.project_id
   region  = "asia-southeast2"
+  zone    = "asia-southeast2-a"
 }
 
 # Enable Compute Engine API
@@ -101,7 +102,40 @@ resource "google_compute_global_address" "default" {
 #     --subnet kubernetes \
 #     --tags kubernetes-the-hard-way,controller
 # done
+resource "google_compute_instance" "kubernetes_controller" {
+  count          = 3
+  name           = "controller-${count.index}"
+  machine_type   = "e2-standard-2"
+  can_ip_forward = true
 
+  boot_disk {
+    initialize_params {
+      size = 200
+      image = "ubuntu-os-cloud/ubuntu-2004-lts"
+    }
+  }
+
+  network_interface {
+    subnetwork = google_compute_subnetwork.kubernetes_subnetwork.id
+    network_ip = "10.240.0.1${count.index}"
+  }
+
+  service_account {
+    scopes = [
+      "compute-rw",
+      "storage-ro",
+      "service-management",
+      "service-control",
+      "logging-write",
+      "monitoring"
+    ]
+  }
+
+  tags = [
+    "kubernetes-the-hard-way",
+    "controller"
+  ]
+}
 
 # for i in 0 1 2; do
 #   gcloud compute instances create worker-${i} \
