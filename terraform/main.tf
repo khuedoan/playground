@@ -2,10 +2,18 @@ variable "project_id" {
   default = "kubernetes-lab-283716"
 }
 
+variable "region" {
+  default = "asia-southeast2"
+}
+
+variable "zone" {
+  default = "asia-southeast2-a"
+}
+
 provider "google" {
   project = var.project_id
-  region  = "asia-southeast2"
-  zone    = "asia-southeast2-a"
+  region  = var.region
+  zone    = var.zone
 }
 
 # Enable Compute Engine API
