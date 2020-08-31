@@ -10,6 +10,6 @@ var (
 )
 
 func main() {
-    var age int = 23
-    fmt.Printf("Name: %v, Age: %v", name, age)
+    var floatAge float32 = float32(age)
+    fmt.Printf("Name: %v, Age: %v", name, floatAge)
 }
