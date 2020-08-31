@@ -5,6 +5,6 @@ import (
 )
 
 func main() {
-    var i int = 42
+    var i float32 = 42.1
     fmt.Printf("Value: %v, Type: %T", i, i)
 }
