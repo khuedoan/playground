@@ -10,5 +10,6 @@ var (
 )
 
 func main() {
+    var age int = 23
     fmt.Printf("Name: %v, Age: %v", name, age)
 }
