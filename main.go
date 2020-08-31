@@ -6,5 +6,5 @@ import (
 
 func main() {
     var i int = 42
-    fmt.Println(i)
+    fmt.Printf("Value: %v, Type: %T", i, i)
 }
