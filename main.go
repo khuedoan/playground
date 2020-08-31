@@ -5,5 +5,7 @@ import (
 )
 
 func main() {
-    fmt.Println("Hello, World")
+    var i int
+    i = 42
+    fmt.Println(i)
 }
