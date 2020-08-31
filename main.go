@@ -4,8 +4,9 @@ import (
     "fmt"
 )
 
-var i float32 = 42.1
+var name string = "Khue Doan"
+var age int = 22
 
 func main() {
-    fmt.Printf("Value: %v, Type: %T", i, i)
+    fmt.Printf("Name: %v, Age: %v", name, age)
 }
