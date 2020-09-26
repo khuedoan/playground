@@ -1,0 +1,7 @@
+version: '3'
+
+services:
+  tictactoe:
+    build: ./tic-tac-toe
+    ports:
+      - 80:80
