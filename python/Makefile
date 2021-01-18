@@ -1,3 +1,5 @@
+.POSIX:
+
 default: init run
 
 init:
@@ -8,3 +10,10 @@ init:
 run:
 	. .venv/bin/activate
 	python3 main.py
+
+test:
+	. .venv/bin/activate
+	python3 tests.py
+
+clean:
+	rm -rf .venv
