@@ -1,3 +1,5 @@
-def print_hello():
-    print("Test Makefile")
-    return False
+def return_true():
+    return True
+
+def main():
+    print("Hello world")
