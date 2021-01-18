@@ -2,6 +2,8 @@ import unittest
 
 from main import *
 
-unittest.TestCase().assertTrue(
-    print_hello()
+test_case = unittest.TestCase()
+
+test_case.assertTrue(
+    return_true()
 )
