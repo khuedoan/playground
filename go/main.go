@@ -1,10 +1,13 @@
 package main
 
 import (
-    "fmt"
+	"fmt"
 )
 
+func Hello() string {
+	return "Hello world"
+}
+
 func main() {
-    m := 1 == 1
-    fmt.Printf("%v", m)
+	fmt.Println(Hello())
 }
