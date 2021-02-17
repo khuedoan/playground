@@ -1,3 +1,5 @@
 # Playground
 
-This is just a playground for various topics, please check out my other projects instead :)
+Here be dragons.
+
+![Here be dragons](https://upload.wikimedia.org/wikipedia/commons/c/cd/Lenox_Globe_Dragons.png)
