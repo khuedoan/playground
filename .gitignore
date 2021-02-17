@@ -1,0 +1,10 @@
+# JavaScript
+node_modules/
+package-lock.json
+
+# Python
+.venv/
+
+# Go
+
+# Terraform
