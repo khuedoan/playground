@@ -1,0 +1,13 @@
+ingress:
+  enabled: true
+  hosts:
+    - host: drone.khuedoan.dev
+      paths:
+        - "/"
+env:
+  DRONE_SERVER_HOST: drone.khuedoan.dev
+  DRONE_SERVER_PROTO: http
+  DRONE_RPC_SECRET: dude-this-is-just-a-playground
+  # DRONE_GITEA_CLIENT_ID: 55bf5c33-227b-47da-bde5-ad809df1469e
+  # DRONE_GITEA_CLIENT_SECRET: GLU0eXT0AKFx2xFEv7o0Fc52Ag1iq6W5_i4oROa7jLo=
+  # DRONE_GITEA_SERVER: http://git.khuedoan.dev
