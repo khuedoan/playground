@@ -11,7 +11,7 @@ helm install \
   --version v1.2.0 \
   --create-namespace \
   --set installCRDs=true
-kubectl apply -f test-resources.yaml
+kubectl apply -f test-cert-manager.yaml
 ```
 
 ## Gitea
