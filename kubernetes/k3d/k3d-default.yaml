@@ -4,3 +4,6 @@ name: k3s-default
 servers: 3
 agents: 3
 image: docker.io/rancher/k3s:latest
+options:
+  k3d:
+    wait: true
