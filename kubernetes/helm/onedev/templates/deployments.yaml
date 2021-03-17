@@ -2,6 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: onedev
+  namespace: {{ .Release.Namespace }}
   labels:
     tier: server
 spec:
@@ -55,6 +56,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: mysql 
+  namespace: {{ .Release.Namespace }}
   labels:
     tier: database
 spec:
