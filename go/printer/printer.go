@@ -1,5 +1,7 @@
 package printer
 
+import "fmt"
+
 func Hello() {
-	fmt.Println("unexported hello")
+	fmt.Println("Exported hello")
 }

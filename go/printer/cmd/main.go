@@ -1,7 +1,7 @@
 package main
 
-import "/Users/kdoan/Documents/playground/go/printer"
+import "github.com/khuedoan/playground/go/printer"
 
 func main() {
-	printer.hello()
+	printer.Hello()
 }
