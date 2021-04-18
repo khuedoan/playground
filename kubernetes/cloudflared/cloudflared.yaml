@@ -17,7 +17,7 @@ spec:
       containers:
       - image: cloudflare/cloudflared
         name: cloudflared
-        args: ["tunnel", "--hostname", "test.khuedoan.com", "--url", "traefik.kube-system.svc.cluster.local:80"]
+        args: ["tunnel", "--hostname", "test.khuedoan.com", "--url", "traefik.kube-system:80"]
         volumeMounts:
         - name: certificate
           mountPath: /etc/cloudflared
