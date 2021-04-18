@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: cloudflared
+  name: cloudflared
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cloudflared
+  template:
+    metadata:
+      labels:
+        app: cloudflared
+    spec:
+      containers:
+      - image: cloudflare/cloudflared
+        name: cloudflared
+        args: ["tunnel", "--hostname", "test.khuedoan.com", "--url", "traefik.kube-system.svc.cluster.local:80"]
+        volumeMounts:
+        - name: certificate
+          mountPath: /etc/cloudflared
+      volumes:
+      - name: certificate
+        secret:
+          secretName: cloudflared
+          items:
+          - key: certificate
+            path: cert.pem
