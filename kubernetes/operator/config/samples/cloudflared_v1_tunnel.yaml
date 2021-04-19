@@ -1,0 +1,7 @@
+apiVersion: cloudflared.khuedoan.com/v1
+kind: Tunnel
+metadata:
+  name: tunnel-sample
+spec:
+  # Add fields here
+  foo: bar
