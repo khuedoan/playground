@@ -25,6 +25,12 @@ struct Number {
     value: i32,
 }
 
+impl Number {
+    fn is_strictly_positive(self) -> bool {
+        self.value > 0
+    }
+}
+
 fn print_number(n: Number) {
     if let Number { odd: true, value } = n {
         println!("Odd number: {}", value);
@@ -32,6 +38,32 @@ fn print_number(n: Number) {
         println!("Even number: {}", value);
     }
 }
+
+fn print_number_match(n: Number) {
+    match n {
+        Number { odd: true, value } => println!("Odd number: {}", value),
+        Number { odd: false, value } => println!("Even number: {}", value),
+    }
+}
+
+fn print_number_dumb(n: Number) {
+    match n.value {
+        1 => println!("One"),
+        2 => println!("Two"),
+        _ => println!("{}", n.value),
+    }
+}
+
+trait Signed {
+    fn is_strictly_negative(self) -> bool;
+}
+
+impl Signed for Number {
+    fn is_strictly_negative(self) -> bool {
+        self.value < 0
+    }
+}
+
 
 fn main() {
     greet();
@@ -104,9 +136,29 @@ fn main() {
         odd: false,
         value: 2,
     };
+    let three = Number {
+        odd: true,
+        value: 3,
+    };
+    let mut minus_two = Number {
+        odd: false,
+        value: -2,
+    };
 
-    print_number(one);
-    print_number(two);
+    minus_two.value = 4;
+
+    let minus_three = Number {
+        odd: false,
+        value: -3,
+    };
+
+    // print_number(one);
+    // print_number(two);
+    print_number_match(one);
+    print_number_match(two);
+    print_number_dumb(three);
+    println!("{}", minus_two.is_strictly_positive());
+    println!("{}", minus_three.is_strictly_negative());
 }
 
 // match next
