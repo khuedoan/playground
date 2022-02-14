@@ -1,0 +1,12 @@
+version: '3'
+
+services:
+  wontdo:
+    build: .
+    environment:
+      POSTGRES_PASSWORD: &postgres_password localtest
+  postgres:
+    image: postgres
+    restart: always
+    environment:
+      POSTGRES_PASSWORD: *postgres_password
