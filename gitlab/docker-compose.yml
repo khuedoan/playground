@@ -1,0 +1,19 @@
+version: '3.6'
+services:
+  web:
+    image: 'gitlab/gitlab-ce:latest'
+    restart: always
+    hostname: 'gitlab.khuedoan.com'
+    environment:
+      GITLAB_ROOT_PASSWORD: testing123
+      GITLAB_OMNIBUS_CONFIG: |
+        external_url 'https://gitlab.khuedoan.com'
+    ports:
+      - '80:80'
+      - '443:443'
+      - '22:22'
+    volumes:
+      - './data/config:/etc/gitlab'
+      - './data/logs:/var/log/gitlab'
+      - './data/data:/var/opt/gitlab'
+    shm_size: '256m'
