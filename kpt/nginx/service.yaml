@@ -11,19 +11,20 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 apiVersion: v1
 kind: Service
 metadata: # kpt-merge: /my-nginx-svc
   name: my-nginx-svc
   labels:
     app: nginx
+    env: dev
   annotations:
     internal.kpt.dev/upstream-identifier: '|Service|default|my-nginx-svc'
 spec:
   type: LoadBalancer
   selector:
     app: nginx
+    env: dev
   ports:
     - protocol: TCP
       port: 80

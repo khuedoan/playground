@@ -11,26 +11,29 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 apiVersion: apps/v1
 kind: Deployment
 metadata: # kpt-merge: /my-nginx
   name: my-nginx
   annotations:
-    internal.kpt.dev/upstream-identifier: 'apps|Deployment|default|my-nginx'
+    internal.kpt.dev/upstream-identifier: apps|Deployment|default|my-nginx
+  labels:
+    env: dev
 spec:
   replicas: 4
   selector:
     matchLabels:
       app: nginx
+      env: dev
   template:
     metadata:
       labels:
         app: nginx
+        env: dev
     spec:
       containers:
         - name: nginx
-          image: "nginx:1.16.1"
+          image: nginx:1.16.1
           ports:
             - protocol: TCP
               containerPort: 80
