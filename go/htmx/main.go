@@ -12,15 +12,14 @@ import (
 type TodoStatus int
 
 const (
-	TodoOpen       TodoStatus = 0
-	TodoInProgress TodoStatus = 1
-	TodoDone       TodoStatus = 2
+	TodoOpen TodoStatus = 0
+	TodoDone TodoStatus = 1
 )
 
 type Todo struct {
-	Id     int
-	Title  string
-	Status TodoStatus
+	Id          int
+	Description string
+	Status      TodoStatus
 }
 
 func index(w http.ResponseWriter, r *http.Request) {
@@ -45,7 +44,7 @@ func todo(w http.ResponseWriter, r *http.Request) {
 		todos := []Todo{}
 		for rows.Next() {
 			todo := Todo{}
-			rows.Scan(&todo.Id, &todo.Title, &todo.Status)
+			rows.Scan(&todo.Id, &todo.Description, &todo.Status)
 			todos = append(todos, todo)
 		}
 
@@ -57,15 +56,32 @@ func todo(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		db, err := sql.Open("sqlite3", "data/sqlite.db")
-		if err != nil {
+		db.Exec(
+			"INSERT INTO todos (description, status) VALUES(?, ?)",
+			r.FormValue("description"),
+			TodoOpen,
+		)
+		w.Header().Set("HX-Trigger", "updateTodos")
+	case "PATCH":
+		if err := r.ParseForm(); err != nil {
 			log.Fatal(err)
+			return
 		}
 
 		db.Exec(
-			"INSERT INTO todos (title, status) VALUES(?, ?)",
-			r.FormValue("title"),
-			TodoOpen,
+			"UPDATE todos SET status=? WHERE id=?",
+			r.FormValue("status") == "on",
+			r.FormValue("id"),
+		)
+	case "DELETE":
+		if err := r.ParseForm(); err != nil {
+			log.Fatal(err)
+			return
+		}
+
+		db.Exec(
+			"DELETE FROM todos WHERE id=?",
+			r.FormValue("id"),
 		)
 		w.Header().Set("HX-Trigger", "updateTodos")
 	}

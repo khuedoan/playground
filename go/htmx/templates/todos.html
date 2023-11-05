@@ -1,5 +1,13 @@
 <ul>
     {{range .}}
-    <li>{{.Status}} - {{.Title}}</li>
+    <li>
+        <input id="status"
+               name="status"
+               type="checkbox"
+               {{if eq .Status 1}}checked="true"{{end}}
+               hx-patch="/todo?id={{.Id}}"/>
+        {{.Description}}
+        <button hx-delete="/todo?id={{.Id}}" hx-trigger="click">x</button>
+    </li>
     {{end}}
 </ul>
