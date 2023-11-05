@@ -90,5 +90,6 @@ func todo(w http.ResponseWriter, r *http.Request) {
 func main() {
 	http.HandleFunc("/", index)
 	http.HandleFunc("/todo", todo)
+	http.Handle("/public/", http.StripPrefix("/public", http.FileServer(http.Dir("./public"))))
 	http.ListenAndServe(":3000", nil)
 }
