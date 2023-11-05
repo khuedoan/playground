@@ -1,31 +1,52 @@
 package main
 
 import (
+	"database/sql"
 	"html/template"
+	"log"
 	"net/http"
+
+	_ "github.com/mattn/go-sqlite3"
+)
+
+type TodoStatus int
+
+const (
+	TodoOpen       TodoStatus = 0
+	TodoInProgress TodoStatus = 1
+	TodoDone       TodoStatus = 2
 )
 
 type Todo struct {
-	Title string
-	Done  bool
+	Id     int
+	Title  string
+	Status TodoStatus
 }
 
-func getTodos(w http.ResponseWriter, r *http.Request) {
-	tmpl := template.Must(template.ParseFiles("templates/todos.html"))
-	todos := []Todo{
-		{Title: "demo1", Done: true},
-		{Title: "demo2", Done: false},
+func index(w http.ResponseWriter, r *http.Request) {
+	db, err := sql.Open("sqlite3", "./data/sqlite.db")
+	if err != nil {
+		log.Fatal(err)
 	}
+
+	rows, err := db.Query("SELECT * FROM todos")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer rows.Close()
+
+	todos := []Todo{}
+	for rows.Next() {
+		todo := Todo{}
+		rows.Scan(&todo.Id, &todo.Title, &todo.Status)
+		todos = append(todos, todo)
+	}
+
+	tmpl := template.Must(template.ParseFiles("templates/index.html"))
 	tmpl.Execute(w, todos)
 }
 
-func root(w http.ResponseWriter, r *http.Request) {
-	tmpl := template.Must(template.ParseFiles("templates/index.html"))
-	tmpl.Execute(w, nil)
-}
-
 func main() {
-	http.HandleFunc("/", root)
-	http.HandleFunc("/todos", getTodos)
+	http.HandleFunc("/", index)
 	http.ListenAndServe(":3000", nil)
 }

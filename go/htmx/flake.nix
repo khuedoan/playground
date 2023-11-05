@@ -13,6 +13,7 @@
             delve
             go
             gopls
+            sqlite
             (nodePackages.tailwindcss.overrideAttrs (attrs: {
               plugins = [
                 nodePackages."@tailwindcss/typography"

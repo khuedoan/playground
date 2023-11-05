@@ -3,10 +3,11 @@
         <script src="https://unpkg.com/htmx.org@1.9.7"></script>
     </head>
     <body>
-        <h1>TODO</h1>
-        <p>A list of TODO items</p>
-        <button hx-get="/todos" hx-swap="outerHTML">
-            Click Me
-        </button>
+        <h1>TODOs</h1>
+        <ul>
+            {{range .}}
+            <li>{{.Title}}</li>
+            {{end}}
+        </ul>
     </body>
 </html>
