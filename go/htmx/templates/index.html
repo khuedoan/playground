@@ -4,10 +4,15 @@
     </head>
     <body>
         <h1>TODOs</h1>
-        <ul>
-            {{range .}}
-            <li>{{.Title}}</li>
-            {{end}}
-        </ul>
+        <form hx-post="/todo" hx-swap="none">
+            <label for="title">New thing to do:</label>
+            <input id="title" name="title" type="text">
+            <button type="submit">Add</button>
+        </form>
+        <div id="todo-list"
+             hx-get="/todo"
+             hx-trigger="load, updateTodos from:body"
+             hx-swap="innerHTML">
+        </div>
     </body>
 </html>

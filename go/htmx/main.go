@@ -24,29 +24,55 @@ type Todo struct {
 }
 
 func index(w http.ResponseWriter, r *http.Request) {
-	db, err := sql.Open("sqlite3", "./data/sqlite.db")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	rows, err := db.Query("SELECT * FROM todos")
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer rows.Close()
-
-	todos := []Todo{}
-	for rows.Next() {
-		todo := Todo{}
-		rows.Scan(&todo.Id, &todo.Title, &todo.Status)
-		todos = append(todos, todo)
-	}
-
 	tmpl := template.Must(template.ParseFiles("templates/index.html"))
-	tmpl.Execute(w, todos)
+	tmpl.Execute(w, nil)
+}
+
+func todo(w http.ResponseWriter, r *http.Request) {
+	db, err := sql.Open("sqlite3", "data/sqlite.db")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	switch r.Method {
+	case "GET":
+		rows, err := db.Query("SELECT * FROM todos")
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer rows.Close()
+
+		todos := []Todo{}
+		for rows.Next() {
+			todo := Todo{}
+			rows.Scan(&todo.Id, &todo.Title, &todo.Status)
+			todos = append(todos, todo)
+		}
+
+		tmpl := template.Must(template.ParseFiles("templates/todos.html"))
+		tmpl.Execute(w, todos)
+	case "POST":
+		if err := r.ParseForm(); err != nil {
+			log.Fatal(err)
+			return
+		}
+
+		db, err := sql.Open("sqlite3", "data/sqlite.db")
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		db.Exec(
+			"INSERT INTO todos (title, status) VALUES(?, ?)",
+			r.FormValue("title"),
+			TodoOpen,
+		)
+		w.Header().Set("HX-Trigger", "updateTodos")
+	}
 }
 
 func main() {
 	http.HandleFunc("/", index)
+	http.HandleFunc("/todo", todo)
 	http.ListenAndServe(":3000", nil)
 }
