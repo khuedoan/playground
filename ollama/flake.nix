@@ -14,6 +14,12 @@
         devShells.default = mkShell {
           packages = [
             ollama
+
+            (python3.withPackages (p: with p; [
+              langchain
+              langchain-community
+              GitPython
+            ]))
           ];
         };
       }
