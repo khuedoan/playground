@@ -18,7 +18,6 @@
       devShells = forAllSystems (system: {
         default = pkgs.${system}.mkShellNoCC {
           packages = with pkgs.${system}; [
-            ghc
             kpt
           ];
         };
