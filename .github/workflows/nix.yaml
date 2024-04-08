@@ -8,7 +8,7 @@ on:
 jobs:
   check:
     runs-on:
-      - self-hosted
+      - gha-runner-khuedoan-playground
     permissions:
       contents: read
       id-token: write
