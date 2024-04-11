@@ -8,13 +8,14 @@ on:
 jobs:
   check:
     runs-on:
-      - gha-runner-khuedoan-playground
+      - khuedoan-playground
     permissions:
       contents: read
       id-token: write
     steps:
+      - run: echo hello
+      - run: docker pull alpine
       - uses: actions/checkout@v4
       - uses: cachix/install-nix-action@v26
       - uses: DeterminateSystems/magic-nix-cache-action@main
-      - run: echo hello
       - run: nix develop --command kpt version
