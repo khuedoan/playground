@@ -14,6 +14,7 @@
         devShells.default = mkShell {
           packages = [
             cue
+            timoni
           ];
         };
       }
