@@ -20,6 +20,7 @@
           packages = with pkgs.${system}; [
             kpt
             neovim
+            ollama
           ];
         };
       });
