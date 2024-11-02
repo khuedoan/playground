@@ -21,6 +21,7 @@
             kpt
             neovim
             ollama
+            zed-editor
           ];
         };
       });
