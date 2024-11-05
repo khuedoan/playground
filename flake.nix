@@ -18,10 +18,12 @@
       devShells = forAllSystems (system: {
         default = pkgs.${system}.mkShellNoCC {
           packages = with pkgs.${system}; [
-            kpt
             neovim
             ollama
             zed-editor
+            python312Packages.numpy
+            python312Packages.matplotlib
+            python312Packages.pytz
           ];
         };
       });
