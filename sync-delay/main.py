@@ -9,7 +9,7 @@ cron_interval = 180
 
 def generate_weighted_random():
     # Define the ranges and their corresponding probabilities
-    ranges = [30, 60, 90, 180]
+    ranges = [30, 60, 180, 300]
     probabilities = [0.50, 0.90, 0.99, 1.00]  # Cumulative probabilities
 
     # Generate a random number between 0 and 1
@@ -56,16 +56,10 @@ def generate_build_times(num_samples, total_duration):
 
 def simulate_cron_jobs(build_times, cron_interval, total_duration):
     cron_jobs = np.arange(0, total_duration, cron_interval)
-    missed_syncs = []
 
-    for cron_time in cron_jobs:
-        # Check if any build is completed by the cron job time
-        is_synced = any(start_time <= cron_time <= end_time for start_time, end_time in build_times)
-        missed_syncs.append(not is_synced)
+    return cron_jobs
 
-    return cron_jobs, missed_syncs
-
-def plot_builds_and_cron(build_times, cron_jobs, missed_syncs):
+def plot_builds_and_cron(build_times, cron_jobs):
     plt.figure(figsize=(12, 6))
 
     # Y-coordinates for builds and cron jobs
@@ -114,6 +108,6 @@ def plot_builds_and_cron(build_times, cron_jobs, missed_syncs):
 
 build_times = generate_build_times(num_builds, total_duration)
 
-cron_jobs, missed_syncs = simulate_cron_jobs(build_times, cron_interval, total_duration)
+cron_jobs = simulate_cron_jobs(build_times, cron_interval, total_duration)
 
-plot_builds_and_cron(build_times, cron_jobs, missed_syncs)
+plot_builds_and_cron(build_times, cron_jobs)
