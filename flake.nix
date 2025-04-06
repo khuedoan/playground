@@ -1,6 +1,6 @@
 {
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-24.11";
   };
 
   outputs = { self, nixpkgs }:
@@ -16,7 +16,7 @@
     devShells = supportedSystems (system: {
       default = with nixpkgs.legacyPackages.${system}; mkShell {
         packages = [
-          neovim
+          cue
         ];
       };
     });
