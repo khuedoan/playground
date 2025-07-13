@@ -1,0 +1,340 @@
+# Welcome to Livebook
+
+## Basic usage
+
+Livebook is a tool for crafting **interactive** and **collaborative** code notebooks.
+
+Each notebook consists of a number of cells, which serve as primary building blocks.
+There are **Markdown** cells (such as this one) that allow you to describe your work
+and **Code** cells to run your Elixir code!
+
+To insert a new cell move your cursor between cells and click one of the revealed buttons. 👇
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+# This is a Code cell - as the name suggests that's where the code goes.
+# To evaluate this cell, you can either press the "Evaluate" button above
+# or use `Ctrl + Enter` (or Cmd + Enter on a Mac)!
+
+message = "hey, grab yourself a cup of 🍵"
+```
+
+Subsequent cells have access to the bindings you've defined:
+
+```elixir
+String.replace(message, "🍵", "☕")
+```
+
+Note however that bindings are not global, so each cell *sees* only stuff
+that goes above itself. This approach helps to keep the notebook clean and
+predictable as you keep working on it. Furthermore, Livebook tracks which
+variables are used by each cell in order to detect which cells become
+stale. For example, try changing the `message` variable and you will see
+the status indicator on the bottom right of the second cell become yellow.
+
+## Sections
+
+You can leverage so called **sections** to nicely group related cells together.
+Click on the "Outline" icon (<i class="ri-node-tree"></i>) in the sidebar
+to reveal a list of all sections. As you can see, this approach helps to easily
+jump around the notebook, especially once it grows.
+
+Let's make use of this section to see how output is captured!
+
+```elixir
+cats = ~w(😼 😹 😻 😺 😸 😽)
+
+for _ <- 1..3 do
+  cats
+  |> Enum.take_random(3)
+  |> Enum.join(" ")
+  |> IO.puts()
+end
+```
+
+<!-- livebook:{"branch_parent_index":1} -->
+
+## Branching sections
+
+Additionally, you can make a section **branch out** from any
+previous regular section. Hover over the section name to reveal
+available actions and click on the branch icon to select the
+parent section.
+
+You still have access to all the previous data:
+
+```elixir
+{message, cats}
+```
+
+The important characteristic of a branching section is that
+it runs independently from other sections and as such is well
+suited for running long computations "in background".
+
+```elixir
+Process.sleep(400_000)
+```
+
+Having this cell running, feel free to insert another Code cell
+in the section below and see it evaluates immediately. Crashes
+in branched sections also have limited scope and will affect only
+the branched section.
+
+## Saving notebooks
+
+By default, notebooks are stored in a temporary directory, which is fine for
+interactive hacking, but oftentimes you will want to save your work for later.
+Such can be done by clicking on the "Disk" icon (<i class="ri-livebook-save"></i>)
+in the bottom-right corner and selecting the file location.
+
+Once saved, you can access the location of the current `.livemd` file and
+its current directory using `__ENV__` and `__DIR__` variables:
+
+```elixir
+IO.puts(__ENV__.file)
+IO.puts(__DIR__)
+```
+
+Notebooks are stored in **live markdown** format, which is the Markdown you know,
+with just a few assumptions on how particular elements are represented. Thanks to this
+approach you can easily keep notebooks under version control and get readable diffs.
+You can also easily preview those files and even edit them in a text editor.
+
+## Keyboard shortcuts
+
+Once you start using notebooks more, it's gonna be beneficial
+to optimise how you move around. Livebook leverages the concept of
+**navigation**/**insert** modes and offers many shortcuts for common operations.
+Make sure to check out the shortcuts by clicking the "Keyboard" icon
+(<i class="ri-livebook-shortcuts"></i>) in the sidebar or
+by pressing <kbd>?</kbd>.
+
+<!-- livebook:{"branch_parent_index":1} -->
+
+## Autocompletion
+
+Code cells also support autocompletion. Autocompletion happens
+automatically as you type but you can explicitly trigger
+it with <kbd>ctrl</kbd> + <kbd>␣</kbd>. You must start the runtime,
+by executing any cell at least once, for the autocompletion engine
+to load.
+
+Let's try autocompleting the code below to `System.version()`.
+First put the cursor after the `System` below and type `.`:
+
+```elixir
+System
+```
+
+You should have seen the editor listing many different options,
+which you can use to find `version`. Executing the code will
+return the Elixir version.
+
+Note you can also press <kbd>tab</kbd> to cycle across the completion
+alternatives.
+
+## Markdown extensions
+
+Livebook also include supports for links, mathematical expressions, and Mermaid diagrams.
+
+### Links
+
+It is possible to link between Livebooks using Markdown's link syntax.
+For example, `[next chapter](chapter_2.livemd)` could be used to link
+to a Livebook named `chapter_2.livemd` in the same directory as the current
+notebook. Once clicked, Livebook will automatically open up a new session
+to execute the linked notebook.
+
+<!-- livebook:{"break_markdown":true} -->
+
+### Math expressions
+
+Livebook uses $\TeX$ syntax for math inside your Markdown cells.
+It supports both inline math, like $e^{\pi i} + 1 = 0$, as well as display math:
+
+$$
+S(x) = \frac{1}{1 + e^{-x}} = \frac{e^{x}}{e^{x} + 1}
+$$
+
+To write your own, put your math expressions between \$ signs for inline math
+or \$\$ if you want display math. You can double click the formulas above to see
+how they are written.
+
+You can explore all supported expressions in the [KaTeX documentation](https://katex.org/docs/supported.html).
+
+<!-- livebook:{"break_markdown":true} -->
+
+### Mermaid diagrams
+
+[Mermaid](https://mermaid-js.github.io/) is a library for creating diagrams
+and visualizations using text and code. You can define those diagrams in
+your Markdown cells via ```` ```mermaid ```` blocks. Let's see an example:
+
+```mermaid
+graph TD;
+    A-->B;
+    A-->C;
+    B-->D;
+    C-->D;
+```
+
+## Erlang support
+
+Livebook also allows developers to write Erlang code. To do so,
+click on the submenu option on the right side of the "Elixir" cell
+button and choose Erlang.
+
+Your Erlang code will run alongside your Elixir cells. This means
+you can leverage all of the dependency management and smart cell features
+outlined in the previous sections. In particular, integration between
+Erlang and Elixir will happen as follows:
+
+* Variables in Elixir are available in Erlang cells in camel-case
+  fashion. `x` in Elixir becomes `X` in Erlang. `foo_bar` becomes
+  `FooBar`;
+
+* Variables in Erlang are available in Elixir cells in underscored
+  fashion. `X` in Erlang becomes `x` in Elixir. `FooBar` becomes
+  `foo_bar`;
+
+For example, to print all of the cats defined at the top of the notebook,
+but in Erlang:
+
+```erlang
+[io:format("~ts", [Cat]) || Cat <- Cats].
+```
+
+We are just beginning the Erlang integration and contributions to
+further enrich it are welcome.
+
+## Evaluation vs compilation
+
+Livebook automatically shows the execution time of each Code
+cell on the bottom-right of the cell. After evaluation, the total
+time can be seen by hovering the green dot.
+
+However, it is important to remember that all code outside of
+a module in Erlang or Elixir is *evaluated*, and therefore
+executes much slower than code defined inside modules, which
+are *compiled*.
+
+Let's see an example. Run the cell below:
+
+```elixir
+Enum.reduce(1..1_000_000, 0, fn x, acc -> x + acc end)
+```
+
+We are adding all of the elements in a range by iterating them
+one by one. However, executing it likely takes some reasonable
+amount of time, as the invocation of the `Enum.reduce/3` as well
+as the anonymous function argument are evaluated.
+
+However, what if we move the above to inside a function? Let's do
+that:
+
+```elixir
+defmodule Bench do
+  def sum do
+    Enum.reduce(1..1_000_000, 0, fn x, acc -> x + acc end)
+  end
+end
+```
+
+Now let's try running it:
+
+```elixir
+Bench.sum()
+```
+
+The latest cell should execute at least an order of magnitude faster
+than the previous `Enum.reduce/3` call. While the call `Bench.sum()`
+itself is evaluated, the one million iterations of `Enum.reduce/3`
+happen inside a module, which is compiled.
+
+Another benefit is compiling code is that exceptions often have
+better stacktraces and error messages. Therefore, if a notebook is
+performing slower than expected or you need more information in case
+of failures, consider moving the bulk of the execution to inside
+modules.
+
+## Running tests
+
+There are two main ways of running tests inside Livebook.
+
+<!-- livebook:{"break_markdown":true} -->
+
+### Doctests
+
+Doctests allow developers to provide and test examples directly
+from their documentation. Doctests are defined with the `iex>`
+prompts under the `@moduledoc` and `@doc` attributes of your
+modules. Let's see an example:
+
+```elixir
+defmodule MyModule do
+  @moduledoc """
+  This is an example of doctests:
+
+      iex> 2 + 2
+      5
+
+      iex> 6 + 7
+      13
+  """
+end
+```
+
+Livebook automatically detects doctests for any defined modules
+and automatically executes them when you evaluate the cell.
+Doctests which fail are marked in red in the gutter and show
+the failure information right below them. Otherwise they are tagged
+in green. For more information on doctests and their limitations,
+see [`ExUnit.Doctest`](https://hexdocs.pm/ex_unit/ExUnit.DocTest.html).
+
+<!-- livebook:{"break_markdown":true} -->
+
+### ExUnit integration
+
+It is also possible to run `ExUnit` suites directly from your notebooks.
+The key is to disable `ExUnit`'s autorun feature and then explicitly
+run the test suite after all test cases have been defined:
+
+```elixir
+ExUnit.start(autorun: false)
+
+defmodule MyTest do
+  use ExUnit.Case, async: true
+
+  test "it works" do
+    assert true
+  end
+end
+
+ExUnit.run()
+```
+
+This is perfect for testing more complex logic that does not fit under
+doctests.
+
+## Next steps
+
+That's our quick intro to Livebook! Where to go next?
+
+* If you are not familiar with Elixir, there is a fast paced
+  introduction to the language in the [Distributed portals
+  with Elixir](/learn/notebooks/distributed-portals-with-elixir)
+  notebook;
+
+* [Write and deploy a chat application](/learn/notebooks/deploy-apps)
+  using Livebook and learn more about our [use cases](https://hexdocs.pm/livebook/use_cases.html)
+
+* Go back [to the Learn page](/learn) and see how to use Livebook to
+  deploy apps, explore data, plot graphs, and much more;
+
+* Finally, remember Livebook is an open source project, so feel free to
+  look into [the repository](https://github.com/livebook-dev/livebook)
+  to contribute, report bugs, suggest features or just skim over the
+  codebase.
+
+Now go ahead and build something cool! 🚢

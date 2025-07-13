@@ -1,6 +1,6 @@
 {
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-24.11";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.05";
   };
 
   outputs = { self, nixpkgs }:
@@ -16,7 +16,7 @@
     devShells = supportedSystems (system: {
       default = with nixpkgs.legacyPackages.${system}; mkShell {
         packages = [
-          cue
+          livebook
         ];
       };
     });
