@@ -1,5 +1,3 @@
 # Playground
 
-Here be dragons.
-
-![Here be dragons](https://upload.wikimedia.org/wikipedia/commons/c/cd/Lenox_Globe_Dragons.png)
+![](https://github.com/user-attachments/assets/38fb3c4c-9793-4d74-a0f4-fffa147eb210)
