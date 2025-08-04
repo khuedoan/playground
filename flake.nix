@@ -17,6 +17,7 @@
       default = with nixpkgs.legacyPackages.${system}; mkShell {
         packages = [
           livebook
+          typst
         ];
       };
     });
