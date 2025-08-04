@@ -1,8 +1,0 @@
-ingress:
-  enabled: true
-  hosts:
-    - git.khuedoan.dev
-  # tls:
-  #   - secretName: git-khuedoan-tls
-  #     hosts:
-  #       - git.khuedoan.dev

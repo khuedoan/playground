@@ -1,7 +1,0 @@
-rbac:
-  buildNamespaces:
-    - drone
-
-env:
-  DRONE_RPC_SECRET: dude-this-is-just-a-playground
-  DRONE_NAMESPACE_DEFAULT: drone

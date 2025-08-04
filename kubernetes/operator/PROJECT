@@ -1,7 +1,0 @@
-domain: khuedoan.com
-repo: cloudflared
-resources:
-- group: cloudflared
-  kind: Tunnel
-  version: v1
-version: "2"
