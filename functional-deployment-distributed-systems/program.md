@@ -25,8 +25,10 @@ Design and document a **functional deployment model** that generalizes single-no
 - `functional-deployment-distributed-systems/README.md`
 - `functional-deployment-distributed-systems/flake.nix`
 - `functional-deployment-distributed-systems/.envrc`
+- `functional-deployment-distributed-systems/results.tsv`
 
 ## Stop conditions
 - Prior art is summarized with strengths and gaps.
 - A concrete model is specified (state, transitions, invariants).
 - Reproduction/documentation is sufficient for a fresh agent to continue.
+- Benchmarks can be logged append-only in `results.tsv`.

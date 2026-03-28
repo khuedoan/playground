@@ -3,6 +3,11 @@
 ## Research question
 How can we extend the core ideas of the purely functional deployment model (as established for single-node systems) into a robust deployment model for distributed systems without losing reproducibility, rollbackability, and operational safety?
 
+## Scope and assumptions
+- The target environment is a fleet of nodes running services with inter-service dependencies.
+- A central control plane computes rollout plans; node agents perform local activation.
+- We optimize for correctness and operability first, then rollout speed.
+
 ## Prior art snapshot
 
 ### 1) Purely functional deployment model (Nix)
@@ -30,6 +35,13 @@ References:
 - Flux concepts: https://fluxcd.io/flux/concepts/
 - Argo CD docs: https://argo-cd.readthedocs.io/en/stable/
 
+### 4) Raft/consensus-inspired control-plane durability (influence only)
+- Useful idea: control-plane decisions should be linearizable and replayable.
+- Gap: consensus algorithms solve replicated log agreement, not deployment semantics.
+
+Reference:
+- Raft paper site: https://raft.github.io/
+
 ---
 
 ## Proposed model: Functional Distributed Deployment Model (FDDM)
@@ -39,58 +51,128 @@ References:
 2. Add explicit distributed rollout semantics.
 3. Keep recovery simple: rollback by epoch pointer, not ad hoc repair.
 4. Maintain eventual convergence under partial failure.
+5. Keep policy explicit and machine-checkable.
 
-### Data model
-- **Spec** `S`: versioned desired system specification (topology, services, policies, rollout constraints).
-- **Compiler** `C`: pure function from `S` and inputs to deployment plan.
-- **Epoch** `E_k`: immutable deployment snapshot with:
-  - per-node closure references,
-  - rollout graph,
-  - dependency constraints,
-  - health predicates,
-  - migration actions.
-- **Runtime state** `R`: observed node health, currently active epoch pointers, progress markers.
+### Non-goals
+- FDDM is not a consensus protocol replacement.
+- FDDM does not assume zero downtime for all workloads.
+- FDDM does not force one migration strategy; it codifies safe gates.
 
-Functional view:
-- `Plan = C(S, Inputs)`
-- `E_k = materialize(Plan)`
-- Deployment is transition of pointers from `E_(k-1)` to `E_k` under policy.
+## Formalization
 
-### Execution model
+### Core objects
+- **Spec** `S`: versioned desired system specification.
+- **Inputs** `I`: pinned external inputs (artifact indexes, secrets references, topology facts).
+- **Compiler** `C`: pure function `C(S, I) -> P`.
+- **Plan** `P`: deterministic rollout graph with wave partitions and policies.
+- **Epoch** `E_k`: immutable snapshot `E_k = materialize(P)`.
+- **Node pointer** `ptr[n]`: active epoch for node `n`.
+- **Observed state** `O`: health and telemetry facts.
 
-#### Phase 1: Realization (side-effect controlled)
+### Determinism contract
+`hash(E_k)` MUST be stable for identical `(S, I)`.
+
+Operationally:
+- identical inputs yield byte-identical epoch metadata,
+- activation is pointer movement, not mutable edit-in-place.
+
+### State machine
+Global rollout state for epoch `k`:
+- `Prepared(k)`
+- `Activating(k, wave=i)`
+- `Stable(k)`
+- `Paused(k, reason)`
+- `RolledBack(k->k-1, reason)`
+
+Allowed transitions:
+- `Prepared -> Activating(0)`
+- `Activating(i) -> Activating(i+1)` when wave gate passes
+- `Activating(last) -> Stable`
+- `Activating(i) -> Paused` on policy breach
+- `Paused -> Activating(i)` on manual resume
+- `Paused/Activating -> RolledBack` on rollback decision
+
+## Execution model
+
+### Phase 1: Realization (side-effect controlled)
 - Build/fetch all required closures.
 - Validate artifact integrity and signatures.
 - Preflight dependency checks (capacity, credentials, migration compatibility).
+- Emit immutable epoch manifest and rollout graph.
 
-#### Phase 2: Activation (wave-based pointer switching)
-- Partition nodes into ordered waves.
-- For each wave:
-  1. switch node pointer to `E_k` candidate,
-  2. run readiness and invariants,
-  3. if success threshold passes, advance wave; else rollback affected wave.
+### Phase 2: Activation (wave-based pointer switching)
+For each wave `W_i`:
+1. switch `ptr[n] := k` for all `n in W_i` (candidate activation),
+2. evaluate node-local and service-level invariants,
+3. compute wave verdict from policy thresholds,
+4. advance, pause, or rollback.
 
-#### Phase 3: Stabilization (reconciliation loop)
+Policy examples:
+- max error budget consumed per wave,
+- min ready replica ratio,
+- bounded p95 latency regression.
+
+### Phase 3: Stabilization (continuous reconciliation)
 - Controller continually reconciles drift back to `E_k`.
-- If global SLO or invariant violations persist beyond threshold, demote to `E_(k-1)` or pause.
+- If global SLO or invariant violations persist past a grace window, auto-demote to `k-1` or require operator ack.
 
-### Invariants
+## Invariants
 1. **Immutability:** epoch content never changes once published.
 2. **Traceability:** every live node references an epoch ID and closure digest.
 3. **Bounded divergence:** mixed-epoch operation is allowed only within policy-defined windows.
 4. **Monotonic audit log:** all transitions append-only, with actor + reason.
 5. **Deterministic rollback target:** rollback always points to a known prior epoch.
+6. **Policy visibility:** gate decisions are explainable from stored evidence.
 
-### Failure semantics
+## Failure semantics
 - **Node failure during wave:** hold/rollback only that wave unless policy escalates.
-- **Partition:** continue in connected components only if safety predicates remain true; otherwise freeze progression.
-- **Schema migration mismatch:** gate next wave until compatibility checks pass; require explicit dual-read/dual-write window when needed.
+- **Partition:** continue only in components that still satisfy safety predicates; freeze elsewhere.
+- **Schema migration mismatch:** gate next wave until compatibility checks pass; require dual-read/dual-write windows for breaking changes.
+- **Control-plane restart:** replay append-only log to reconstruct exact rollout state.
 
-### Why this is “functional” (not only declarative)
-- Declarative desired state alone is insufficient; FDDM additionally requires:
-  - content-addressed, immutable realization artifacts,
-  - pure compilation from spec to deployable graph,
-  - epoch-based activation semantics with rollback by pointer.
+## Why this is “functional” (not only declarative)
+Declarative desired state alone is insufficient; FDDM additionally requires:
+- content-addressed, immutable realization artifacts,
+- pure compilation from spec to deployable graph,
+- epoch-based activation semantics with rollback by pointer,
+- reproducible gate decisions from persisted policy + evidence.
+
+---
+
+## Pseudocode (controller)
+
+```text
+propose(S, I):
+  P  = C(S, I)
+  Ek = materialize(P)
+  append_log(PREPARED, Ek)
+
+rollout(Ek):
+  for wave in Ek.waves:
+    append_log(WAVE_START, wave)
+    activate_candidates(wave, Ek)
+    verdict = evaluate(wave.policies, observe())
+    append_log(WAVE_VERDICT, verdict)
+    if verdict == PASS:
+      commit_wave(wave, Ek)
+    elif verdict == PAUSE:
+      append_log(PAUSED, reason)
+      return
+    else:
+      rollback_wave(wave, previous_epoch)
+      append_log(ROLLED_BACK, reason)
+      return
+  append_log(STABLE, Ek)
+```
+
+## Worked scenario
+- Fleet: 60 nodes, 3 waves of 20.
+- Wave policy: proceed if ready ratio >= 0.95 and p95 latency regression <= 10%.
+- Outcome:
+  - wave 1 passes,
+  - wave 2 fails latency gate,
+  - controller rolls wave 2 back to `E_(k-1)`, wave 3 never starts,
+  - system remains mixed-epoch only within bounded window, then converges back.
 
 ---
 
@@ -103,12 +185,14 @@ Functional view:
 - Rollback latency.
 - Failed rollout rate.
 - Drift incidents per week.
+- Policy false-positive pause rate.
 
 ### Suggested benchmark scenarios
 1. Normal rollout across 3 waves and 100 nodes.
 2. Wave-2 induced failure in 15% of nodes.
 3. Network partition splitting control plane from one zone.
 4. Backward-compatible database migration, then incompatible migration attempt.
+5. Controller crash/restart mid-wave with log replay.
 
 ### Baseline comparisons
 - Imperative script-based deployment.
@@ -120,6 +204,7 @@ Functional view:
 ## Minimal reproducible structure for follow-up
 - `program.md` defines objective, metric, constraints, and stop conditions.
 - `notes.md` is append-only progress and decisions log.
+- `results.tsv` is append-only run log for measured benchmarks.
 - This `README.md` is the current report and model proposal.
 
 ## Reproduction notes
@@ -127,7 +212,7 @@ Functional view:
 2. If using direnv + Nix:
    - `direnv allow`
    - tools from `flake.nix` become available.
-3. Continue by adding:
-   - a simulation script for rollout transitions,
-   - scenario inputs,
-   - measured MTTC outputs in an append-only `results.jsonl`.
+3. Extend the experiment by adding:
+   - a simulator for rollout state transitions,
+   - scenario fixtures,
+   - benchmark outputs appended to `results.tsv`.
