@@ -1,18 +1,11 @@
-# openclaw-rs — Research Notes
+# jarvis — Research Notes
 
 ## Objective
 
 Research and build a minimal, secure, open-source coding agent CLI in Rust,
-inspired by OpenClaw, OpenAI Codex CLI, and Pi.
+shipped as a Nix-built Docker image. Inspired by Codex CLI and Pi.
 
 ## Key Inspirations
-
-### OpenClaw
-- Personal AI assistant running on your own devices
-- Local-first gateway architecture
-- Multi-channel support (Telegram, Slack, Discord, etc.)
-- Skills system with 5,400+ community skills
-- DM pairing and allowlist security model
 
 ### Codex CLI (OpenAI)
 - Config-driven approach with `config.toml`
@@ -27,6 +20,16 @@ inspired by OpenClaw, OpenAI Codex CLI, and Pi.
 - Code review tool with structured findings
 - Conventional commit generation
 
+### The Lethal Trifecta (Simon Willison)
+- https://simonwillison.net/2025/Jun/16/the-lethal-trifecta/
+- Coding agents combine three dangerous capabilities:
+  1. Access to private data (source code, secrets)
+  2. Ability to execute code (shell commands)
+  3. Exposure to untrusted content (files, deps, LLM output)
+- This makes prompt injection attacks especially dangerous
+- Mitigations: sandbox file access, allowlist commands, container isolation,
+  network restriction (`--network=none`), approval flow for writes
+
 ## Design Decisions
 
 ### Why Rust?
@@ -36,6 +39,12 @@ inspired by OpenClaw, OpenAI Codex CLI, and Pi.
 - Excellent async ecosystem (tokio)
 - Sandboxing primitives (seccomp, landlock on Linux)
 
+### Why Nix-built Docker?
+- Reproducible builds — bit-for-bit identical images
+- Minimal image — no distro, no package manager, no shell bloat
+- Just the binary + coreutils + grep + git + CA certs
+- Easy to audit: `nix build` from source, `docker load`, done
+
 ### Architecture
 - **Single binary**: No runtime dependencies beyond the OS
 - **Config-driven**: TOML configuration for providers, tools, and policies
@@ -43,12 +52,14 @@ inspired by OpenClaw, OpenAI Codex CLI, and Pi.
 - **Streaming**: Token-by-token output for responsive UX
 - **Tool system**: Pluggable tools for file I/O, shell, and search
 - **Provider-agnostic**: Support multiple LLM backends via a unified trait
+- **Container-first**: Ship as a Docker image for OS-level isolation
 
-### Security Model
+### Security Model (addressing the lethal trifecta)
 - Directory-scoped file access (no escaping the project root)
 - Command allowlist for shell execution
-- Network isolation options for sandboxed runs
+- Docker container isolation (run with `--network=none` for full lockdown)
 - Configurable approval flow for destructive operations
+- No ambient credentials — API key via env var only
 
 ## Metrics
 - **Primary**: Binary size (lower is better, target < 10 MB release)
@@ -58,9 +69,17 @@ inspired by OpenClaw, OpenAI Codex CLI, and Pi.
 ## Log
 
 ### 2026-03-28 — Initial research and scaffolding
-- Surveyed OpenClaw, Codex CLI, and Pi architectures
+- Surveyed Codex CLI and Pi architectures
 - Chose Rust for safety, performance, and single-binary distribution
 - Designed minimal module layout: config, llm, tools, sandbox, cli
 - Implemented core scaffolding with streaming LLM client
 - Implemented sandbox with directory scoping and command allowlists
 - Implemented tool system: read_file, write_file, shell, search
+
+### 2026-03-28 — Rename, Docker image, lethal trifecta
+- Renamed from openclaw-rs to jarvis
+- Added Nix flake outputs for building the package and Docker image
+- Documented Simon Willison's lethal trifecta and how jarvis mitigates it
+- Docker image includes only: binary, coreutils, grep, find, diff, git, CA certs
+- Recommended `--network=none` for untrusted repos
+

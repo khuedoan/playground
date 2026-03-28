@@ -1,5 +1,5 @@
 [package]
-name = "openclaw-rs"
+name = "jarvis"
 version = "0.1.0"
 edition = "2024"
 description = "A minimal, secure coding agent CLI in Rust"

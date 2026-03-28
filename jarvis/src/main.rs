@@ -12,11 +12,11 @@ use clap::Parser;
 use crate::agent::Agent;
 use crate::config::Config;
 
-/// openclaw-rs — a minimal, secure coding agent CLI
+/// jarvis — a minimal, secure coding agent CLI
 #[derive(Parser, Debug)]
 #[command(version, about)]
 struct Cli {
-    /// Path to configuration file (default: openclaw.toml)
+    /// Path to configuration file (default: jarvis.toml)
     #[arg(short, long)]
     config: Option<PathBuf>,
 
@@ -54,7 +54,7 @@ async fn main() {
     }
 
     eprintln!(
-        "openclaw-rs v{} | model={} | root={}",
+        "jarvis v{} | model={} | root={}",
         env!("CARGO_PKG_VERSION"),
         config.provider.model,
         config.sandbox.root.display(),

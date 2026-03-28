@@ -2,7 +2,7 @@ use std::path::{Path, PathBuf};
 
 use serde::Deserialize;
 
-/// Top-level configuration loaded from `openclaw.toml`.
+/// Top-level configuration loaded from `jarvis.toml`.
 #[derive(Debug, Clone, Deserialize)]
 #[serde(default)]
 pub struct Config {
@@ -117,9 +117,9 @@ impl Config {
             vec![p.to_path_buf()]
         } else {
             vec![
-                PathBuf::from("openclaw.toml"),
+                PathBuf::from("jarvis.toml"),
                 dirs::config_dir()
-                    .map(|d| d.join("openclaw").join("config.toml"))
+                    .map(|d| d.join("jarvis").join("config.toml"))
                     .unwrap_or_default(),
             ]
         };
