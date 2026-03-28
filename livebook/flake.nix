@@ -3,7 +3,7 @@
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.05";
   };
 
-  outputs = { self, nixpkgs }:
+  outputs = { nixpkgs, ... }:
   let
     supportedSystems = nixpkgs.lib.genAttrs [
       "x86_64-linux"
@@ -17,7 +17,6 @@
       default = with nixpkgs.legacyPackages.${system}; mkShell {
         packages = [
           livebook
-          typst
         ];
       };
     });

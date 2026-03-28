@@ -1,3 +1,6 @@
+# direnv
+.direnv/
+
 # JavaScript
 node_modules/
 package-lock.json
