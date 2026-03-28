@@ -96,9 +96,10 @@ Additional defenses:
 
 ```sh
 cargo build --release
+# or: make build
 ```
 
-### Build (Nix)
+### Build (Nix — pure)
 
 ```sh
 # First build will fail with a hash mismatch — copy the correct hash
@@ -106,9 +107,14 @@ cargo build --release
 nix build .#jarvis
 ```
 
-### Build Docker image (Nix)
+### Build Docker image
 
 ```sh
+# Option A: Dockerfile (just needs Docker)
+docker build -t jarvis .
+# or: make docker-build
+
+# Option B: Nix-native (needs Nix on host, produces a slimmer image)
 nix build .#dockerImages.x86_64-linux.default
 docker load < result
 ```
@@ -159,12 +165,14 @@ docker run --rm -it \
   -v "$(pwd)":/work:ro \
   -e OPENAI_API_KEY \
   jarvis:latest --root /work --no-approve
+# or: make docker-run-isolated
 
 # Allow network (needed for LLM API calls in practice)
 docker run --rm -it \
   -v "$(pwd)":/work \
   -e OPENAI_API_KEY \
   jarvis:latest --root /work
+# or: make docker-run
 ```
 
 ## Results
@@ -174,8 +182,9 @@ docker run --rm -it \
 - **~1,200 lines of Rust** across 6 modules (including tests).
 - Clean separation of concerns: config → sandbox → tools → LLM → agent → CLI.
 - The sandbox successfully blocks path traversal and disallowed commands.
-- Nix flake builds the binary and produces a Docker image with no distro
-  baggage — just the binary, coreutils, grep, git, and CA certs.
+- Two Docker build paths:
+  - `Dockerfile` using NixOS base image (just needs Docker)
+  - `flake.nix` `dockerImages` output using `dockerTools.buildLayeredImage` (needs Nix, slimmer result)
 
 ## Reproduction
 
@@ -183,13 +192,17 @@ docker run --rm -it \
 cd jarvis
 
 # Test
-cargo test
+make test
 
-# Build
-cargo build --release
+# Build (native)
+make build
 ls -lh target/release/jarvis
 
-# Docker image (requires Nix on Linux)
+# Docker image (just needs Docker)
+make docker-build
+docker run --rm jarvis:latest --help
+
+# Docker image (pure Nix, requires Nix on Linux)
 nix build .#dockerImages.x86_64-linux.default
 docker load < result
 docker run --rm jarvis:latest --help

@@ -83,3 +83,12 @@ shipped as a Nix-built Docker image. Inspired by Codex CLI and Pi.
 - Docker image includes only: binary, coreutils, grep, find, diff, git, CA certs
 - Recommended `--network=none` for untrusted repos
 
+### 2026-03-28 — Dockerfile, Makefile, practical completion
+- Added standalone `Dockerfile` using `nixos/nix` base (works with just Docker)
+- Multi-stage build: NixOS builder stage + NixOS runtime stage
+- Runtime image includes only sandboxed tools: coreutils, grep, find, diff, git
+- Added `.dockerignore` to keep build context clean
+- Added `Makefile` with targets: build, test, run, docker-build, docker-run, docker-run-isolated
+- Updated README with both Docker build paths (Dockerfile vs pure Nix)
+- All 20 tests still pass
+
