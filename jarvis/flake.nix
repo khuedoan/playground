@@ -22,7 +22,8 @@
         version = "0.1.0";
         src = ./.;
         useFetchCargoVendor = true;
-        cargoHash = "";
+        # Run `nix build` once — the error will show the correct hash to paste here
+        cargoHash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
         nativeBuildInputs = [ pkgs.pkg-config ];
         buildInputs = [ pkgs.openssl ];
       };

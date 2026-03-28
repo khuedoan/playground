@@ -101,6 +101,8 @@ cargo build --release
 ### Build (Nix)
 
 ```sh
+# First build will fail with a hash mismatch — copy the correct hash
+# from the error message into flake.nix, then build again.
 nix build .#jarvis
 ```
 
