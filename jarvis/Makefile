@@ -1,4 +1,4 @@
-.PHONY: build test run docker-build docker-run clean
+.PHONY: build test run web docker-build docker-run clean
 
 build:
 	cargo build --release
@@ -8,6 +8,10 @@ test:
 
 run:
 	cargo run
+
+# Start the web UI on port 3000
+web:
+	cargo run -- --web
 
 # Build Docker image (requires network for NixOS base + deps)
 docker-build:

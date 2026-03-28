@@ -102,3 +102,13 @@ shipped as a Nix-built Docker image. Inspired by Codex CLI and Pi.
 - Updated README and notes with measured values
 - Experiment complete
 
+### 2026-03-28 — Web UI
+- Added `src/web.rs` module with axum HTTP server and embedded HTML chat UI
+- Dark-themed chat interface served at `GET /`, API at `POST /api/chat`
+- New CLI flags: `--web` (start web server) and `--port` (default 3000)
+- Agent shared via `Arc<Mutex<Agent>>` for concurrent-safe web access
+- Added `axum` dependency; `tower` + `http-body-util` as dev-deps for tests
+- 3 new tests: index returns HTML, empty message rejected, invalid JSON rejected
+- Updated Makefile with `web` target
+- 23 tests passing, zero clippy warnings
+

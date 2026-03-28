@@ -3,6 +3,7 @@ mod config;
 mod llm;
 mod sandbox;
 mod tools;
+mod web;
 
 use std::io::{self, BufRead, Write};
 use std::path::PathBuf;
@@ -35,6 +36,14 @@ struct Cli {
     /// Disable approval prompts for writes
     #[arg(long)]
     no_approve: bool,
+
+    /// Start the web UI instead of the CLI REPL
+    #[arg(long)]
+    web: bool,
+
+    /// Port for the web UI (default: 3000)
+    #[arg(long, default_value = "3000")]
+    port: u16,
 }
 
 #[tokio::main]
@@ -59,6 +68,13 @@ async fn main() {
         config.provider.model,
         config.sandbox.root.display(),
     );
+
+    // Web UI mode
+    if cli.web {
+        let agent = Agent::new(&config);
+        web::serve(agent, cli.port).await;
+        return;
+    }
 
     let mut agent = Agent::new(&config);
 
@@ -106,4 +122,3 @@ async fn main() {
         }
     }
 }
-

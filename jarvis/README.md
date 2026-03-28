@@ -20,6 +20,8 @@ untrusted content — while keeping the implementation small?
 
 ```
 ┌────────────┐
+│  Web UI    │  axum + embedded HTML/JS chat
+├────────────┤
 │   CLI/REPL │  clap + tokio
 ├────────────┤
 │   Agent    │  conversation loop with tool dispatch
@@ -156,6 +158,21 @@ jarvis --model claude-sonnet-4-20250514
 jarvis --no-approve
 ```
 
+### Run (web UI)
+
+```sh
+export OPENAI_API_KEY="sk-..."
+
+# Start web UI on default port 3000
+jarvis --web
+# or: make web
+
+# Custom port
+jarvis --web --port 8080
+```
+
+Open `http://localhost:3000` in your browser to chat with the agent.
+
 ### Run (Docker — recommended for untrusted repos)
 
 ```sh
@@ -177,14 +194,15 @@ docker run --rm -it \
 
 ## Results
 
-- **20 tests** covering config parsing, sandbox path confinement, command
-  allowlisting, tool dispatch, and serialization.
-- **1,183 lines of Rust** across 6 modules (including tests).
+- **23 tests** covering config parsing, sandbox path confinement, command
+  allowlisting, tool dispatch, serialization, and web UI routes.
+- **~1,400 lines of Rust** across 7 modules (including tests).
 - **9.1 MB** release binary (x86_64-linux), under the 10 MB target.
 - **4 ms** cold start (`--help`), well under the 100 ms target.
 - Zero clippy warnings.
-- Clean separation of concerns: config → sandbox → tools → LLM → agent → CLI.
+- Clean separation of concerns: config → sandbox → tools → LLM → agent → CLI/web.
 - The sandbox successfully blocks path traversal and disallowed commands.
+- Web UI with embedded HTML chat interface (no external assets).
 - Two Docker build paths:
   - `Dockerfile` using NixOS base image (just needs Docker)
   - `flake.nix` `dockerImages` output using `dockerTools.buildLayeredImage` (needs Nix, slimmer result)
@@ -220,6 +238,6 @@ Potential extensions (not in scope for this experiment):
 - [ ] Multi-provider support with native Anthropic/Google APIs
 - [ ] Linux sandboxing via Landlock/seccomp (defense in depth inside container)
 - [ ] Conversation persistence and session resume
-- [ ] TUI with syntax-highlighted diffs
+- [x] ~~TUI with syntax-highlighted diffs~~ → Web UI added (`--web`)
 - [ ] Network egress firewall — allow only the LLM API endpoint
 
