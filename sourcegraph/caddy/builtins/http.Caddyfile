@@ -1,0 +1,11 @@
+# Routes all plain http requests to sourcegraph-frontend - suitable for local testing.
+#
+# Caddyfile documentation: https://caddyserver.com/docs/caddyfile
+
+:80
+
+# Only configure trusted_proxies when Caddy sits behind a known reverse proxy.
+# Add only that proxy's IPs or CIDR ranges here.
+reverse_proxy {
+	to {$SRC_FRONTEND_ADDRESSES}
+}

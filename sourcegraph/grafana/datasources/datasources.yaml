@@ -1,0 +1,14 @@
+apiVersion: 1
+
+deleteDatasources:
+  - name: Jaeger
+
+datasources:
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    editable: false
+  # Add a trace datasource only after wiring a compatible query backend
+  # such as Jaeger or Tempo into this compose stack.

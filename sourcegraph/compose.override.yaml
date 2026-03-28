@@ -1,0 +1,96 @@
+# Put local Sourcegraph customizations in this file so the base manifest
+# stays aligned with the upstream release layout for easier upgrades.
+#
+services:
+  caddy:
+    cpus: 0.5
+    mem_limit: '512m'
+
+  sourcegraph-frontend-0:
+    cpus: 1
+    mem_limit: '2g'
+
+  sourcegraph-frontend-internal:
+    cpus: 1
+    mem_limit: '2g'
+
+  gitserver-0:
+    cpus: 1
+    mem_limit: '2g'
+
+  zoekt-indexserver-0:
+    cpus: 1
+    mem_limit: '2g'
+
+  zoekt-webserver-0:
+    cpus: 1
+    mem_limit: '2g'
+    # The image's tini wrapper fails under Colima, so invoke zoekt directly.
+    entrypoint:
+      - zoekt-webserver
+    command:
+      - -index
+      - /data/index
+      - -pprof
+      - -rpc
+      - -indexserver_proxy
+
+  searcher-0:
+    cpus: 0.5
+    mem_limit: '1g'
+
+  precise-code-intel-worker:
+    cpus: 0.5
+    mem_limit: '1g'
+
+  worker:
+    cpus: 1
+    mem_limit: '1g'
+
+  syntactic-code-intel-worker:
+    cpus: 0.5
+    mem_limit: '1g'
+
+  syntect-server:
+    cpus: 1
+    mem_limit: '1g'
+
+  prometheus:
+    cpus: 0.5
+    mem_limit: '1g'
+
+  grafana:
+    cpus: 0.25
+    mem_limit: '512m'
+
+  cadvisor:
+    cpus: 0.25
+    mem_limit: '512m'
+
+  node-exporter:
+    cpus: 0.1
+    mem_limit: '256m'
+
+  pgsql:
+    cpus: 1
+    mem_limit: '2g'
+
+  codeintel-db:
+    cpus: 1
+    mem_limit: '2g'
+
+  codeinsights-db:
+    cpus: 0.5
+    mem_limit: '1g'
+
+  blobstore:
+    cpus: 0.25
+    mem_limit: '512m'
+
+  redis-store:
+    cpus: 0.25
+    mem_limit: '512m'
+
+  redis-cache:
+    cpus: 0.25
+    mem_limit: '512m'
