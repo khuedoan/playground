@@ -68,6 +68,7 @@ pub struct StreamChunk {
 #[derive(Debug, Deserialize)]
 pub struct StreamChoice {
     pub delta: DeltaContent,
+    #[allow(dead_code)]
     pub finish_reason: Option<String>,
 }
 

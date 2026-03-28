@@ -210,6 +210,7 @@ impl Sandbox {
     }
 
     /// Returns the sandbox root path.
+    #[allow(dead_code)]
     pub fn root(&self) -> &Path {
         &self.root
     }

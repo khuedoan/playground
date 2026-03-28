@@ -105,6 +105,7 @@ impl Agent {
     }
 
     /// Return a reference to the sandbox for external use.
+    #[allow(dead_code)]
     pub fn sandbox(&self) -> &Sandbox {
         &self.sandbox
     }

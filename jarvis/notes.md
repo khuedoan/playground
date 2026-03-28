@@ -92,3 +92,13 @@ shipped as a Nix-built Docker image. Inspired by Codex CLI and Pi.
 - Updated README with both Docker build paths (Dockerfile vs pure Nix)
 - All 20 tests still pass
 
+### 2026-03-28 — Clippy cleanup, metrics measured
+- Fixed all clippy warnings (derivable_impls, dead_code annotations)
+- Zero warnings on `cargo clippy` and `cargo test`
+- Measured metrics on x86_64-linux:
+  - Binary size: **9.1 MB** release (target < 10 MB ✅)
+  - Cold start: **4 ms** `--help` (target < 100ms ✅)
+  - Lines of code: **1,183** across 6 modules
+- Updated README and notes with measured values
+- Experiment complete
+

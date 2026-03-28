@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 use serde::Deserialize;
 
 /// Top-level configuration loaded from `jarvis.toml`.
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Default, Deserialize)]
 #[serde(default)]
 pub struct Config {
     pub provider: ProviderConfig,
@@ -49,16 +49,6 @@ pub struct AgentConfig {
 }
 
 // ── Defaults ────────────────────────────────────────────────────────────
-
-impl Default for Config {
-    fn default() -> Self {
-        Self {
-            provider: ProviderConfig::default(),
-            sandbox: SandboxConfig::default(),
-            agent: AgentConfig::default(),
-        }
-    }
-}
 
 impl Default for ProviderConfig {
     fn default() -> Self {
