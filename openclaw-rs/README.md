@@ -117,7 +117,7 @@ cargo run -- --no-approve
 
 - **20 tests** covering config parsing, sandbox path confinement, command
   allowlisting, tool dispatch, and serialization.
-- **~600 lines of Rust** across 6 modules.
+- **~1,200 lines of Rust** across 6 modules (including tests).
 - Clean separation of concerns: config → sandbox → tools → LLM → agent → CLI.
 - The sandbox successfully blocks path traversal and disallowed commands.
 
