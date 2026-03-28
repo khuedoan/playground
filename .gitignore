@@ -11,4 +11,8 @@ package-lock.json
 
 # Go
 
+# Rust
+target/
+Cargo.lock
+
 # Terraform
