@@ -107,8 +107,7 @@ services:
       # Uncomment / update the following line when using HTTPS with custom certificates
       # - '/LOCAL/KEY/PATH.key:/sourcegraph.key'
     ports:
-      - '0.0.0.0:80:80'
-      - '0.0.0.0:443:443'
+      - '${SOURCEGRAPH_BIND_ADDRESS:-127.0.0.1}:${SOURCEGRAPH_HTTP_PORT:-7080}:80'
     networks:
       - sourcegraph
     restart: always
@@ -427,7 +426,7 @@ services:
       - 'prometheus-v2:/prometheus'
       - './prometheus:/sg_prometheus_add_ons'
     ports:
-      - '0.0.0.0:9090:9090'
+      - '${PROMETHEUS_BIND_ADDRESS:-127.0.0.1}:${PROMETHEUS_PORT:-9090}:9090'
     networks:
       - sourcegraph
     restart: always

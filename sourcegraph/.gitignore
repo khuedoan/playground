@@ -1,0 +1,7 @@
+.env
+.bin/
+.direnv/
+.state/
+.venv/
+__pycache__/
+*.pyc

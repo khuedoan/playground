@@ -1,0 +1,28 @@
+set shell := ["bash", "-euo", "pipefail", "-c"]
+
+compose := "docker compose --env-file .env -f compose.yaml -f compose.override.yaml"
+
+bootstrap-env:
+    if [[ ! -f .env ]]; then cp .env.example .env; echo "Created .env from .env.example"; fi
+
+up: bootstrap-env
+    if ! colima status >/dev/null 2>&1; then source .env; colima start --cpu "${COLIMA_CPU:-4}" --memory "${COLIMA_MEMORY:-16}" --disk "${COLIMA_DISK:-400}"; fi
+    {{compose}} up -d --build
+
+down: bootstrap-env
+    {{compose}} down --remove-orphans
+
+ps: bootstrap-env
+    {{compose}} ps
+
+status: bootstrap-env
+    ./bin/status.sh
+
+smoke: bootstrap-env
+    ./bin/smoke.py
+
+init: bootstrap-env
+    ./bin/init-sourcegraph.sh
+
+logs service="sourcegraph-frontend-0": bootstrap-env
+    {{compose}} logs -f {{service}}

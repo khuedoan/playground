@@ -1,7 +1,8 @@
 # Sourcegraph Docker Compose on Colima
 
 This experiment tracks a local Sourcegraph deployment based on the upstream
-Docker Compose layout for Sourcegraph `7.0.2852`.
+Docker Compose layout for Sourcegraph `7.0.2852`, with a small local override
+for Colima and a file-backed site config for reproducible local auth.
 
 ## Objective
 
@@ -16,7 +17,7 @@ Primary metric:
 
 ## Current Result
 
-Validated on March 28, 2026:
+Validated on March 30, 2026:
 
 - `docker compose config` renders cleanly with the local override.
 - `http://127.0.0.1/` responds with `302` to `/sign-in`, so the frontend is
@@ -25,6 +26,13 @@ Validated on March 28, 2026:
   the local fixes in `compose.override.yaml`.
 - Grafana provisions the local datasources without keeping the stale Jaeger
   datasource.
+- `site-config.json` is applied through `SITE_CONFIG_FILE`, so Sourcegraph now
+  advertises `http://127.0.0.1:7080` as `externalURL` instead of the
+  unconfigured placeholder URL.
+- Builtin auth works again on the local HTTP endpoint.
+- The local MCP bridge can authenticate with Sourcegraph and `list_repos`
+  succeeds. It currently returns no repositories because code hosts have not
+  been configured yet.
 
 Known issue:
 
@@ -37,7 +45,8 @@ Known issue:
 From [`sourcegraph`](/Users/khuedoan/Documents/playground/sourcegraph):
 
 ```bash
-docker compose up -d
+docker compose up -d --build
+./bin/init-sourcegraph.sh
 curl -I http://127.0.0.1/
 docker compose ps
 ```
