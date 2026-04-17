@@ -73,7 +73,13 @@ services:
   # k3s — lightweight Kubernetes cluster with FluxCD
   k3s:
     image: rancher/k3s:v1.31.4-k3s1
-    command: server --disable traefik --tls-san k3s --tls-san localhost
+    command: >
+      server
+      --disable traefik
+      --tls-san k3s
+      --tls-san localhost
+      --flannel-backend host-gw
+      --write-kubeconfig-mode 644
     privileged: true
     environment:
       - K3S_KUBECONFIG_OUTPUT=/output/kubeconfig.yaml
