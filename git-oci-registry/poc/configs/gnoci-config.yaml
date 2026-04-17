@@ -1,0 +1,9 @@
+apiVersion: gnoci.act3-ai.io/v1alpha1
+kind: Configuration
+
+registryConfig:
+  registries:
+    zot:5000:
+      plainHTTP: true
+    localhost:5000:
+      plainHTTP: true

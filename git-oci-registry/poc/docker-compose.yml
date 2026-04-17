@@ -46,7 +46,8 @@ services:
   # Webhook server — receives trigger requests, starts Temporal workflows
   webhook-server:
     build:
-      context: ./cicd
+      context: .
+      dockerfile: cicd/Dockerfile
     command: ["serve"]
     depends_on:
       - temporal
@@ -60,7 +61,8 @@ services:
   # Temporal worker — executes repackage workflows (gnoci clone → flux push)
   worker:
     build:
-      context: ./cicd
+      context: .
+      dockerfile: cicd/Dockerfile
     command: ["worker"]
     depends_on:
       - temporal

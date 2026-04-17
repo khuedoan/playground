@@ -1,9 +1,9 @@
-FROM golang:1.22-bookworm AS build
+FROM golang:1.26-bookworm AS build
 
 WORKDIR /app
-COPY go.mod go.sum ./
+COPY cicd/go.mod cicd/go.sum ./
 RUN go mod download
-COPY *.go ./
+COPY cicd/*.go ./
 RUN CGO_ENABLED=0 go build -o /cicd .
 
 # Install gnoci (git-remote-oci)
@@ -17,10 +17,17 @@ RUN apt-get update && apt-get install -y \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Install flux CLI
-RUN curl -sL https://fluxcd.io/install.sh | bash
+# Install flux CLI (direct download from GitHub)
+RUN curl -sLo /tmp/flux.tar.gz https://github.com/fluxcd/flux2/releases/download/v2.8.5/flux_2.8.5_linux_amd64.tar.gz && \
+    tar xzf /tmp/flux.tar.gz -C /usr/local/bin flux && \
+    rm /tmp/flux.tar.gz && \
+    flux --version
 
 COPY --from=build /cicd /usr/local/bin/cicd
 COPY --from=build /go/bin/git-remote-oci /usr/local/bin/
+
+# gnoci config for plain HTTP registries
+RUN mkdir -p /root/.config/gnoci
+COPY configs/gnoci-config.yaml /root/.config/gnoci/config.yaml
 
 ENTRYPOINT ["cicd"]

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"time"
 
 	"go.temporal.io/sdk/client"
 )
@@ -19,9 +20,18 @@ type TriggerRequest struct {
 
 func runServer() {
 	temporalAddr := getEnv("TEMPORAL_ADDRESS", "temporal:7233")
-	c, err := client.Dial(client.Options{HostPort: temporalAddr})
+	var c client.Client
+	var err error
+	for i := 0; i < 30; i++ {
+		c, err = client.Dial(client.Options{HostPort: temporalAddr})
+		if err == nil {
+			break
+		}
+		log.Printf("Waiting for Temporal (%d/30): %v", i+1, err)
+		time.Sleep(2 * time.Second)
+	}
 	if err != nil {
-		log.Fatalf("Failed to connect to Temporal: %v", err)
+		log.Fatalf("Failed to connect to Temporal after retries: %v", err)
 	}
 	defer c.Close()
 
