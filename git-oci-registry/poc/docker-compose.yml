@@ -1,0 +1,90 @@
+services:
+  # OCI Registry (Zot) — stores both gnoci git artifacts and Flux OCI artifacts
+  zot:
+    image: ghcr.io/project-zot/zot-linux-amd64:v2.1.1
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./configs/zot.json:/etc/zot/config.json:ro
+      - zot-data:/var/lib/registry
+
+  # Temporal database
+  temporal-db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: temporal
+      POSTGRES_PASSWORD: temporal
+      POSTGRES_DB: temporal
+    volumes:
+      - temporal-db:/var/lib/postgresql/data
+
+  # Temporal server (auto-setup creates the DB schema)
+  temporal:
+    image: temporalio/auto-setup:1.25.2
+    depends_on:
+      - temporal-db
+    environment:
+      - DB=postgres12
+      - DB_PORT=5432
+      - POSTGRES_USER=temporal
+      - POSTGRES_PWD=temporal
+      - POSTGRES_SEEDS=temporal-db
+    ports:
+      - "7233:7233"
+
+  # Temporal Web UI
+  temporal-ui:
+    image: temporalio/ui:2.32.0
+    depends_on:
+      - temporal
+    environment:
+      - TEMPORAL_ADDRESS=temporal:7233
+      - TEMPORAL_CORS_ORIGINS=http://localhost:8233
+    ports:
+      - "8233:8080"
+
+  # Webhook server — receives trigger requests, starts Temporal workflows
+  webhook-server:
+    build:
+      context: ./cicd
+    command: ["serve"]
+    depends_on:
+      - temporal
+    environment:
+      - TEMPORAL_ADDRESS=temporal:7233
+      - OCI_REGISTRY=zot:5000
+      - OCI_REPOSITORY=demo/myapp
+    ports:
+      - "8080:8080"
+
+  # Temporal worker — executes repackage workflows (gnoci clone → flux push)
+  worker:
+    build:
+      context: ./cicd
+    command: ["worker"]
+    depends_on:
+      - temporal
+      - zot
+    environment:
+      - TEMPORAL_ADDRESS=temporal:7233
+
+  # k3s — lightweight Kubernetes cluster with FluxCD
+  k3s:
+    image: rancher/k3s:v1.31.4-k3s1
+    command: server --disable traefik --tls-san k3s --tls-san localhost
+    privileged: true
+    environment:
+      - K3S_KUBECONFIG_OUTPUT=/output/kubeconfig.yaml
+      - K3S_KUBECONFIG_MODE=644
+    volumes:
+      - ./configs/k3s-registries.yaml:/etc/rancher/k3s/registries.yaml:ro
+      - k3s-data:/var/lib/rancher/k3s
+      - kubeconfig:/output
+    ports:
+      - "6443:6443"
+
+volumes:
+  zot-data:
+  temporal-db:
+  k3s-data:
+  kubeconfig:
