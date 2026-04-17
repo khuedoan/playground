@@ -1,0 +1,2 @@
+date	scenario	nodes	waves	injected_fault	result	mttc_seconds	rollback_latency_seconds	failed_rollout	notes
+2026-03-28	baseline-template	0	0	none	not-run	NA	NA	NA	Template row for future append-only benchmark runs.
