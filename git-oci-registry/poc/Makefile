@@ -1,17 +1,17 @@
 .PHONY: up down init demo verify logs clean push trigger
 
-# Start all services
+# Start all services (Zot, Temporal, webhook server, worker)
 up:
 	docker compose up -d --build
 	@echo ""
-	@echo "Services starting. Wait ~30s for Temporal to initialize, then run:"
+	@echo "Services starting. Wait ~60s for Temporal to initialize, then run:"
 	@echo "  make init"
 
 # Stop all services
 down:
 	docker compose down
 
-# Initialize k3s with FluxCD
+# Initialize k3d cluster with FluxCD (requires k3d, kubectl, flux CLI)
 init:
 	./scripts/init-k3s.sh
 
@@ -40,7 +40,8 @@ trigger:
 
 # Check deployment status
 verify:
-	@export KUBECONFIG=./kubeconfig.yaml && \
+	@KUBECONFIG=$$(k3d kubeconfig write poc 2>/dev/null || echo ./kubeconfig.yaml) && \
+	export KUBECONFIG && \
 	echo "=== OCI Repository ===" && \
 	kubectl -n flux-system get ocirepository sample-app -o wide 2>/dev/null || echo "(not found)" && \
 	echo "" && \
@@ -66,7 +67,8 @@ logs-webhook:
 logs-temporal:
 	docker compose logs -f temporal
 
-# Clean up everything including volumes
+# Clean up everything including volumes and k3d cluster
 clean:
 	docker compose down -v
+	k3d cluster delete poc 2>/dev/null || true
 	rm -f kubeconfig.yaml

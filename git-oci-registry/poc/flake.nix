@@ -21,6 +21,7 @@
             # Kubernetes
             kubectl
             fluxcd
+            k3d
             k9s
 
             # Go (for building cicd binary locally)

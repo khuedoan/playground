@@ -6,7 +6,12 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 POC_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 
-export KUBECONFIG="$POC_DIR/kubeconfig.yaml"
+# Use k3d kubeconfig if available
+if command -v k3d &>/dev/null && k3d cluster list 2>/dev/null | grep -q poc; then
+  export KUBECONFIG=$(k3d kubeconfig write poc 2>/dev/null)
+elif [ -f "$POC_DIR/kubeconfig.yaml" ]; then
+  export KUBECONFIG="$POC_DIR/kubeconfig.yaml"
+fi
 
 echo "============================================"
 echo " Git-OCI-Registry Hybrid PoC Demo"

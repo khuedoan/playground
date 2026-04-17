@@ -5,7 +5,7 @@ Proof of concept for **Option C: gnoci for developers + Flux native OCI for GitO
 ## Architecture
 
 ```
-Developer                    Zot Registry              Temporal            k3s + FluxCD
+Developer                    Zot Registry              Temporal            k3d + FluxCD
    │                            │                         │                    │
    │ git push (gnoci)           │                         │                    │
    │ ──────────────────────────>│ demo/myapp:main         │                    │
@@ -21,7 +21,9 @@ Developer                    Zot Registry              Temporal            k3s +
    │                            │                         │                    │ deploy
 ```
 
-## Components (Docker Compose)
+## Components
+
+### Docker Compose services
 
 | Service | Description |
 |---------|-------------|
@@ -31,15 +33,21 @@ Developer                    Zot Registry              Temporal            k3s +
 | **temporal-ui** | Temporal Web UI |
 | **webhook-server** | HTTP server that receives triggers and starts Temporal workflows |
 | **worker** | Temporal worker that executes the repackage workflow (gnoci clone → flux push) |
-| **k3s** | Lightweight Kubernetes with FluxCD |
+
+### External (managed by k3d)
+
+| Component | Description |
+|-----------|-------------|
+| **k3d cluster** | Lightweight k3s-in-Docker cluster connected to the compose network |
+| **FluxCD** | Source controller + kustomize controller for OCI-based GitOps |
 
 ## Quick Start
 
 ```bash
-# Start all services
+# Start CI/CD services
 make up
 
-# Wait ~60s for Temporal to initialize, then bootstrap k3s with FluxCD
+# Wait ~60s for Temporal to initialize, then create k3d cluster with FluxCD
 make init
 
 # Run the full demo
@@ -80,10 +88,17 @@ curl http://localhost:5000/v2/_catalog
 # Should show: demo/myapp (gnoci) and demo/myapp-manifests (Flux OCI)
 ```
 
+## Prerequisites
+
+- Docker & Docker Compose
+- [k3d](https://k3d.io/) (for Kubernetes cluster)
+- [flux](https://fluxcd.io/flux/installation/) CLI
+- [gnoci](https://github.com/act3-ai/gnoci) (`go install github.com/act3-ai/gnoci/cmd/git-remote-oci@latest`)
+- kubectl
+
 ## Ports
 
 - `5000` — Zot OCI registry
-- `6443` — k3s Kubernetes API
 - `7233` — Temporal gRPC
 - `8080` — Webhook server
 - `8233` — Temporal Web UI
@@ -93,10 +108,12 @@ curl http://localhost:5000/v2/_catalog
 1. ✅ gnoci push from host to Zot registry
 2. ✅ Webhook trigger → Temporal workflow started
 3. ✅ Worker: gnoci clone from OCI → flux push artifact → Flux OCI artifact in Zot
-4. ⚠️ k3s FluxCD reconciliation requires image pre-loading in Docker-in-Docker environments
+4. ✅ FluxCD OCIRepository + Kustomization configured and reconciling
 
 ## Notes
 
 - gnoci requires a config file for plain HTTP registries (`~/.config/gnoci/config.yaml`)
 - The worker container includes both `git-remote-oci` (gnoci) and `flux` CLI
 - Temporal provides durable workflow execution with automatic retries
+- k3s needs `privileged: true` and `tmpfs` mounts when running inside Docker
+- See [notes.md](notes.md) for detailed findings and failed approaches

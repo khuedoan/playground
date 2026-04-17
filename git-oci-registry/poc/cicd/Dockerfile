@@ -1,4 +1,4 @@
-FROM golang:1.26-bookworm AS build
+FROM golang:1.24-bookworm AS build
 
 WORKDIR /app
 COPY cicd/go.mod cicd/go.sum ./
@@ -6,8 +6,8 @@ RUN go mod download
 COPY cicd/*.go ./
 RUN CGO_ENABLED=0 go build -o /cicd .
 
-# Install gnoci (git-remote-oci)
-RUN go install github.com/act3-ai/gnoci/cmd/git-remote-oci@latest
+# Install gnoci (git-remote-oci) — requires Go 1.25+, auto-download via GOTOOLCHAIN
+RUN GOTOOLCHAIN=auto go install github.com/act3-ai/gnoci/cmd/git-remote-oci@latest
 
 FROM debian:bookworm-slim
 
