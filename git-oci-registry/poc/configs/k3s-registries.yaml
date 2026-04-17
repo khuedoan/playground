@@ -1,0 +1,8 @@
+mirrors:
+  "zot:5000":
+    endpoint:
+      - "http://zot:5000"
+configs:
+  "zot:5000":
+    tls:
+      insecure_skip_verify: true
