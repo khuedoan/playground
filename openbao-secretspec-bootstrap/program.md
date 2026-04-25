@@ -1,7 +1,7 @@
 # Session Program: OpenBao + SecretSpec Bootstrap
 
 ## Objective
-Create a minimal, reproducible bootstrap that runs OpenBao in dev mode, seeds one secret, and stores a matching SecretSpec manifest template.
+Create a one-command OpenBao bootstrap that seeds secrets for a new or existing cluster, including both generated and copy-pasted third-party values.
 
 ## Primary Metric
 - **Metric name:** Bootstrap lead time
@@ -10,10 +10,11 @@ Create a minimal, reproducible bootstrap that runs OpenBao in dev mode, seeds on
 
 ## Constraints
 - Keep all artifacts inside this experiment directory.
-- Prefer plain shell scripts and simple YAML.
-- Avoid external orchestration beyond local CLI tooling.
+- Prefer plain shell + JSON for portability.
+- Make the bootstrap usable in non-Nix environments too.
 
 ## Files in Scope
+- `bootstrap-secrets.json`
 - `flake.nix`
 - `.envrc`
 - `justfile`
@@ -25,8 +26,7 @@ Create a minimal, reproducible bootstrap that runs OpenBao in dev mode, seeds on
 - `README.md`
 
 ## Stop Conditions
-- Bootstrap script starts OpenBao dev server instructions successfully.
-- One sample secret path and values are defined.
-- SecretSpec template references the same path and keys.
-- Reproduction steps are documented.
-- Smoke test proves round-trip read of seeded values.
+- Single command bootstraps a local cluster and seeds secrets.
+- Same command works for existing clusters via env vars.
+- Secret plan supports generated and copy-pasted values.
+- Smoke test validates round-trip reads on seeded paths.

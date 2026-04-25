@@ -3,31 +3,30 @@
 ## 2026-04-25
 
 ### Objective
-Build a minimal OpenBao + SecretSpec bootstrap that is easy to rerun locally.
+Build a one-command OpenBao bootstrap for a new cluster that can handle both generated secrets and copy-pasted third-party secrets.
 
 ### Baseline
-No experiment directory or bootstrap assets existed yet.
+Initial version could seed only a fixed sample secret and did not model manual secret intake explicitly.
 
 ### What I tried
-1. Created a new isolated experiment directory.
-2. Added a Nix flake dev shell with OpenBao and utility CLIs.
-3. Added a shell bootstrap script that:
-   - starts OpenBao dev mode,
-   - seeds one kv-v2 secret,
-   - prints redacted output.
-4. Added a SecretSpec example manifest aligned to the seeded secret path.
-5. Added a `justfile` for common run/status/stop tasks.
-6. Added a local installer (`scripts/install-openbao.sh`) for environments without Nix.
-7. Added a smoke test (`scripts/smoke-test.sh`) that boots OpenBao and validates round-trip reads.
+1. Reworked `scripts/bootstrap.sh` into a one-command orchestrator.
+2. Added auto-install fallback for `bao` CLI when missing (`AUTO_INSTALL_BAO=1`).
+3. Added JSON-driven secret plan (`bootstrap-secrets.json`) with per-field strategies:
+   - `literal`
+   - `generate` (`password` / `uuid`)
+   - `env` (env var or interactive prompt)
+4. Added `bootstrap-existing` flow (`START_DEV=0`) for remote/pre-existing clusters.
+5. Expanded smoke test to validate both generated and env-provided secrets.
 
 ### Key metric
-- Bootstrap lead time: **not measured yet** (seconds, lower is better).
+- Bootstrap lead time: not measured yet (seconds, lower is better).
 
 ### Results
-- Smoke test succeeded end-to-end with OpenBao `v2.5.3` binary installed in `./.tools/bin/bao`.
+- End-to-end smoke test passed with local OpenBao v2.5.3.
+- Confirmed one-command bootstrap can seed multiple secret paths with mixed generation and copy-paste sources.
 
 ### Failed attempts / issues
-- `nix` and `just` were not preinstalled in the environment, so the fallback installer path was needed for runtime validation.
+- `nix`/`just` not available in this environment, so validation used direct shell scripts and local installer.
 
 ### Decision
-Keep this first version intentionally small and text-based; defer advanced auth/policy automation until baseline execution is confirmed.
+Keep JSON + jq for portability in minimal environments; defer advanced policy/app-role bootstrap to a follow-up iteration.
