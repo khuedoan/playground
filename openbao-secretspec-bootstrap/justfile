@@ -1,0 +1,13 @@
+set shell := ["bash", "-euo", "pipefail", "-c"]
+
+bootstrap:
+  ./scripts/bootstrap.sh
+
+status:
+  BAO_ADDR=http://127.0.0.1:8200 openbao status
+
+show-secret:
+  BAO_ADDR=http://127.0.0.1:8200 BAO_TOKEN=dev-only-root-token openbao kv get apps/payments/api
+
+stop:
+  pkill -f "openbao server -dev" || true
