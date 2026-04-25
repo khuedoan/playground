@@ -1,5 +1,19 @@
 # OpenBao + SecretSpec Bootstrap (Simple)
 
+## Quick Summary (How Everything Works)
+`./scripts/bootstrap.sh` is the single entrypoint. On each run it:
+
+1. Finds an OpenBao CLI (`BAO_BIN`, PATH, or `./.tools/bin/bao`), and auto-installs one if missing.
+2. Connects to `BAO_ADDR`; if unreachable and `START_DEV=1`, it starts a local dev server.
+3. Ensures the configured KV v2 mount exists (default: `apps`).
+4. Loads `bootstrap-secrets.json` and processes each field by strategy:
+   - `literal`: use value as-is,
+   - `generate`: create value at runtime (`password` or `uuid`),
+   - `env`: read from environment variable or prompt for paste input.
+5. Writes each secret path into OpenBao with `kv put`.
+
+The smoke test (`./scripts/smoke-test.sh`) runs this flow non-interactively with test env vars, then reads back values to verify bootstrap correctness.
+
 ## Question
 How can we bootstrap a new OpenBao cluster with **one command**, including both:
 - randomly generated secrets, and
