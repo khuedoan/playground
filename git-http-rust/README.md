@@ -3,25 +3,23 @@
 Minimal **Git Smart HTTP** server in Rust for the first milestone of a self-hosted Git + PaaS platform.
 
 ## Question
-Can we stand up a simple, no-auth Git HTTP server in Rust that is compatible with basic clone/fetch flows?
+Can we stand up a simple, no-auth Git HTTP server in Rust that works with standard `git clone`, `git pull`, and `git push`?
 
 ## Setup
 - Runtime: Tokio
 - HTTP framework: Axum
-- Git protocol handling: delegates to `git upload-pack --stateless-rpc`
+- Git protocol handling: delegates to `git http-backend` (CGI bridge)
 - Repository storage: local bare repos under a configurable directory (`--repos-root`)
 
 ## What this version supports
 - `GET /healthz`
-- `GET /:repo/info/refs?service=git-upload-pack`
-- `POST /:repo/git-upload-pack`
-
-This is enough for the read side of Smart HTTP (clone/fetch) for a repository name like `demo.git` located in `repos/demo.git`.
+- Git Smart HTTP read + write via `git http-backend`:
+  - upload-pack (clone/fetch/pull)
+  - receive-pack (push)
 
 ## What this version does not support (yet)
 - Authentication / authorization
-- Push (`git-receive-pack`)
-- Multi-segment repo paths (`org/repo.git`)
+- Multi-tenant access controls
 - Web UI or PaaS deployment features
 
 ## Run
@@ -32,26 +30,44 @@ make run
 
 Default bind is `127.0.0.1:8080` and repos root is `./repos`.
 
-## Quick local demo
+## Quick local demo (clone + push + pull)
 
 ```bash
-# 1) Create a bare repository under repos/
-mkdir -p repos
-git init --bare repos/demo.git
+# 1) Start clean
+rm -rf repos tmp
+mkdir -p repos tmp
 
-# 2) Run the server
+# 2) Create remote bare repository
+git init --bare repos/demo.git
+git -C repos/demo.git config http.receivepack true
+git -C repos/demo.git symbolic-ref HEAD refs/heads/main
+
+# 3) Run server
 cargo run -- --listen 127.0.0.1:8080 --repos-root ./repos
 
-# 3) In another terminal, clone via Smart HTTP
-git clone http://127.0.0.1:8080/demo.git
+# 4) In another terminal: clone, commit, push, and pull
+cd tmp
+git clone http://127.0.0.1:8080/demo.git writer
+cd writer
+git config user.name "Dev"
+git config user.email "dev@example.com"
+echo "hello" > README.md
+git add README.md
+git commit -m "init"
+git push origin HEAD:main
+
+cd ..
+git clone http://127.0.0.1:8080/demo.git reader
+cd reader
+git pull --ff-only origin main
 ```
 
 ## Reproduce checks
 
 ```bash
 make test
-curl -i http://127.0.0.1:8080/healthz
+make e2e
 ```
 
 ## Primary metric
-- Clone success rate (successful clone attempts / total attempts), where higher is better.
+- End-to-end Git operation success rate (`clone + push + pull` successful runs / total runs), where higher is better.

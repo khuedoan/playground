@@ -1,16 +1,16 @@
-use std::{collections::HashMap, net::SocketAddr, path::PathBuf, process::Stdio};
+use std::{net::SocketAddr, path::PathBuf, process::Stdio};
 
 use axum::{
     body::Bytes,
-    extract::{Path, Query, State},
-    http::{header, HeaderMap, HeaderValue, StatusCode},
+    extract::{OriginalUri, Path, State},
+    http::{HeaderMap, HeaderName, HeaderValue, Method, StatusCode},
     response::{IntoResponse, Response},
-    routing::{get, post},
+    routing::{any, get},
     Router,
 };
 use clap::Parser;
 use tokio::{io::AsyncWriteExt, process::Command};
-use tracing::{error, info, warn};
+use tracing::{error, info};
 
 #[derive(Debug, Clone)]
 struct AppState {
@@ -20,14 +20,14 @@ struct AppState {
 #[derive(Debug, Parser)]
 #[command(
     name = "git-http-rust",
-    about = "Minimal Git Smart HTTP server (upload-pack only, no auth)"
+    about = "Git Smart HTTP server via git-http-backend (no auth)"
 )]
 struct Args {
     /// Address to bind, for example 127.0.0.1:8080
     #[arg(long, default_value = "127.0.0.1:8080")]
     listen: SocketAddr,
 
-    /// Root directory containing bare repositories (for example ./repos)
+    /// Root directory containing bare repositories
     #[arg(long, default_value = "./repos")]
     repos_root: PathBuf,
 }
@@ -45,8 +45,7 @@ async fn main() {
 
     let app = Router::new()
         .route("/healthz", get(healthz))
-        .route("/:repo/info/refs", get(info_refs))
-        .route("/:repo/git-upload-pack", post(git_upload_pack))
+        .route("/*path", any(git_http_backend))
         .with_state(AppState {
             repos_root: args.repos_root,
         });
@@ -72,79 +71,51 @@ async fn healthz() -> &'static str {
     "ok"
 }
 
-async fn info_refs(
+async fn git_http_backend(
     State(state): State<AppState>,
-    Path(repo): Path<String>,
-    Query(query): Query<HashMap<String, String>>,
-) -> Response {
-    if query.get("service").map(String::as_str) != Some("git-upload-pack") {
-        return status_message(
-            StatusCode::BAD_REQUEST,
-            "only ?service=git-upload-pack is supported",
-        );
-    }
-
-    run_upload_pack(&state.repos_root, &repo, b"").await
-}
-
-async fn git_upload_pack(
-    State(state): State<AppState>,
-    Path(repo): Path<String>,
+    Path(path): Path<String>,
+    method: Method,
+    headers: HeaderMap,
+    OriginalUri(uri): OriginalUri,
     body: Bytes,
 ) -> Response {
-    run_upload_pack(&state.repos_root, &repo, &body).await
-}
+    let path_info = format!("/{}", path.trim_start_matches('/'));
 
-async fn run_upload_pack(repos_root: &PathBuf, repo: &str, stdin: &[u8]) -> Response {
-    if repo.contains("..") || repo.contains('/') || repo.contains('\\') {
-        return status_message(StatusCode::BAD_REQUEST, "invalid repository name");
-    }
-
-    let repo_path = repos_root.join(repo);
-
-    if !repo_path.exists() {
-        return status_message(StatusCode::NOT_FOUND, "repository not found");
-    }
-
+    // git-http-backend speaks CGI over stdin/stdout.
     let mut cmd = Command::new("git");
-    cmd.args([
-        "upload-pack",
-        "--stateless-rpc",
-        "--advertise-refs",
-        repo_path.to_string_lossy().as_ref(),
-    ])
-    .stdin(Stdio::piped())
-    .stdout(Stdio::piped())
-    .stderr(Stdio::piped());
+    cmd.arg("http-backend")
+        .env("GIT_PROJECT_ROOT", &state.repos_root)
+        .env("GIT_HTTP_EXPORT_ALL", "")
+        .env("REQUEST_METHOD", method.as_str())
+        .env("PATH_INFO", &path_info)
+        .env("QUERY_STRING", uri.query().unwrap_or(""))
+        .env("REMOTE_ADDR", "127.0.0.1")
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped());
 
-    let advertise = stdin.is_empty();
-    if !advertise {
-        cmd = {
-            let mut c = Command::new("git");
-            c.args([
-                "upload-pack",
-                "--stateless-rpc",
-                repo_path.to_string_lossy().as_ref(),
-            ])
-            .stdin(Stdio::piped())
-            .stdout(Stdio::piped())
-            .stderr(Stdio::piped());
-            c
-        };
+    if let Some(content_type) = headers.get("content-type") {
+        if let Ok(content_type) = content_type.to_str() {
+            cmd.env("CONTENT_TYPE", content_type);
+        }
+    }
+
+    if !body.is_empty() {
+        cmd.env("CONTENT_LENGTH", body.len().to_string());
     }
 
     let mut child = match cmd.spawn() {
         Ok(child) => child,
         Err(err) => {
-            error!(%err, "failed to spawn git upload-pack");
+            error!(%err, "failed to spawn git http-backend");
             return status_message(StatusCode::INTERNAL_SERVER_ERROR, "failed to execute git");
         }
     };
 
-    if !stdin.is_empty() {
+    if !body.is_empty() {
         if let Some(mut stdin_writer) = child.stdin.take() {
-            if let Err(err) = stdin_writer.write_all(stdin).await {
-                error!(%err, "failed to write request body to upload-pack stdin");
+            if let Err(err) = stdin_writer.write_all(&body).await {
+                error!(%err, "failed to write request body to git-http-backend");
                 return status_message(
                     StatusCode::INTERNAL_SERVER_ERROR,
                     "failed to process request body",
@@ -156,27 +127,82 @@ async fn run_upload_pack(repos_root: &PathBuf, repo: &str, stdin: &[u8]) -> Resp
     let output = match child.wait_with_output().await {
         Ok(output) => output,
         Err(err) => {
-            error!(%err, "upload-pack failed to finish");
+            error!(%err, "git-http-backend failed to finish");
             return status_message(StatusCode::INTERNAL_SERVER_ERROR, "git process failed");
         }
     };
 
     if !output.status.success() {
         let stderr_msg = String::from_utf8_lossy(&output.stderr);
-        warn!(status = %output.status, stderr = %stderr_msg, "upload-pack returned non-zero status");
-        return status_message(StatusCode::INTERNAL_SERVER_ERROR, "git upload-pack failed");
+        error!(status = %output.status, stderr = %stderr_msg, "git-http-backend failed");
+        return status_message(StatusCode::INTERNAL_SERVER_ERROR, "git http-backend failed");
     }
 
-    let mut headers = HeaderMap::new();
-    let ctype = if advertise {
-        "application/x-git-upload-pack-advertisement"
-    } else {
-        "application/x-git-upload-pack-result"
-    };
-    headers.insert(header::CONTENT_TYPE, HeaderValue::from_static(ctype));
-    headers.insert(header::CACHE_CONTROL, HeaderValue::from_static("no-cache"));
+    match cgi_to_http_response(&output.stdout) {
+        Ok(resp) => resp,
+        Err(err_msg) => {
+            error!(%err_msg, "failed to parse git-http-backend CGI response");
+            status_message(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "invalid git backend response",
+            )
+        }
+    }
+}
 
-    (StatusCode::OK, headers, output.stdout).into_response()
+fn cgi_to_http_response(cgi_stdout: &[u8]) -> Result<Response, String> {
+    let split = cgi_stdout
+        .windows(4)
+        .position(|w| w == b"\r\n\r\n")
+        .map(|idx| (idx, 4))
+        .or_else(|| {
+            cgi_stdout
+                .windows(2)
+                .position(|w| w == b"\n\n")
+                .map(|idx| (idx, 2))
+        })
+        .ok_or_else(|| "missing CGI header/body separator".to_string())?;
+
+    let (header_len, sep_len) = split;
+    let header_bytes = &cgi_stdout[..header_len];
+    let body = cgi_stdout[header_len + sep_len..].to_vec();
+
+    let header_text = String::from_utf8_lossy(header_bytes);
+    let mut status = StatusCode::OK;
+    let mut out_headers = HeaderMap::new();
+
+    for raw_line in header_text.lines() {
+        let line = raw_line.trim_end_matches('\r');
+        if line.is_empty() {
+            continue;
+        }
+
+        if let Some(rest) = line.strip_prefix("Status:") {
+            let code = rest
+                .trim()
+                .split_whitespace()
+                .next()
+                .ok_or_else(|| "invalid Status header".to_string())?;
+            let parsed = code
+                .parse::<u16>()
+                .map_err(|_| "invalid Status code".to_string())?;
+            status =
+                StatusCode::from_u16(parsed).map_err(|_| "unsupported Status code".to_string())?;
+            continue;
+        }
+
+        let Some((name, value)) = line.split_once(':') else {
+            return Err(format!("invalid header line: {line}"));
+        };
+
+        let name = HeaderName::from_bytes(name.trim().as_bytes())
+            .map_err(|_| format!("invalid header name: {name}"))?;
+        let value = HeaderValue::from_str(value.trim())
+            .map_err(|_| format!("invalid header value for {name}"))?;
+        out_headers.append(name, value);
+    }
+
+    Ok((status, out_headers, body).into_response())
 }
 
 fn status_message(status: StatusCode, msg: &'static str) -> Response {

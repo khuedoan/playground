@@ -1,7 +1,7 @@
 # Experiment session
 
 ## Objective
-Ship a minimal Git Smart HTTP server in Rust that supports clone/fetch (`upload-pack`) with no authentication.
+Ship a minimal Git Smart HTTP server in Rust that supports `git clone`, `git pull`, and `git push` with no authentication.
 
 ## Constraints
 - Use Rust with Tokio + Axum.
@@ -18,8 +18,9 @@ Ship a minimal Git Smart HTTP server in Rust that supports clone/fetch (`upload-
 - `flake.nix`
 - `.envrc`
 - `Makefile`
+- `scripts/e2e.sh`
 
 ## Stop conditions
 - Server compiles.
-- Basic health endpoint works.
-- Smart HTTP upload-pack paths are wired and documented.
+- Health endpoint works.
+- Git CLI can clone, push, and pull successfully against the server.
