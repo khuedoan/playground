@@ -17,12 +17,17 @@ No experiment directory or bootstrap assets existed yet.
    - prints redacted output.
 4. Added a SecretSpec example manifest aligned to the seeded secret path.
 5. Added a `justfile` for common run/status/stop tasks.
+6. Added a local installer (`scripts/install-openbao.sh`) for environments without Nix.
+7. Added a smoke test (`scripts/smoke-test.sh`) that boots OpenBao and validates round-trip reads.
 
 ### Key metric
 - Bootstrap lead time: **not measured yet** (seconds, lower is better).
 
+### Results
+- Smoke test succeeded end-to-end with OpenBao `v2.5.3` binary installed in `./.tools/bin/bao`.
+
 ### Failed attempts / issues
-- Did not execute OpenBao locally in this environment, so runtime compatibility of the `openbao` Nix package is unverified.
+- `nix` and `just` were not preinstalled in the environment, so the fallback installer path was needed for runtime validation.
 
 ### Decision
 Keep this first version intentionally small and text-based; defer advanced auth/policy automation until baseline execution is confirmed.

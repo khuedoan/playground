@@ -17,7 +17,9 @@ Create a minimal, reproducible bootstrap that runs OpenBao in dev mode, seeds on
 - `flake.nix`
 - `.envrc`
 - `justfile`
+- `scripts/install-openbao.sh`
 - `scripts/bootstrap.sh`
+- `scripts/smoke-test.sh`
 - `secretspec.example.yaml`
 - `notes.md`
 - `README.md`
@@ -27,3 +29,4 @@ Create a minimal, reproducible bootstrap that runs OpenBao in dev mode, seeds on
 - One sample secret path and values are defined.
 - SecretSpec template references the same path and keys.
 - Reproduction steps are documented.
+- Smoke test proves round-trip read of seeded values.
