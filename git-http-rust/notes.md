@@ -21,6 +21,7 @@ Build a minimal self-hosted Git Smart HTTP server in Rust (no auth) as the first
   - clone
   - commit + push
   - second clone + pull
+- Added detailed README architecture walkthrough explaining request routing, CGI env mapping, backend process handling, and response parsing.
 
 ## Results
 - `cargo fmt`, `cargo test`, and `cargo build` pass.

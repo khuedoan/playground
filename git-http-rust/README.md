@@ -22,6 +22,92 @@ Can we stand up a simple, no-auth Git HTTP server in Rust that works with standa
 - Multi-tenant access controls
 - Web UI or PaaS deployment features
 
+## Detailed: how the server works
+
+This server is intentionally thin. It does **not** reimplement the Git protocol itself.
+Instead, it translates incoming HTTP requests into the CGI-style interface expected by `git http-backend`, executes `git http-backend`, then translates the CGI output back into an HTTP response.
+
+### 1) Incoming request routing
+
+- Axum serves:
+  - `/healthz` for liveness checks.
+  - `/*path` for all Git HTTP requests.
+- The catch-all route means requests like these are all handled:
+  - `/demo.git/info/refs?service=git-upload-pack`
+  - `/demo.git/git-upload-pack`
+  - `/demo.git/info/refs?service=git-receive-pack`
+  - `/demo.git/git-receive-pack`
+
+### 2) CGI env mapping for `git http-backend`
+
+For each request on `/*path`, the server spawns:
+
+```bash
+git http-backend
+```
+
+Then it sets environment variables expected by Git’s CGI interface:
+
+- `GIT_PROJECT_ROOT=<repos root>`
+  - Root folder containing bare repositories.
+- `GIT_HTTP_EXPORT_ALL=`
+  - Enables exporting repos without requiring `git-daemon-export-ok`.
+- `REQUEST_METHOD=<GET|POST|...>`
+- `PATH_INFO=/<route path>`
+  - Example: `/demo.git/info/refs`
+- `QUERY_STRING=<raw query string>`
+  - Example: `service=git-upload-pack`
+- `CONTENT_TYPE=<request content-type>` (if present)
+- `CONTENT_LENGTH=<request body length>` (if non-empty)
+- `REMOTE_ADDR=127.0.0.1`
+
+Request body bytes are piped directly to the child process stdin.
+
+### 3) Child process response parsing
+
+`git http-backend` writes CGI output to stdout, typically like:
+
+- CGI headers (`Status`, `Content-Type`, cache headers, etc.)
+- blank line
+- response body bytes (pkt-line payload or other Git HTTP content)
+
+The server parses stdout by:
+
+1. Finding header/body boundary (`\r\n\r\n` or `\n\n`).
+2. Parsing header lines.
+3. Converting `Status: NNN ...` to an HTTP status code.
+4. Forwarding remaining headers as HTTP headers.
+5. Returning body bytes unchanged.
+
+If parsing fails, it returns HTTP 500.
+
+### 4) Why clone/pull/push all work
+
+Because `git http-backend` is the official Git-side HTTP implementation:
+
+- `git clone` and `git pull` use upload-pack endpoints.
+- `git push` uses receive-pack endpoints.
+- Capability negotiation and pkt-line details are handled by Git itself.
+
+This avoids fragile, partial protocol reimplementation in Rust for v1.
+
+### 5) Important push prerequisite (bare repo)
+
+For pushes over HTTP to a bare repository, enable:
+
+```bash
+git -C repos/<name>.git config http.receivepack true
+```
+
+Without it, pushes may return 403.
+
+### 6) Known behavior and limitations
+
+- No auth: anyone with network access can read/write to exposed repos.
+- Trust boundary: this is a local/dev-first milestone, not production hardened.
+- Process model: one `git http-backend` child per request.
+- Observability is basic (stdout logging + process errors).
+
 ## Run
 
 ```bash
