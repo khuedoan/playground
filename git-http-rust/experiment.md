@@ -1,26 +1,25 @@
 # Experiment session
 
 ## Objective
-Ship a minimal Git Smart HTTP server in Rust that supports `git clone`, `git pull`, and `git push` with no authentication.
+Deliver phase-B style auth now: OAuth2 Device Flow + `gx` CLI, while preserving Git HTTP clone/push/pull and adding minimal repository browsing UI.
 
 ## Constraints
-- Use Rust with Tokio + Axum.
-- Keep this iteration small and understandable.
-- No auth in this version.
-- Keep all files scoped to this experiment directory.
+- Use Rust, Tokio, Axum.
+- Keep auth and git gateway in this experiment.
+- Keep no external IdP dependency for local e2e reproducibility.
 
 ## Files in scope
 - `Cargo.toml`
 - `src/main.rs`
+- `src/bin/gx.rs`
+- `scripts/e2e.sh`
 - `README.md`
 - `notes.md`
 - `experiment.md`
-- `flake.nix`
-- `.envrc`
 - `Makefile`
-- `scripts/e2e.sh`
 
 ## Stop conditions
-- Server compiles.
-- Health endpoint works.
-- Git CLI can clone, push, and pull successfully against the server.
+- `gx auth login` obtains token via device flow.
+- token-authenticated git clone/push/pull works.
+- `/ui/repos` displays repository list with token.
+- e2e script passes.

@@ -4,7 +4,8 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PORT="${PORT:-18090}"
 BASE="http://127.0.0.1:${PORT}"
-BIN="${ROOT_DIR}/target/debug/git-http-rust"
+SERVER_BIN="${ROOT_DIR}/target/debug/git-http-rust"
+GX_BIN="${ROOT_DIR}/target/debug/gx"
 
 cleanup() {
   if [[ -n "${SERVER_PID:-}" ]]; then
@@ -25,13 +26,28 @@ git init --bare repos/demo.git >/dev/null
 git -C repos/demo.git config http.receivepack true
 git -C repos/demo.git symbolic-ref HEAD refs/heads/main
 
-"${BIN}" --listen "127.0.0.1:${PORT}" --repos-root "${ROOT_DIR}/repos" >/tmp/git-http-rust-e2e.log 2>&1 &
+"${SERVER_BIN}" \
+  --listen "127.0.0.1:${PORT}" \
+  --repos-root "${ROOT_DIR}/repos" \
+  --jwt-secret "dev-e2e-secret" \
+  >/tmp/git-http-rust-e2e.log 2>&1 &
 SERVER_PID=$!
 sleep 1
 
+# device login via gx
+XDG_CONFIG_HOME="${ROOT_DIR}/tmp-e2e/config" \
+  "${GX_BIN}" auth login \
+  --server "${BASE}" \
+  --client-id "gx-e2e" \
+  --scope "repo:read repo:write" \
+  --username "alice" >/dev/null
+
+TOKEN=$(XDG_CONFIG_HOME="${ROOT_DIR}/tmp-e2e/config" "${GX_BIN}" auth token)
+AUTH_BASE="http://oauth2:${TOKEN}@127.0.0.1:${PORT}"
+
 # writer clone + commit + push
 cd tmp-e2e
-git clone "${BASE}/demo.git" writer >/dev/null
+git clone "${AUTH_BASE}/demo.git" writer >/dev/null
 cd writer
 git config user.name "E2E Dev"
 git config user.email "e2e@example.com"
@@ -42,10 +58,13 @@ git push origin HEAD:main >/dev/null
 cd ..
 
 # reader clone + pull
-
-git clone "${BASE}/demo.git" reader >/dev/null
+git clone "${AUTH_BASE}/demo.git" reader >/dev/null
 cd reader
 git pull --ff-only origin main >/dev/null
 grep -q "hello from e2e" README.md
 
-echo "e2e ok: clone + push + pull"
+# repo browser check
+curl -sf "${BASE}/ui/repos?access_token=${TOKEN}" >/tmp/gx-ui.html
+grep -q "demo.git" /tmp/gx-ui.html
+
+echo "e2e ok: oauth2 device flow + clone + push + pull + ui"
