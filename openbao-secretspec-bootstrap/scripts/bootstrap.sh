@@ -1,97 +1,75 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# One-command OpenBao bootstrap.
-# - Resolves/install OpenBao CLI
-# - Optionally starts a local dev server
-# - Enables kv-v2 mount
-# - Loads secrets from bootstrap-secrets.json
-#
-# Usage:
-#   ./scripts/bootstrap.sh
-#
-# Optional env:
-#   BAO_BIN=./.tools/bin/bao
-#   BAO_ADDR=http://127.0.0.1:8200
-#   BAO_DEV_ROOT_TOKEN_ID=dev-only-root-token
-#   BAO_TOKEN=...
-#   START_DEV=1
-#   AUTO_INSTALL_BAO=1
-#   SECRETS_FILE=./bootstrap-secrets.json
-
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-INSTALL_SCRIPT="$ROOT_DIR/scripts/install-openbao.sh"
+INSTALL_BAO_SCRIPT="$ROOT_DIR/scripts/install-openbao.sh"
+INSTALL_SECRETSPEC_SCRIPT="$ROOT_DIR/scripts/install-secretspec.sh"
 
-resolve_bao_bin() {
-  if [[ -n "${BAO_BIN:-}" ]] && [[ -x "${BAO_BIN}" ]]; then
-    echo "$BAO_BIN"
+resolve_bin() {
+  local name="$1"
+  local local_path="$2"
+  if command -v "$name" >/dev/null 2>&1; then
+    command -v "$name"
     return 0
   fi
-
-  if command -v bao >/dev/null 2>&1; then
-    command -v bao
+  if [[ -x "$local_path" ]]; then
+    echo "$local_path"
     return 0
   fi
-
-  if command -v openbao >/dev/null 2>&1; then
-    command -v openbao
-    return 0
-  fi
-
-  if [[ -x "$ROOT_DIR/.tools/bin/bao" ]]; then
-    echo "$ROOT_DIR/.tools/bin/bao"
-    return 0
-  fi
-
   return 1
 }
 
 ensure_bao_bin() {
-  if BAO_BIN="$(resolve_bao_bin)"; then
+  if BAO_BIN="$(resolve_bin bao "$ROOT_DIR/.tools/bin/bao")"; then
     export BAO_BIN
     return 0
   fi
 
   if [[ "${AUTO_INSTALL_BAO:-1}" == "1" ]]; then
-    echo "OpenBao CLI not found; installing locally..."
-    "$INSTALL_SCRIPT"
-    BAO_BIN="$(resolve_bao_bin)"
+    "$INSTALL_BAO_SCRIPT"
+    BAO_BIN="$(resolve_bin bao "$ROOT_DIR/.tools/bin/bao")"
     export BAO_BIN
     return 0
   fi
 
-  echo "OpenBao CLI not found. Install it or run ./scripts/install-openbao.sh"
+  echo "bao not found"
   exit 1
 }
 
-ensure_deps() {
-  if ! command -v jq >/dev/null 2>&1; then
-    echo "jq not found in PATH. Install jq before continuing."
-    exit 1
+ensure_secretspec_bin() {
+  if SECRETSPEC_BIN="$(resolve_bin secretspec "$ROOT_DIR/.tools/bin/secretspec")"; then
+    export SECRETSPEC_BIN
+    return 0
   fi
+
+  if [[ "${AUTO_INSTALL_SECRETSPEC:-1}" == "1" ]]; then
+    "$INSTALL_SECRETSPEC_SCRIPT"
+    SECRETSPEC_BIN="$(resolve_bin secretspec "$ROOT_DIR/.tools/bin/secretspec")"
+    export SECRETSPEC_BIN
+    return 0
+  fi
+
+  echo "secretspec not found"
+  exit 1
 }
 
 start_dev_if_needed() {
-  local start_dev="${START_DEV:-1}"
-
   if "$BAO_BIN" status >/dev/null 2>&1; then
     return 0
   fi
 
-  if [[ "$start_dev" != "1" ]]; then
+  if [[ "${START_DEV:-1}" != "1" ]]; then
     echo "OpenBao not reachable at BAO_ADDR=$BAO_ADDR and START_DEV!=1"
     exit 1
   fi
 
-  if pgrep -f "${BAO_BIN} server -dev" >/dev/null 2>&1; then
-    sleep 1
-  else
-    echo "Starting local OpenBao dev server with ${BAO_BIN}..."
-    nohup "$BAO_BIN" server -dev -dev-root-token-id="$BAO_DEV_ROOT_TOKEN_ID" \
-      > "$ROOT_DIR/.openbao-dev.log" 2>&1 &
-    sleep 2
-  fi
+  local listen_addr="$BAO_ADDR"
+  listen_addr="${listen_addr#http://}"
+  listen_addr="${listen_addr#https://}"
 
+  nohup "$BAO_BIN" server -dev -dev-listen-address="$listen_addr" -dev-root-token-id="$BAO_DEV_ROOT_TOKEN_ID" \
+    > "$ROOT_DIR/.openbao-dev.log" 2>&1 &
+  sleep 2
   "$BAO_BIN" status >/dev/null
 }
 
@@ -123,110 +101,113 @@ read_env_or_prompt() {
 generate_value() {
   local generator="$1"
   local length="$2"
-
   case "$generator" in
     password)
       python - "$length" <<'PY'
 import secrets
 import string
 import sys
-
-length = int(sys.argv[1])
+n = int(sys.argv[1])
 alphabet = string.ascii_letters + string.digits + "_@#%+="
-print("".join(secrets.choice(alphabet) for _ in range(length)), end="")
+print("".join(secrets.choice(alphabet) for _ in range(n)), end="")
 PY
       ;;
     uuid)
-      if [[ -r /proc/sys/kernel/random/uuid ]]; then
-        cat /proc/sys/kernel/random/uuid
-      else
-        python - <<'PY'
+      python - <<'PY'
 import uuid
-print(uuid.uuid4())
+print(uuid.uuid4(), end="")
 PY
-      fi
       ;;
-    *)
-      echo "Unknown generator: $generator" >&2
-      exit 1
-      ;;
+    *) echo "Unknown generator: $generator" >&2; exit 1 ;;
   esac
 }
 
-write_secrets_from_file() {
-  local file="$1"
-
-  if [[ ! -f "$file" ]]; then
-    echo "Secrets file not found: $file"
-    exit 1
+provider_from_addr() {
+  local addr="$1"
+  local hostport="${addr#http://}"
+  local tls="true"
+  if [[ "$addr" == http://* ]]; then
+    tls="false"
+  elif [[ "$addr" == https://* ]]; then
+    hostport="${addr#https://}"
   fi
+  echo "openbao://${hostport}/${SECRETSPEC_MOUNT}?tls=${tls}"
+}
 
-  local mount
-  mount="$(jq -r '.mount // "apps"' "$file")"
-
-  "$BAO_BIN" secrets enable -path="$mount" kv-v2 >/dev/null 2>&1 || true
-
+seed_with_secretspec() {
+  local file="$1"
   local count
   count="$(jq -r '.secrets | length' "$file")"
 
+  pushd "$ROOT_DIR" >/dev/null
   for ((i = 0; i < count; i++)); do
-    local rel_path
-    rel_path="$(jq -r ".secrets[$i].path" "$file")"
+    local key type value
+    key="$(jq -r ".secrets[$i].key" "$file")"
+    type="$(jq -r ".secrets[$i].type" "$file")"
 
-    local -a kv_args=()
-    mapfile -t keys < <(jq -r ".secrets[$i].fields | keys[]" "$file")
+    case "$type" in
+      literal)
+        value="$(jq -r ".secrets[$i].value" "$file")"
+        ;;
+      env)
+        env_name="$(jq -r ".secrets[$i].name" "$file")"
+        prompt="$(jq -r ".secrets[$i].prompt // \"Paste value for ${env_name}: \"" "$file")"
+        secret="$(jq -r ".secrets[$i].secret // 1" "$file")"
+        value="$(read_env_or_prompt "$env_name" "$prompt" "$secret")"
+        ;;
+      generate)
+        generator="$(jq -r ".secrets[$i].generator // \"password\"" "$file")"
+        length="$(jq -r ".secrets[$i].length // 32" "$file")"
+        value="$(generate_value "$generator" "$length")"
+        ;;
+      *)
+        echo "Unsupported type: $type"
+        exit 1
+        ;;
+    esac
 
-    for key in "${keys[@]}"; do
-      local type
-      type="$(jq -r --arg key "$key" ".secrets[$i].fields[\$key].type" "$file")"
-
-      local value
-      case "$type" in
-        literal)
-          value="$(jq -r --arg key "$key" ".secrets[$i].fields[\$key].value" "$file")"
-          ;;
-        env)
-          local env_name prompt secret
-          env_name="$(jq -r --arg key "$key" ".secrets[$i].fields[\$key].name" "$file")"
-          prompt="$(jq -r --arg key "$key" ".secrets[$i].fields[\$key].prompt // \"Paste value for ${env_name}: \"" "$file")"
-          secret="$(jq -r --arg key "$key" ".secrets[$i].fields[\$key].secret // 1" "$file")"
-          value="$(read_env_or_prompt "$env_name" "$prompt" "$secret")"
-          ;;
-        generate)
-          local generator length
-          generator="$(jq -r --arg key "$key" ".secrets[$i].fields[\$key].generator // \"password\"" "$file")"
-          length="$(jq -r --arg key "$key" ".secrets[$i].fields[\$key].length // 32" "$file")"
-          value="$(generate_value "$generator" "$length")"
-          ;;
-        *)
-          echo "Unsupported field type '$type' for $rel_path:$key"
-          exit 1
-          ;;
-      esac
-
-      kv_args+=("$key=$value")
-    done
-
-    "$BAO_BIN" kv put "$mount/$rel_path" "${kv_args[@]}" >/dev/null
-    echo "Seeded: $mount/data/$rel_path"
+    "$SECRETSPEC_BIN" set "$key" "$value" \
+      --provider "$SECRETSPEC_PROVIDER" \
+      --profile "$SECRETSPEC_PROFILE" >/dev/null
+    echo "Seeded via SecretSpec: $key"
   done
+
+  "$SECRETSPEC_BIN" check --provider "$SECRETSPEC_PROVIDER" --profile "$SECRETSPEC_PROFILE" >/dev/null
+  popd >/dev/null
 }
 
+if ! command -v jq >/dev/null 2>&1; then
+  echo "jq is required"
+  exit 1
+fi
+
 ensure_bao_bin
-ensure_deps
+ensure_secretspec_bin
 
 export BAO_ADDR="${BAO_ADDR:-http://127.0.0.1:8200}"
 export BAO_DEV_ROOT_TOKEN_ID="${BAO_DEV_ROOT_TOKEN_ID:-dev-only-root-token}"
 export BAO_TOKEN="${BAO_TOKEN:-$BAO_DEV_ROOT_TOKEN_ID}"
+export VAULT_TOKEN="$BAO_TOKEN"
+export VAULT_ADDR="$BAO_ADDR"
+export NO_PROXY="${NO_PROXY:-127.0.0.1,localhost}"
+export no_proxy="${no_proxy:-127.0.0.1,localhost}"
+export HTTP_PROXY=
+export HTTPS_PROXY=
+export ALL_PROXY=
+export http_proxy=
+export https_proxy=
+export all_proxy=
 
 start_dev_if_needed
 
 SECRETS_FILE="${SECRETS_FILE:-$ROOT_DIR/bootstrap-secrets.json}"
-write_secrets_from_file "$SECRETS_FILE"
+SECRETSPEC_PROFILE="${SECRETSPEC_PROFILE:-$(jq -r '.profile // "default"' "$SECRETS_FILE")}"
+SECRETSPEC_MOUNT="${SECRETSPEC_MOUNT:-apps}"
+SECRETSPEC_PROVIDER="${SECRETSPEC_PROVIDER:-$(provider_from_addr "$BAO_ADDR")}" 
 
-echo
-printf 'Bootstrap complete.\n'
-printf 'BAO_BIN=%s\n' "$BAO_BIN"
-printf 'BAO_ADDR=%s\n' "$BAO_ADDR"
-printf 'BAO_TOKEN=%s\n' "$BAO_TOKEN"
-printf 'SECRETS_FILE=%s\n' "$SECRETS_FILE"
+"$BAO_BIN" secrets enable -path="$SECRETSPEC_MOUNT" kv-v2 >/dev/null 2>&1 || true
+
+seed_with_secretspec "$SECRETS_FILE"
+
+echo "Bootstrap complete via secretspec.dev"
+echo "SECRETSPEC_PROVIDER=$SECRETSPEC_PROVIDER"

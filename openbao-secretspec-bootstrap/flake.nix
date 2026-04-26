@@ -19,6 +19,7 @@
             just
             yq-go
             openbao
+            secretspec
           ];
         };
       });
