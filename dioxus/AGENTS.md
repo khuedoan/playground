@@ -124,6 +124,12 @@ Each component accepts function arguments (props)
 * Props must implement `PartialEq` and `Clone`.
 * To make props reactive and copy, you can wrap the type in `ReadOnlySignal`. Any reactive state like memos and resources that read `ReadOnlySignal` props will automatically re-run when the prop changes.
 
+Recommended workflow:
+
+1. To see everything that's available: `dx components list`
+2. Pick a component from the catalog
+3. Add a specific component: `dx components add button`
+
 # State
 
 A signal is a wrapper around a value that automatically tracks where it's read and written. Changing a signal's value causes code that relies on the signal to rerun.

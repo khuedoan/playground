@@ -1,58 +1,39 @@
-# Development
+# Netamos Mockup
 
-Your new jumpstart project includes basic organization with an organized `assets` folder and a `components` folder.
-If you chose to develop with the router feature, you will also have a `views` folder.
+This Dioxus 0.7 app is a static routed mockup for Netamos, a network-aware
+platform as a service control plane.
 
-```
-project/
-├─ assets/ # Any assets that are used by the app should be placed here
-├─ src/
-│  ├─ main.rs # The entrypoint for the app. It also defines the routes for the app.
-│  ├─ components/
-│  │  ├─ mod.rs # Defines the components module
-│  │  ├─ hero.rs # The Hero component for use in the home page
-│  │  ├─ echo.rs # The echo component uses server functions to communicate with the server
-│  ├─ views/ # The views each route will render in the app.
-│  │  ├─ mod.rs # Defines the module for the views route and re-exports the components for each route
-│  │  ├─ blog.rs # The component that will render at the /blog/:id route
-│  │  ├─ home.rs # The component that will render at the / route
-├─ Cargo.toml # The Cargo.toml file defines the dependencies and feature flags for your project
-```
+## What Is Included
 
-### Automatic Tailwind (Dioxus 0.7+)
+- Tenant overview for projects, environments, components, private links, and spaces.
+- Project topology graph inferred from private-link intent and observed traffic.
+- Project inventory and project detail views.
+- Component topology graph inside each project detail view, inferred from network
+  telemetry and Vault config references.
+- Private link handshake view with source request, target allow, and space checks.
+- Space inventory for shared hosted spaces and tenant-owned enterprise spaces.
+- Prebuilt Dioxus catalog components for sidebar layout, cards, buttons, badges, inputs,
+  tabs, progress bars, switches, labels, and avatar UI.
+- Static mock data only. Controls are present for product realism, but no backend
+  workflow is connected.
 
-As of Dioxus 0.7, there no longer is a need to manually install tailwind. Simply `dx serve` and you're good to go!
+## Run
 
-Automatic tailwind is supported by checking for a file called `tailwind.css` in your app's manifest directory (next to Cargo.toml). To customize the file, use the dioxus.toml:
+Start the web dev server:
 
-```toml
-[application]
-tailwind_input = "my.css"
-tailwind_output = "assets/out.css"
+```sh
+make dev
 ```
 
-### Tailwind Manual Install
+The Dioxus CLI prints the local URL after the web bundle builds.
 
-To use tailwind plugins or manually customize tailwind, you can can install the Tailwind CLI and use it directly.
+## Verify
 
-1. Install npm: https://docs.npmjs.com/downloading-and-installing-node-js-and-npm
-2. Install the Tailwind CSS CLI: https://tailwindcss.com/docs/installation/tailwind-cli
-3. Run the following command in the root of the project to start the Tailwind CSS compiler:
+Run the Rust check:
 
-```bash
-npx @tailwindcss/cli -i ./input.css -o ./assets/tailwind.css --watch
+```sh
+cargo check
 ```
 
-### Serving Your App
-
-Run the following command in the root of your project to start developing with the default platform:
-
-```bash
-dx serve --platform web
-```
-
-To run for a different platform, use the `--platform platform` flag. E.g.
-```bash
-dx serve --platform desktop
-```
-
+The generated component catalog currently emits dead-code warnings for variants that
+this mockup does not use.
