@@ -8,6 +8,7 @@ edition = "2021"
 
 [dependencies]
 dioxus = { version = "0.7.1", features = ["router", "fullstack"] }
+dioxus-primitives = { git = "https://github.com/DioxusLabs/components" }
 
 [features]
 default = ["web"]
