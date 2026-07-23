@@ -1,6 +1,7 @@
 use topcoat::{
     Result,
     router::{Router, RouterBuilderDiscoverExt, page},
+    tailwind,
     view::{component, view},
 };
 
@@ -16,6 +17,7 @@ async fn home() -> Result {
         <html>
             <head>
                 <title>"Hello world"</title>
+                <link rel="stylesheet" href=(tailwind::stylesheet!())>
                 topcoat::dev::script()
             </head>
             <body>
