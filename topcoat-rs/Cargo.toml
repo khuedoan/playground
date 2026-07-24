@@ -1,10 +1,11 @@
 [package]
-name = "topcoat-rs"
+name = "netamos-web-topcoat"
 version = "0.1.0"
 edition = "2024"
+rust-version = "1.88"
 
 [dependencies]
-tokio = { version = "1.53.1", features = ["rt-multi-thread", "macros"] }
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 topcoat = { version = "0.4.0", features = ["font-fontsource", "icon-iconify", "tailwind", "ui"] }
 
 [build-dependencies]

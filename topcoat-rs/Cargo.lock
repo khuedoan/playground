@@ -726,6 +726,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "netamos-web-topcoat"
+version = "0.1.0"
+dependencies = [
+ "tokio",
+ "topcoat",
+]
+
+[[package]]
 name = "num-conv"
 version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1553,14 +1561,6 @@ dependencies = [
  "quote",
  "syn 2.0.119",
  "topcoat-router-grammar",
-]
-
-[[package]]
-name = "topcoat-rs"
-version = "0.1.0"
-dependencies = [
- "tokio",
- "topcoat",
 ]
 
 [[package]]

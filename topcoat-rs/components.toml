@@ -24,6 +24,26 @@ file = "src/components/card.rs"
 hash = "sha256:577b89269d4d2f0868c7a9923934ab3b737538a5532b355712d2c6e94b4d2fe2"
 file = "src/components/dropdown_menu.rs"
 
+[registries.topcoat.components.input]
+hash = "sha256:7769330ae511769c1c50b39c75b7475b676af9072d2156398762cf505a3bf306"
+file = "src/components/input.rs"
+
+[registries.topcoat.components.label]
+hash = "sha256:cd8e7569717c82abad745f0586f03fbc759e6000988a82c8dce15182a409d0d6"
+file = "src/components/label.rs"
+
 [registries.topcoat.components.progress]
 hash = "sha256:4234a867cf267c07e0f31431ff67c530dcfdebe66a4aa2b923be690a8d630262"
 file = "src/components/progress.rs"
+
+[registries.topcoat.components.select]
+hash = "sha256:5d6bc5c890c12fad1b004569212b6bb83fda3a1e2bd5da261225845419dfbc85"
+file = "src/components/select.rs"
+
+[registries.topcoat.components.switch]
+hash = "sha256:34c50460be2165cd07868d8c86991e15d6c413e48ba3b2cea5fc0be0ff423c14"
+file = "src/components/switch.rs"
+
+[registries.topcoat.components.textarea]
+hash = "sha256:852407d012c458ea3b43fafa69fda9fa09287071dc0e1d2367671fe2c9173309"
+file = "src/components/textarea.rs"
