@@ -85,9 +85,9 @@ impl ButtonSize {
     fn classes(self) -> &'static str {
         match self {
             Self::Sm => "h-8 gap-1.5 rounded-md px-3 text-xs",
-            Self::Md => "h-9 gap-2 rounded-lg px-4 text-sm",
-            Self::Lg => "h-10 gap-2 rounded-lg px-5 text-base",
-            Self::Icon => "size-9 rounded-lg text-base",
+            Self::Md => "h-9 gap-2 rounded-md px-4 text-sm",
+            Self::Lg => "h-10 gap-2 rounded-md px-5 text-base",
+            Self::Icon => "size-9 rounded-md text-base",
         }
     }
 }

@@ -46,24 +46,40 @@
   --color-destructive-foreground: var(--destructive-foreground);
   --color-border: var(--border);
   --color-ring: var(--ring);
+  --color-surface: var(--surface);
+  --color-subtle: var(--subtle);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-muted: var(--sidebar-muted);
+  --color-sidebar-border: var(--sidebar-border);
   --shadow-xs: var(--shadow-xs);
   --shadow-sm: var(--shadow-sm);
 }
 
 :root {
-  --background: oklch(0.995 0.003 260);
-  --foreground: oklch(0.24 0.012 260);
-  --muted-foreground: oklch(0.51 0.014 260);
-  --primary: oklch(0.31 0.02 260);
+  --background: oklch(0.995 0.002 255);
+  --foreground: oklch(0.235 0.015 255);
+  --muted-foreground: oklch(0.52 0.015 255);
+  --primary: oklch(0.28 0.02 255);
   --primary-foreground: oklch(0.985 0.003 260);
   --destructive: oklch(0.55 0.2 27);
   --destructive-foreground: oklch(0.99 0.012 27);
-  --border: oklch(0.9 0.008 260);
-  --ring: oklch(0.62 0.06 260);
-  --shadow-xs: 0 1px 2px oklch(0.24 0.02 260 / 12%);
-  --shadow-sm:
-    0 1px 2px oklch(0.24 0.02 260 / 10%),
-    0 2px 8px -2px oklch(0.24 0.02 260 / 9%);
+  --border: oklch(0.9 0.008 255);
+  --ring: oklch(0.58 0.08 255);
+  --surface: oklch(0.976 0.004 255);
+  --subtle: oklch(0.985 0.004 255);
+  --success: oklch(0.63 0.15 154);
+  --success-foreground: oklch(0.34 0.1 154);
+  --warning: oklch(0.72 0.14 78);
+  --sidebar: oklch(0.205 0.018 258);
+  --sidebar-foreground: oklch(0.96 0.004 255);
+  --sidebar-muted: oklch(0.7 0.015 255);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --shadow-xs: 0 1px 1px oklch(0.24 0.02 260 / 8%);
+  --shadow-sm: 0 1px 3px oklch(0.24 0.02 260 / 8%);
 }
 
 .dark {
@@ -85,4 +101,34 @@
   body {
     @apply bg-background font-sans text-foreground;
   }
+}
+
+@layer components {
+  .sidebar-link {
+    @apply flex h-9 items-center gap-2.5 rounded px-2.5 text-sm text-sidebar-muted transition-colors hover:bg-white/5 hover:text-sidebar-foreground;
+  }
+
+  .sidebar-link-active {
+    @apply bg-white/7 text-sidebar-foreground;
+  }
+
+  .status-dot {
+    @apply inline-block size-1.5 shrink-0 rounded-full bg-success;
+  }
+}
+
+[data-component-kind-fields][hidden] {
+  display: none !important;
+}
+
+[data-public-network-fields][hidden] {
+  display: none !important;
+}
+
+[data-storage-fields][hidden] {
+  display: none !important;
+}
+
+[data-variable-row] > * {
+  min-width: 0;
 }

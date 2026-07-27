@@ -1,0 +1,1 @@
+- Prefer `topcoat ui add` to create new components, prefer default style instead of overly customized styling unless we need to, we're getting to feature complete first and just need a good enough UI similar to shadcn style

@@ -32,6 +32,7 @@ use topcoat::{
 pub async fn dropdown_menu(#[default] mut attrs: Attributes, #[default] child: View) -> Result {
     view! {
         <details
+            data-dropdown-menu=""
             class=(class!("group relative inline-block", attrs.remove("class")))
             (attrs)
         >
@@ -42,7 +43,8 @@ pub async fn dropdown_menu(#[default] mut attrs: Attributes, #[default] child: V
 
 /// The classes making a `<summary>` a plain clickable trigger: the default
 /// disclosure marker is hidden and the cursor marks it as interactive.
-const TRIGGER: &str = "cursor-pointer list-none [&::-webkit-details-marker]:hidden";
+const TRIGGER: &str = "cursor-pointer list-none outline-none focus-visible:ring-2 \
+    focus-visible:ring-ring [&::-webkit-details-marker]:hidden";
 
 /// The trigger of a [`dropdown_menu`]: a `<summary>` that toggles the menu.
 ///
@@ -84,7 +86,7 @@ pub async fn dropdown_menu_trigger(
 /// [`dropdown_menu_sub_content`] panels: a raised surface styled like a card;
 /// `z-50` lifts it over later content. It sets its own background and text
 /// color, so it reads the same on any ancestor.
-const PANEL: &str = "absolute z-50 min-w-40 rounded-lg border border-border bg-background p-1 \
+const PANEL: &str = "absolute z-50 min-w-40 rounded-md border border-border bg-background p-1 \
     text-foreground shadow-sm";
 
 /// The floating panel of a [`dropdown_menu`], holding the menu's items.
@@ -111,6 +113,7 @@ pub async fn dropdown_menu_content(
 /// states from the foreground color so they hold up in both color schemes.
 const ITEM: &str = "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm \
     whitespace-nowrap outline-none hover:bg-foreground/5 focus-visible:bg-foreground/5 \
+    focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset \
     active:bg-foreground/10 disabled:pointer-events-none disabled:opacity-50";
 
 /// One action in a [`dropdown_menu_content`], rendered as a `<button>`.
@@ -121,6 +124,20 @@ pub async fn dropdown_menu_item(
 ) -> Result {
     view! {
         <button class=(class!(ITEM, attrs.remove("class"))) (attrs)>(child)</button>
+    }
+}
+
+/// One destination in a [`dropdown_menu_content`], rendered as an `<a>`.
+///
+/// Use this instead of wrapping a [`dropdown_menu_item`] in a GET form when
+/// selecting the row should navigate to another page.
+#[component]
+pub async fn dropdown_menu_link(
+    #[default] mut attrs: Attributes,
+    #[default] child: View,
+) -> Result {
+    view! {
+        <a class=(class!(ITEM, attrs.remove("class"))) (attrs)>(child)</a>
     }
 }
 
@@ -184,7 +201,10 @@ pub async fn dropdown_menu_sub_trigger(
             (child)
             icon(
                 data: iconify_icon!("feather:chevron-right"),
-                attrs: attributes! { class="ml-auto size-4" }
+                attrs: attributes! {
+                    aria-hidden="true"
+                    class="ml-auto size-4"
+                }
             )
         </summary>
     }

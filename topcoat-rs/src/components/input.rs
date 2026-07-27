@@ -8,7 +8,7 @@ use topcoat::{
 /// The height, text size, radius, shadow, and focus ring match the `Md`
 /// button, so an input and a button sit flush in a row. File inputs restyle
 /// the browser's upload button into quiet, borderless text.
-const INPUT: &str = "h-9 w-full min-w-0 rounded-lg border border-border bg-background px-3 \
+const INPUT: &str = "h-9 w-full min-w-0 rounded-md border border-border bg-background px-3 \
     text-sm shadow-xs transition-colors outline-none \
     placeholder:text-muted-foreground \
     file:mr-3 file:h-full file:border-0 file:bg-transparent file:text-sm file:font-medium \

@@ -11,7 +11,7 @@ use topcoat::{
 /// so the component can draw its own chevron, which keeps the control looking
 /// the same across browsers; the extra right padding reserves the chevron's
 /// space.
-const SELECT: &str = "h-9 w-full appearance-none items-center rounded-lg border border-border \
+const SELECT: &str = "h-9 w-full appearance-none items-center rounded-md border border-border \
     bg-background pr-8 pl-3 text-left text-sm shadow-xs transition-colors outline-none \
     focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 \
     focus-visible:ring-offset-background disabled:pointer-events-none";
@@ -28,7 +28,7 @@ const SELECT: &str = "h-9 w-full appearance-none items-center rounded-lg border 
 /// favor of the component's chevron. On browsers without support every rule
 /// here is inert and the operating system's picker shows instead.
 const PICKER: &str = "[&::picker(select)]:[appearance:base-select] \
-    [&::picker(select)]:mt-1 [&::picker(select)]:rounded-lg \
+    [&::picker(select)]:mt-1 [&::picker(select)]:rounded-md \
     [&::picker(select)]:border [&::picker(select)]:border-border \
     [&::picker(select)]:bg-background [&::picker(select)]:p-1 \
     [&::picker(select)]:text-foreground [&::picker(select)]:shadow-sm \
