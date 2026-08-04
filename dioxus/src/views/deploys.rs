@@ -1,5 +1,3 @@
-use crate::components::button::{Button, ButtonVariant};
-use crate::components::card::{Card, CardContent, CardHeader, CardTitle};
 use crate::views::common::{PageTitle, StatusBadge};
 use dioxus::prelude::*;
 use dioxus_icons::lucide::{GitBranch, Link2, Network, Shield, Terminal};
@@ -102,103 +100,81 @@ const PRIVATE_LINKS: [PrivateLink; 8] = [
 #[component]
 pub fn PrivateLinks() -> Element {
     rsx! {
-        div { class: "page-header-with-action",
-            PageTitle {
-                title: "Private links",
-                subtitle: "Project-to-project network intent."
-            }
-            div { class: "header-actions",
-                Button { variant: ButtonVariant::Outline,
-                    Terminal { size: 16 }
-                    "Audit log"
-                }
-                Button {
-                    Link2 { size: 16 }
-                    "Request link"
-                }
+        div { class: "mb-6 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between",
+            PageTitle { title: "Private links", subtitle: "Project-to-project network intent." }
+            div { class: "flex gap-2",
+                button { class: "btn btn-outline", Terminal { size: 16 } "Audit log" }
+                button { class: "btn btn-primary", Link2 { size: 16 } "Request link" }
             }
         }
 
-        section { class: "deploy-overview",
-            Card {
-                CardHeader { CardTitle { "Two-way configuration" } }
-                CardContent {
-                    div { class: "rollout-card",
-                        Shield { size: 28 }
-                        div {
-                            strong { "Source request plus target allow" }
-                            span { "A link is usable only after both project configs agree." }
-                        }
-                        StatusBadge { status: "Active".to_string() }
-                    }
-                }
+        section { class: "mb-5 grid gap-4 lg:grid-cols-2",
+            InfoCard {
+                title: "Two-way configuration",
+                detail: "A link is usable only after both project configs agree.",
+                icon: "shield",
+                badge: "Active"
             }
-            Card {
-                CardHeader { CardTitle { "Space boundary" } }
-                CardContent {
-                    div { class: "source-card",
-                        Network { size: 28 }
-                        div {
-                            strong { "Same-space traffic only" }
-                            span { "Different compute spaces block component traffic even when project intent exists." }
-                        }
-                    }
-                }
+            InfoCard {
+                title: "Space boundary",
+                detail: "Different compute spaces block component traffic even when project intent exists.",
+                icon: "network"
             }
         }
 
-        Card {
-            CardHeader {
-                CardTitle { "Link inventory" }
-            }
-            CardContent {
-                div { class: "data-table private-link-table",
-                    div { class: "table-header",
-                        span { "Projects" }
-                        span { "Spaces" }
-                        span { "Source" }
-                        span { "Target" }
-                        span { "Observed" }
-                        span { "Status" }
-                    }
-                    for link in PRIVATE_LINKS {
-                        div { class: "table-row",
-                            div { class: "table-primary",
-                                strong { "{link.source} -> {link.target}" }
-                                span { "Project graph edge" }
+        div { class: "card mb-5 border border-base-300 bg-base-100",
+            div { class: "card-body",
+                h2 { class: "card-title", "Link inventory" }
+                div { class: "overflow-x-auto",
+                    table { class: "table table-zebra",
+                        thead { tr {
+                            th { "Projects" } th { "Spaces" } th { "Source" } th { "Target" } th { "Observed" } th { "Status" }
+                        } }
+                        tbody {
+                            for link in PRIVATE_LINKS {
+                                tr {
+                                    td {
+                                        strong { class: "block", "{link.source} -> {link.target}" }
+                                        span { class: "text-xs text-base-content/60", "Project graph edge" }
+                                    }
+                                    td { "{link.source_space} -> {link.target_space}" }
+                                    td { StatusBadge { status: link.source_request } }
+                                    td { StatusBadge { status: link.target_allow } }
+                                    td { "{link.observed}" }
+                                    td { StatusBadge { status: link.status } }
+                                }
                             }
-                            span { "{link.source_space} -> {link.target_space}" }
-                            StatusBadge { status: link.source_request.to_string() }
-                            StatusBadge { status: link.target_allow.to_string() }
-                            span { "{link.observed}" }
-                            StatusBadge { status: link.status.to_string() }
                         }
                     }
                 }
             }
         }
 
-        Card {
-            CardHeader {
-                CardTitle {
-                    GitBranch { size: 18 }
-                    "How links affect topology"
+        div { class: "card border border-base-300 bg-base-100",
+            div { class: "card-body",
+                h2 { class: "card-title", GitBranch { size: 18 } "How links affect topology" }
+                div { class: "divide-y divide-base-300",
+                    ExplainRow { title: "Project graph", detail: "Edges come from private-link intent and observed traffic between projects." }
+                    ExplainRow { title: "Component graph", detail: "Edges come from network telemetry and configuration references inside the selected environment." }
+                    ExplainRow { title: "Enforcement", detail: "Project-level links do not override space isolation." }
                 }
             }
-            CardContent {
-                div { class: "compact-list",
-                    ExplainRow {
-                        title: "Project graph",
-                        detail: "Edges come from private-link intent and observed traffic between projects."
+        }
+    }
+}
+
+#[component]
+fn InfoCard(title: String, detail: String, icon: String, badge: Option<String>) -> Element {
+    rsx! {
+        div { class: "card border border-base-300 bg-base-100",
+            div { class: "card-body",
+                div { class: "flex items-center gap-3",
+                    if icon == "shield" { Shield { size: 28 } } else { Network { size: 28 } }
+                    div { class: "flex-1",
+                        h2 { class: "card-title", "{title}" }
+                        p { class: "text-sm text-base-content/60", "{detail}" }
                     }
-                    ExplainRow {
-                        title: "Component graph",
-                        detail: "Edges come from network telemetry and configuration references inside the selected environment."
-                    }
-                    ExplainRow {
-                        title: "Enforcement",
-                        detail: "Project-level links do not override space isolation."
-                    }
+                    if let Some(badge) = badge { StatusBadge { status: badge } }
                 }
             }
         }
@@ -208,10 +184,10 @@ pub fn PrivateLinks() -> Element {
 #[component]
 fn ExplainRow(title: String, detail: String) -> Element {
     rsx! {
-        div { class: "compact-row",
+        div { class: "flex items-center justify-between gap-3 py-4",
             div {
-                strong { "{title}" }
-                span { "{detail}" }
+                strong { class: "block", "{title}" }
+                span { class: "text-sm text-base-content/60", "{detail}" }
             }
             Link2 { size: 18 }
         }

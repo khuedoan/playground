@@ -1,6 +1,3 @@
-use crate::components::badge::{Badge, BadgeVariant};
-use crate::components::button::{Button, ButtonVariant};
-use crate::components::card::{Card, CardAction, CardContent, CardHeader, CardTitle};
 use crate::views::common::{PageTitle, StatusBadge, UsageMeter};
 use dioxus::prelude::*;
 use dioxus_icons::lucide::{Cloud, Network, ServerCog, Shield};
@@ -58,94 +55,62 @@ const SPACES: [Space; 4] = [
 #[component]
 pub fn Spaces() -> Element {
     rsx! {
-        div { class: "page-header-with-action",
-            PageTitle {
-                title: "Spaces",
-                subtitle: "Compute data planes available to this tenant."
-            }
-            div { class: "header-actions",
-                Button { variant: ButtonVariant::Outline,
-                    Shield { size: 16 }
-                    "Access policy"
-                }
-            }
+        div { class: "mb-6 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between",
+            PageTitle { title: "Spaces", subtitle: "Compute data planes available to this tenant." }
+            button { class: "btn btn-outline", Shield { size: 16 } "Access policy" }
         }
 
-        section { class: "billing-grid",
-            Card { class: "plan-card",
-                CardHeader {
-                    CardTitle { "Tenant access" }
-                    CardAction {
-                        Badge { variant: BadgeVariant::Primary, "1:N" }
+        section { class: "mb-5 grid gap-4 lg:grid-cols-[3fr_2fr]",
+            div { class: "card border border-base-300 bg-base-100",
+                div { class: "card-body",
+                    div { class: "flex items-center justify-between",
+                        h2 { class: "card-title", "Tenant access" }
+                        span { class: "badge badge-primary", "1:N" }
                     }
-                }
-                CardContent {
-                    strong { "Acme Retail" }
-                    p { "This tenant can deploy environments into 3 active spaces." }
-                    Button { variant: ButtonVariant::Secondary, "Grant space access" }
+                    strong { class: "text-2xl", "Acme Retail" }
+                    p { class: "text-base-content/60", "This tenant can deploy environments into 3 active spaces." }
+                    div { class: "card-actions", button { class: "btn btn-ghost", "Grant space access" } }
                 }
             }
-            Card {
-                CardHeader { CardTitle { "Communication rule" } }
-                CardContent { class: "forecast-card",
+            div { class: "card border border-base-300 bg-base-100",
+                div { class: "card-body",
+                    h2 { class: "card-title", "Communication rule" }
                     Network { size: 28 }
-                    strong { "Same space only" }
-                    span { "Components in different spaces cannot talk directly." }
+                    strong { class: "text-2xl", "Same space only" }
+                    p { class: "text-base-content/60", "Components in different spaces cannot talk directly." }
                 }
             }
         }
 
-        section { class: "usage-grid",
-            SpaceSummaryCard {
-                title: "Hosted default",
-                amount: "hosted-us-east",
-                icon: "cloud",
-                value: 63.0,
-                detail: "Shared PaaS data plane"
-            }
-            SpaceSummaryCard {
-                title: "Enterprise owned",
-                amount: "2 active",
-                icon: "shield",
-                value: 56.0,
-                detail: "Tenant-controlled spaces"
-            }
-            SpaceSummaryCard {
-                title: "Pending access",
-                amount: "1 space",
-                icon: "server",
-                value: 8.0,
-                detail: "Sandbox awaiting approval"
-            }
+        section { class: "mb-5 grid gap-4 md:grid-cols-3",
+            SpaceSummaryCard { title: "Hosted default", amount: "hosted-us-east", icon: "cloud", value: 63.0, detail: "Shared PaaS data plane" }
+            SpaceSummaryCard { title: "Enterprise owned", amount: "2 active", icon: "shield", value: 56.0, detail: "Tenant-controlled spaces" }
+            SpaceSummaryCard { title: "Pending access", amount: "1 space", icon: "server", value: 8.0, detail: "Sandbox awaiting approval" }
         }
 
-        Card {
-            CardHeader {
-                CardTitle { "Space inventory" }
-            }
-            CardContent {
-                div { class: "data-table space-table",
-                    div { class: "table-header",
-                        span { "Space" }
-                        span { "Kind" }
-                        span { "Region" }
-                        span { "Owner" }
-                        span { "Environments" }
-                        span { "Utilization" }
-                        span { "Status" }
-                    }
-                    for space in SPACES {
-                        div { class: "table-row",
-                            div { class: "table-primary",
-                                strong { "{space.name}" }
-                                span { "Compute data plane" }
+        div { class: "card border border-base-300 bg-base-100",
+            div { class: "card-body",
+                h2 { class: "card-title", "Space inventory" }
+                div { class: "overflow-x-auto",
+                    table { class: "table table-zebra",
+                        thead { tr {
+                            th { "Space" } th { "Kind" } th { "Region" } th { "Owner" } th { "Environments" } th { "Utilization" } th { "Status" }
+                        } }
+                        tbody {
+                            for space in SPACES {
+                                tr {
+                                    td {
+                                        strong { class: "block", "{space.name}" }
+                                        span { class: "text-xs text-base-content/60", "Compute data plane" }
+                                    }
+                                    td { StatusBadge { status: space.kind } }
+                                    td { "{space.region}" }
+                                    td { "{space.owner}" }
+                                    td { "{space.environments}" }
+                                    td { UsageMeter { label: "Load", value: space.utilization, detail: "Current" } }
+                                    td { StatusBadge { status: space.status } }
+                                }
                             }
-                            StatusBadge { status: space.kind.to_string() }
-                            span { "{space.region}" }
-                            span { "{space.owner}" }
-                            span { "{space.environments}" }
-                            UsageMeter { label: "Load", value: space.utilization, detail: "Current" }
-                            StatusBadge { status: space.status.to_string() }
                         }
                     }
                 }
@@ -155,23 +120,23 @@ pub fn Spaces() -> Element {
 }
 
 #[component]
-fn SpaceSummaryCard(title: String, amount: String, icon: String, value: f64, detail: String) -> Element {
+fn SpaceSummaryCard(
+    title: String,
+    amount: String,
+    icon: String,
+    value: f64,
+    detail: String,
+) -> Element {
     rsx! {
-        Card { class: "usage-cost-card",
-            CardHeader {
-                div { class: "metric-icon",
-                    if icon == "cloud" {
-                        Cloud { size: 18 }
-                    } else if icon == "shield" {
-                        Shield { size: 18 }
-                    } else {
-                        ServerCog { size: 18 }
-                    }
+        div { class: "card border border-base-300 bg-base-100",
+            div { class: "card-body",
+                div { class: "flex items-center gap-3",
+                    if icon == "cloud" { Cloud { size: 18 } }
+                    else if icon == "shield" { Shield { size: 18 } }
+                    else { ServerCog { size: 18 } }
+                    h2 { class: "card-title", "{title}" }
                 }
-                CardTitle { "{title}" }
-            }
-            CardContent {
-                strong { "{amount}" }
+                strong { class: "text-2xl", "{amount}" }
                 UsageMeter { label: "Utilization", value, detail }
             }
         }

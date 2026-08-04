@@ -1,6 +1,3 @@
-use crate::components::badge::{Badge, BadgeVariant};
-use crate::components::button::{Button, ButtonVariant};
-use crate::components::card::{Card, CardAction, CardContent, CardHeader, CardTitle};
 use crate::views::common::{PageTitle, StatusBadge, UsageMeter};
 use dioxus::prelude::*;
 use dioxus_icons::lucide::{
@@ -110,110 +107,57 @@ const SPACES: [SpaceSignal; 3] = [
 #[component]
 pub fn Dashboard() -> Element {
     rsx! {
-        PageTitle {
-            title: "Overview",
-            subtitle: "Acme Retail tenant."
+        PageTitle { title: "Overview", subtitle: "Acme Retail tenant." }
+
+        section { class: "mb-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-4",
+            MetricCard { title: "Projects", value: "8", detail: "19 environments", icon: "projects" }
+            MetricCard { title: "Components", value: "64", detail: "Telemetry graph active", icon: "components" }
+            MetricCard { title: "Private links", value: "12", detail: "3 waiting for target allow", icon: "links" }
+            MetricCard { title: "Spaces", value: "3", detail: "1 hosted, 2 tenant owned", icon: "spaces" }
         }
 
-        section { class: "metric-grid",
-            MetricCard {
-                title: "Projects",
-                value: "8",
-                detail: "19 environments",
-                Boxes { size: 18 }
-            }
-            MetricCard {
-                title: "Components",
-                value: "64",
-                detail: "Telemetry graph active",
-                Network { size: 18 }
-            }
-            MetricCard {
-                title: "Private links",
-                value: "12",
-                detail: "3 waiting for target allow",
-                Link2 { size: 18 }
-            }
-            MetricCard {
-                title: "Spaces",
-                value: "3",
-                detail: "1 hosted, 2 tenant owned",
-                ServerCog { size: 18 }
-            }
-        }
-
-        section { class: "dashboard-grid",
-            Card { class: "wide-card",
-                CardHeader {
-                    CardTitle { "Tenant hierarchy" }
-                    CardAction {
-                        Button { variant: ButtonVariant::Outline,
+        section { class: "grid gap-5 xl:grid-cols-[3fr_2fr]",
+            div { class: "card border border-base-300 bg-base-100 xl:row-span-2",
+                div { class: "card-body",
+                    div { class: "flex items-center justify-between gap-3",
+                        h2 { class: "card-title", "Tenant hierarchy" }
+                        button { class: "btn btn-outline btn-sm",
                             "Open projects"
                             ArrowUpRight { size: 14 }
                         }
                     }
-                }
-                CardContent {
-                    div { class: "hierarchy-list",
-                        HierarchyRow {
-                            icon: "tenant",
-                            title: "Acme Retail",
-                            detail: "Tenant workspace with access to hosted-us-east, acme-pci-prod, acme-eu-core."
-                        }
-                        HierarchyRow {
-                            icon: "project",
-                            title: "Projects",
-                            detail: "Checkout, identity, catalog, analytics, support, notifications, billing, observability."
-                        }
-                        HierarchyRow {
-                            icon: "environment",
-                            title: "Environments",
-                            detail: "Each project carries prod, staging, or dev configuration and placement."
-                        }
-                        HierarchyRow {
-                            icon: "component",
-                            title: "Components",
-                            detail: "Apps, workers, stores, queues, secrets, and external endpoints."
-                        }
+                    div { class: "divide-y divide-base-300",
+                        HierarchyRow { icon: "tenant", title: "Acme Retail", detail: "Tenant workspace with access to hosted-us-east, acme-pci-prod, acme-eu-core." }
+                        HierarchyRow { icon: "project", title: "Projects", detail: "Checkout, identity, catalog, analytics, support, notifications, billing, observability." }
+                        HierarchyRow { icon: "environment", title: "Environments", detail: "Each project carries prod, staging, or dev configuration and placement." }
+                        HierarchyRow { icon: "component", title: "Components", detail: "Apps, workers, stores, queues, secrets, and external endpoints." }
                     }
                 }
             }
 
-            Card {
-                CardHeader {
-                    CardTitle { "Project health" }
-                }
-                CardContent {
-                    div { class: "service-list",
-                        for project in PROJECTS {
-                            ProjectHealthRow { project }
-                        }
+            div { class: "card border border-base-300 bg-base-100",
+                div { class: "card-body",
+                    h2 { class: "card-title", "Project health" }
+                    div { class: "divide-y divide-base-300",
+                        for project in PROJECTS { ProjectHealthRow { project } }
                     }
                 }
             }
 
-            Card {
-                CardHeader {
-                    CardTitle { "Private link handshakes" }
-                }
-                CardContent {
-                    div { class: "compact-list",
-                        for link in LINKS {
-                            LinkRow { link }
-                        }
+            div { class: "card border border-base-300 bg-base-100",
+                div { class: "card-body",
+                    h2 { class: "card-title", "Private link handshakes" }
+                    div { class: "divide-y divide-base-300",
+                        for link in LINKS { LinkRow { link } }
                     }
                 }
             }
 
-            Card {
-                CardHeader {
-                    CardTitle { "Space placement" }
-                }
-                CardContent {
-                    div { class: "region-map",
-                        for space in SPACES {
-                            SpacePill { space }
-                        }
+            div { class: "card border border-base-300 bg-base-100 xl:col-span-2",
+                div { class: "card-body",
+                    h2 { class: "card-title", "Space placement" }
+                    div { class: "grid gap-3 md:grid-cols-3",
+                        for space in SPACES { SpacePill { space } }
                     }
                 }
             }
@@ -222,17 +166,24 @@ pub fn Dashboard() -> Element {
 }
 
 #[component]
-fn MetricCard(title: String, value: String, detail: String, children: Element) -> Element {
+fn MetricCard(title: String, value: String, detail: String, icon: String) -> Element {
     rsx! {
-        Card { class: "metric-card",
-            CardHeader {
-                div { class: "metric-icon", {children} }
-                Badge { variant: BadgeVariant::Secondary, "Live" }
-            }
-            CardContent {
-                p { "{title}" }
-                strong { "{value}" }
-                span { "{detail}" }
+        div { class: "card border border-base-300 bg-base-100",
+            div { class: "card-body gap-3",
+                div { class: "flex items-center justify-between",
+                    span { class: "btn btn-square btn-ghost pointer-events-none",
+                        if icon == "projects" { Boxes { size: 18 } }
+                        else if icon == "components" { Network { size: 18 } }
+                        else if icon == "links" { Link2 { size: 18 } }
+                        else { ServerCog { size: 18 } }
+                    }
+                    span { class: "badge badge-ghost badge-sm", "Live" }
+                }
+                div { class: "stat p-0",
+                    div { class: "stat-title", "{title}" }
+                    div { class: "stat-value text-3xl", "{value}" }
+                    div { class: "stat-desc", "{detail}" }
+                }
             }
         }
     }
@@ -241,21 +192,16 @@ fn MetricCard(title: String, value: String, detail: String, children: Element) -
 #[component]
 fn HierarchyRow(icon: String, title: String, detail: String) -> Element {
     rsx! {
-        div { class: "compact-row",
-            div { class: "row-with-icon",
-                if icon == "tenant" {
-                    Shield { size: 18 }
-                } else if icon == "project" {
-                    Boxes { size: 18 }
-                } else if icon == "environment" {
-                    GitBranch { size: 18 }
-                } else {
-                    Braces { size: 18 }
-                }
-                div {
-                    strong { "{title}" }
-                    span { "{detail}" }
-                }
+        div { class: "flex gap-3 py-4",
+            span { class: "mt-1 text-base-content/60",
+                if icon == "tenant" { Shield { size: 18 } }
+                else if icon == "project" { Boxes { size: 18 } }
+                else if icon == "environment" { GitBranch { size: 18 } }
+                else { Braces { size: 18 } }
+            }
+            div {
+                strong { class: "block", "{title}" }
+                span { class: "text-sm text-base-content/60", "{detail}" }
             }
         }
     }
@@ -264,16 +210,14 @@ fn HierarchyRow(icon: String, title: String, detail: String) -> Element {
 #[component]
 fn ProjectHealthRow(project: ProjectSignal) -> Element {
     rsx! {
-        div { class: "service-row",
-            div { class: "service-identity",
-                strong { "{project.name}" }
-                span { "{project.environments} in {project.space}" }
+        div { class: "grid gap-3 py-4 sm:grid-cols-[1fr_auto]",
+            div {
+                strong { class: "block", "{project.name}" }
+                span { class: "text-sm text-base-content/60", "{project.environments} in {project.space}" }
             }
-            StatusBadge { status: project.status.to_string() }
-            UsageMeter {
-                label: "Space load",
-                value: project.utilization,
-                detail: "Current placement"
+            StatusBadge { status: project.status }
+            div { class: "sm:col-span-2",
+                UsageMeter { label: "Space load", value: project.utilization, detail: "Current placement" }
             }
         }
     }
@@ -282,12 +226,12 @@ fn ProjectHealthRow(project: ProjectSignal) -> Element {
 #[component]
 fn LinkRow(link: LinkSignal) -> Element {
     rsx! {
-        div { class: "compact-row",
+        div { class: "flex items-start justify-between gap-3 py-4",
             div {
-                strong { "{link.source} -> {link.target}" }
-                span { "{link.detail}" }
+                strong { class: "block", "{link.source} -> {link.target}" }
+                span { class: "text-sm text-base-content/60", "{link.detail}" }
             }
-            StatusBadge { status: link.status.to_string() }
+            StatusBadge { status: link.status }
         }
     }
 }
@@ -295,13 +239,11 @@ fn LinkRow(link: LinkSignal) -> Element {
 #[component]
 fn SpacePill(space: SpaceSignal) -> Element {
     rsx! {
-        div { class: "region-pill",
-            div { class: "region-icon",
-                Cloud { size: 18 }
-            }
+        div { class: "flex gap-3 rounded-box border border-base-300 p-4",
+            Cloud { size: 18 }
             div {
-                strong { "{space.name}" }
-                span { "{space.kind} - {space.detail}" }
+                strong { class: "block", "{space.name}" }
+                span { class: "text-sm text-base-content/60", "{space.kind} - {space.detail}" }
             }
         }
     }

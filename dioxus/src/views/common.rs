@@ -1,17 +1,12 @@
-use crate::components::badge::{Badge, BadgeVariant};
-use crate::components::card::{Card, CardContent};
-use crate::components::progress::Progress;
 use dioxus::prelude::*;
 
 #[component]
 pub fn PageTitle(title: String, subtitle: String) -> Element {
     rsx! {
-        div { class: "page-title",
-            div {
-                h1 { "{title}" }
-            }
+        div { class: "mb-6 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between",
+            h1 { class: "text-3xl font-bold", "{title}" }
             if !subtitle.is_empty() {
-                p { "{subtitle}" }
+                p { class: "text-base-content/60", "{subtitle}" }
             }
         }
     }
@@ -19,33 +14,31 @@ pub fn PageTitle(title: String, subtitle: String) -> Element {
 
 #[component]
 pub fn StatusBadge(status: String) -> Element {
-    let variant = match status.as_str() {
-        "Healthy" | "Ready" | "Paid" | "Active" | "Passed" | "Allowed" | "Linked"
-        | "Available" | "Dedicated" => BadgeVariant::Primary,
+    let class = match status.as_str() {
+        "Healthy" | "Ready" | "Paid" | "Active" | "Passed" | "Allowed" | "Linked" | "Available"
+        | "Dedicated" => "badge badge-success badge-sm",
         "Deploying" | "Pending" | "Preview" | "Requested" | "Shared" | "Syncing" => {
-            BadgeVariant::Secondary
+            "badge badge-warning badge-sm"
         }
         "Warning" | "Failed" | "Overdue" | "Blocked" | "Needs allow" | "Drift" => {
-            BadgeVariant::Destructive
+            "badge badge-error badge-sm"
         }
-        _ => BadgeVariant::Outline,
+        _ => "badge badge-ghost badge-sm",
     };
 
-    rsx! {
-        Badge { variant, "{status}" }
-    }
+    rsx! { span { class, "{status}" } }
 }
 
 #[component]
 pub fn UsageMeter(label: String, value: f64, detail: String) -> Element {
     rsx! {
-        div { class: "usage-meter",
-            div { class: "usage-meter-header",
-                span { "{label}" }
+        div { class: "grid min-w-32 gap-1 text-sm",
+            div { class: "flex justify-between gap-3",
+                span { class: "text-base-content/60", "{label}" }
                 strong { "{value:.0}%" }
             }
-            Progress { value }
-            p { "{detail}" }
+            progress { class: "progress progress-primary w-full", value, max: 100 }
+            p { class: "text-xs text-base-content/60", "{detail}" }
         }
     }
 }
@@ -53,10 +46,10 @@ pub fn UsageMeter(label: String, value: f64, detail: String) -> Element {
 #[component]
 pub fn EmptyState(title: String, detail: String) -> Element {
     rsx! {
-        Card { class: "empty-state",
-            CardContent {
-                h3 { "{title}" }
-                p { "{detail}" }
+        div { class: "card border border-base-300 bg-base-100",
+            div { class: "card-body items-center py-10 text-center",
+                h3 { class: "card-title", "{title}" }
+                p { class: "text-base-content/60", "{detail}" }
             }
         }
     }

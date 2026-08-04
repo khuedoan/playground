@@ -1,7 +1,3 @@
-use crate::components::badge::{Badge, BadgeVariant};
-use crate::components::button::{Button, ButtonVariant};
-use crate::components::card::{Card, CardContent, CardHeader, CardTitle};
-use crate::components::tabs::{TabContent, TabList, TabTrigger, Tabs};
 use crate::views::common::{EmptyState, PageTitle, StatusBadge, UsageMeter};
 use crate::views::ProjectComponentGraph;
 use crate::Route;
@@ -152,51 +148,37 @@ const PROJECTS: [Project; 8] = [
 
 #[component]
 pub fn Projects() -> Element {
+    let mut filter = use_signal(|| "all");
+
     rsx! {
-        div { class: "page-header-with-action",
-            PageTitle {
-                title: "Projects",
-                subtitle: "Tenant-scoped application groups."
-            }
-            div { class: "header-actions",
-                Button { variant: ButtonVariant::Outline,
-                    Link2 { size: 16 }
-                    "Request link"
-                }
-                Button {
-                    Plus { size: 16 }
-                    "Create project"
-                }
+        div { class: "mb-6 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between",
+            PageTitle { title: "Projects", subtitle: "Tenant-scoped application groups." }
+            div { class: "flex gap-2",
+                button { class: "btn btn-outline", Link2 { size: 16 } "Request link" }
+                button { class: "btn btn-primary", Plus { size: 16 } "Create project" }
             }
         }
 
-        section { class: "service-summary-grid",
+        section { class: "mb-5 grid gap-4 md:grid-cols-3",
             SummaryTile { icon: "boxes", title: "Projects", value: "8", detail: "19 environments" }
             SummaryTile { icon: "braces", title: "Components", value: "64", detail: "Across all projects" }
             SummaryTile { icon: "cloud", title: "Spaces used", value: "3", detail: "2 tenant-owned" }
         }
 
-        Card {
-            CardHeader {
-                CardTitle { "Project inventory" }
-            }
-            CardContent {
-                Tabs { default_value: "all".to_string(), horizontal: true,
-                    TabList {
-                        TabTrigger { value: "all".to_string(), index: 0usize, "All" }
-                        TabTrigger { value: "hosted".to_string(), index: 1usize, "Hosted space" }
-                        TabTrigger { value: "dedicated".to_string(), index: 2usize, "Dedicated space" }
-                    }
-                    TabContent { value: "all".to_string(), index: 0usize,
-                        ProjectsTable { filter: "all".to_string() }
-                    }
-                    TabContent { value: "hosted".to_string(), index: 1usize,
-                        ProjectsTable { filter: "hosted-us-east".to_string() }
-                    }
-                    TabContent { value: "dedicated".to_string(), index: 2usize,
-                        ProjectsTable { filter: "dedicated".to_string() }
+        div { class: "card border border-base-300 bg-base-100",
+            div { class: "card-body",
+                h2 { class: "card-title", "Project inventory" }
+                div { role: "tablist", class: "tabs tabs-box w-fit",
+                    for (value, label) in [("all", "All"), ("hosted-us-east", "Hosted space"), ("dedicated", "Dedicated space")] {
+                        button {
+                            role: "tab",
+                            class: if filter() == value { "tab tab-active" } else { "tab" },
+                            onclick: move |_| filter.set(value),
+                            "{label}"
+                        }
                     }
                 }
+                ProjectsTable { filter: filter().to_string() }
             }
         }
     }
@@ -205,21 +187,17 @@ pub fn Projects() -> Element {
 #[component]
 fn SummaryTile(icon: String, title: String, value: String, detail: String) -> Element {
     rsx! {
-        Card { class: "summary-tile",
-            CardContent {
-                div { class: "summary-icon",
-                    if icon == "boxes" {
-                        Boxes { size: 18 }
-                    } else if icon == "braces" {
-                        Braces { size: 18 }
-                    } else {
-                        Cloud { size: 18 }
-                    }
+        div { class: "card border border-base-300 bg-base-100",
+            div { class: "card-body flex-row items-center",
+                span { class: "btn btn-square btn-ghost pointer-events-none",
+                    if icon == "boxes" { Boxes { size: 18 } }
+                    else if icon == "braces" { Braces { size: 18 } }
+                    else { Cloud { size: 18 } }
                 }
                 div {
-                    span { "{title}" }
-                    strong { "{value}" }
-                    p { "{detail}" }
+                    span { class: "text-sm text-base-content/60", "{title}" }
+                    strong { class: "block text-2xl", "{value}" }
+                    p { class: "text-sm text-base-content/60", "{detail}" }
                 }
             }
         }
@@ -228,55 +206,31 @@ fn SummaryTile(icon: String, title: String, value: String, detail: String) -> El
 
 #[component]
 fn ProjectsTable(filter: String) -> Element {
-    let visible_count = PROJECTS
+    let visible = PROJECTS
         .iter()
-        .filter(|project| {
-            filter == "all"
-                || project.spaces.contains(filter.as_str())
-                || filter == "dedicated" && !project.spaces.contains("hosted-us-east")
-        })
-        .count();
+        .filter(|project| matches_filter(project, &filter));
 
     rsx! {
-        if visible_count == 0 {
-            EmptyState {
-                title: "No projects found",
-                detail: "Try another space filter."
-            }
-        } else {
-            div { class: "data-table projects-table",
-                div { class: "table-header",
-                    span { "Project" }
-                    span { "Owner" }
-                    span { "Spaces" }
-                    span { "Links" }
-                    span { "Status" }
-                    span { "Load" }
-                }
-                for project in PROJECTS {
-                    if filter == "all"
-                        || project.spaces.contains(filter.as_str())
-                        || filter == "dedicated" && !project.spaces.contains("hosted-us-east")
-                    {
-                        Link {
-                            to: Route::ProjectDetail { slug: project.slug.to_string() },
-                            class: "table-row service-link-row",
-                            div { class: "table-primary",
-                                strong { "{project.name}" }
-                                span { "{project.environments}" }
+        div { class: "overflow-x-auto",
+            table { class: "table table-zebra",
+                thead { tr {
+                    th { "Project" } th { "Owner" } th { "Spaces" } th { "Links" } th { "Status" } th { "Load" }
+                } }
+                tbody {
+                    for project in visible {
+                        tr { class: "hover:bg-base-200",
+                            td {
+                                Link { to: Route::ProjectDetail { slug: project.slug.to_string() }, class: "link link-hover font-semibold", "{project.name}" }
+                                span { class: "block text-xs text-base-content/60", "{project.environments}" }
                             }
-                            span { "{project.owner}" }
-                            span { "{project.spaces}" }
-                            span { "{project.private_links}" }
-                            div { class: "status-cell",
-                                StatusBadge { status: project.status.to_string() }
-                                Badge { variant: BadgeVariant::Outline, "{project.components} components" }
+                            td { "{project.owner}" }
+                            td { "{project.spaces}" }
+                            td { "{project.private_links}" }
+                            td { class: "space-x-1",
+                                StatusBadge { status: project.status }
+                                span { class: "badge badge-outline badge-sm", "{project.components} components" }
                             }
-                            UsageMeter {
-                                label: "Space",
-                                value: project.saturation,
-                                detail: "Placement load"
-                            }
+                            td { UsageMeter { label: "Space", value: project.saturation, detail: "Placement load" } }
                         }
                     }
                 }
@@ -285,155 +239,120 @@ fn ProjectsTable(filter: String) -> Element {
     }
 }
 
+fn matches_filter(project: &&Project, filter: &str) -> bool {
+    filter == "all"
+        || project.spaces.contains(filter)
+        || filter == "dedicated" && !project.spaces.contains("hosted-us-east")
+}
+
 #[component]
 pub fn ProjectDetail(slug: String) -> Element {
-    let Some(project) = project_by_slug(&slug) else {
+    let Some(project) = PROJECTS
+        .iter()
+        .copied()
+        .find(|project| project.slug == slug)
+    else {
         return rsx! {
-            PageTitle {
-                title: "Project not found",
-                subtitle: String::new()
-            }
-            EmptyState {
-                title: "No matching project",
-                detail: slug
-            }
+            PageTitle { title: "Project not found", subtitle: "" }
+            EmptyState { title: "No matching project", detail: slug }
         };
     };
 
     rsx! {
-        div { class: "page-header-with-action",
-            div { class: "service-title-block",
-                Link { to: Route::Projects {}, class: "back-link",
-                    ArrowLeft { size: 16 }
-                    "Projects"
+        div { class: "mb-6 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between",
+            div {
+                Link { to: Route::Projects {}, class: "link link-hover mb-3 inline-flex items-center gap-2 text-sm",
+                    ArrowLeft { size: 16 } "Projects"
                 }
                 PageTitle {
-                    title: project.name.to_string(),
+                    title: project.name,
                     subtitle: format!("{} - {} - {}", project.owner, project.default_environment, project.primary_space)
                 }
             }
-            div { class: "header-actions",
-                Button { variant: ButtonVariant::Outline,
-                    Terminal { size: 16 }
-                    "Logs"
-                }
-                Button {
-                    Link2 { size: 16 }
-                    "Add private link"
-                }
+            div { class: "flex gap-2",
+                button { class: "btn btn-outline", Terminal { size: 16 } "Logs" }
+                button { class: "btn btn-primary", Link2 { size: 16 } "Add private link" }
             }
         }
 
-        section { class: "service-detail-grid",
-            Card { class: "service-summary-card",
-                CardHeader {
-                    CardTitle { "Status" }
-                }
-                CardContent { class: "service-status-card",
-                    StatusBadge { status: project.status.to_string() }
-                    strong { "{project.traffic}" }
-                    span { "current environment traffic" }
-                }
-            }
-            Card { class: "service-summary-card",
-                CardHeader {
-                    CardTitle { "Components" }
-                }
-                CardContent { class: "service-icon-copy",
-                    Braces { size: 22 }
-                    div {
-                        strong { "{project.components}" }
-                        span { "apps, stores, workers, secrets" }
-                    }
-                }
-            }
-            Card { class: "service-summary-card",
-                CardHeader {
-                    CardTitle { "Spaces" }
-                }
-                CardContent { class: "service-icon-copy",
-                    ServerCog { size: 22 }
-                    div {
-                        strong { "{project.primary_space}" }
-                        span { "{project.spaces}" }
-                    }
-                }
-            }
+        section { class: "mb-5 grid gap-4 md:grid-cols-3",
+            DetailSummary { title: "Status", value: project.traffic, detail: "current environment traffic", status: project.status }
+            DetailSummary { title: "Components", value: project.components, detail: "apps, stores, workers, secrets", icon: "components" }
+            DetailSummary { title: "Spaces", value: project.primary_space, detail: project.spaces, icon: "spaces" }
         }
 
-        ProjectComponentGraph {
-            project_slug: project.slug.to_string(),
-            project_name: project.name.to_string()
-        }
+        ProjectComponentGraph { project_slug: project.slug, project_name: project.name }
 
-        section { class: "service-detail-grid two-column",
-            Card {
-                CardHeader {
-                    CardTitle { "Project model" }
-                }
-                CardContent {
-                    div { class: "detail-list",
-                        DetailItem { label: "Tenant", value: "Acme Retail" }
-                        DetailItem { label: "Owner", value: project.owner }
-                        DetailItem { label: "Repository", value: project.repo }
-                        DetailItem { label: "Environments", value: project.environments }
-                        DetailItem { label: "Private links", value: project.private_links }
-                    }
-                }
+        section { class: "grid gap-5 lg:grid-cols-2",
+            DetailCard { title: "Project model",
+                DetailItem { label: "Tenant", value: "Acme Retail" }
+                DetailItem { label: "Owner", value: project.owner }
+                DetailItem { label: "Repository", value: project.repo }
+                DetailItem { label: "Environments", value: project.environments }
+                DetailItem { label: "Private links", value: project.private_links }
             }
-            Card {
-                CardHeader {
-                    CardTitle { "Environment placement" }
-                }
-                CardContent {
-                    div { class: "detail-list",
-                        DetailItem { label: "prod", value: project.primary_space }
-                        DetailItem { label: "staging", value: "hosted-us-east" }
-                        DetailItem { label: "dev", value: "hosted-us-east" }
-                        DetailItem { label: "Rule", value: "Components can talk only inside the same space" }
-                    }
-                }
+            DetailCard { title: "Environment placement",
+                DetailItem { label: "prod", value: project.primary_space }
+                DetailItem { label: "staging", value: "hosted-us-east" }
+                DetailItem { label: "dev", value: "hosted-us-east" }
+                DetailItem { label: "Rule", value: "Components can talk only inside the same space" }
             }
-            Card {
-                CardHeader {
-                    CardTitle { "Dependency sources" }
-                }
-                CardContent {
-                    div { class: "compact-list",
-                        DependencySource { source: "Network telemetry", detail: "mTLS flow records generate runtime edges." }
-                        DependencySource { source: "Vault references", detail: "Secret paths generate config edges." }
-                        DependencySource { source: "Private links", detail: "Project edges require source request and target allow." }
-                    }
-                }
+            DetailCard { title: "Dependency sources",
+                DependencySource { source: "Network telemetry", detail: "mTLS flow records generate runtime edges." }
+                DependencySource { source: "Vault references", detail: "Secret paths generate config edges." }
+                DependencySource { source: "Private links", detail: "Project edges require source request and target allow." }
             }
-            Card {
-                CardHeader {
-                    CardTitle { "Access guardrails" }
-                }
-                CardContent { class: "stacked-content",
-                    UsageMeter { label: "Space utilization", value: project.saturation, detail: "Primary space" }
-                    DetailItem { label: "Default environment", value: project.default_environment }
-                    DetailItem { label: "Ingress", value: "Private by default" }
-                    DetailItem { label: "Config", value: "Vault path references tracked" }
-                }
+            DetailCard { title: "Access guardrails",
+                UsageMeter { label: "Space utilization", value: project.saturation, detail: "Primary space" }
+                DetailItem { label: "Default environment", value: project.default_environment }
+                DetailItem { label: "Ingress", value: "Private by default" }
+                DetailItem { label: "Config", value: "Vault path references tracked" }
             }
         }
     }
 }
 
-fn project_by_slug(slug: &str) -> Option<Project> {
-    PROJECTS
-        .iter()
-        .copied()
-        .find(|project| project.slug == slug)
+#[component]
+fn DetailSummary(
+    title: String,
+    value: String,
+    detail: String,
+    status: Option<String>,
+    icon: Option<String>,
+) -> Element {
+    rsx! {
+        div { class: "card border border-base-300 bg-base-100",
+            div { class: "card-body",
+                h2 { class: "card-title", "{title}" }
+                if let Some(status) = status { StatusBadge { status } }
+                if let Some(icon) = icon {
+                    if icon == "components" { Braces { size: 22 } } else { ServerCog { size: 22 } }
+                }
+                strong { class: "text-2xl", "{value}" }
+                span { class: "text-sm text-base-content/60", "{detail}" }
+            }
+        }
+    }
+}
+
+#[component]
+fn DetailCard(title: String, children: Element) -> Element {
+    rsx! {
+        div { class: "card border border-base-300 bg-base-100",
+            div { class: "card-body",
+                h2 { class: "card-title", "{title}" }
+                div { class: "divide-y divide-base-300", {children} }
+            }
+        }
+    }
 }
 
 #[component]
 fn DetailItem(label: String, value: String) -> Element {
     rsx! {
-        div { class: "detail-item",
-            span { "{label}" }
-            strong { "{value}" }
+        div { class: "grid gap-2 py-3 sm:grid-cols-[10rem_1fr]",
+            span { class: "text-sm text-base-content/60", "{label}" }
+            strong { class: "text-sm", "{value}" }
         }
     }
 }
@@ -441,10 +360,10 @@ fn DetailItem(label: String, value: String) -> Element {
 #[component]
 fn DependencySource(source: String, detail: String) -> Element {
     rsx! {
-        div { class: "compact-row",
+        div { class: "flex items-center justify-between gap-3 py-3",
             div {
-                strong { "{source}" }
-                span { "{detail}" }
+                strong { class: "block", "{source}" }
+                span { class: "text-sm text-base-content/60", "{detail}" }
             }
             Shield { size: 18 }
         }

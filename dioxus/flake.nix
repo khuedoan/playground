@@ -16,9 +16,12 @@
       default = with nixpkgs.legacyPackages.${system}; mkShell {
         packages = [
           cargo
+          clippy
           dioxus-cli
           lld
+          nodejs
           rustc
+          rustfmt
           wasm-bindgen-cli_0_2_126
         ];
       };

@@ -1,8 +1,3 @@
-use crate::components::button::{Button, ButtonVariant};
-use crate::components::card::{Card, CardContent, CardHeader, CardTitle};
-use crate::components::input::Input;
-use crate::components::label::Label;
-use crate::components::switch::Switch;
 use crate::views::common::PageTitle;
 use dioxus::prelude::*;
 use dioxus_icons::lucide::{Network, Shield, Users};
@@ -14,70 +9,29 @@ pub fn Settings() -> Element {
     let mut telemetry_edges = use_signal(|| true);
 
     rsx! {
-        PageTitle {
-            title: "Settings",
-            subtitle: "Tenant controls."
-        }
+        PageTitle { title: "Settings", subtitle: "Tenant controls." }
 
-        section { class: "settings-grid",
-            Card {
-                CardHeader {
-                    CardTitle {
-                        Users { size: 18 }
-                        "Tenant"
+        section { class: "grid gap-5 lg:grid-cols-2",
+            div { class: "card border border-base-300 bg-base-100",
+                div { class: "card-body",
+                    h2 { class: "card-title", Users { size: 18 } "Tenant" }
+                    div { class: "grid gap-4 sm:grid-cols-2",
+                        TextField { id: "tenant-name", label: "Tenant name", value: "Acme Retail" }
+                        TextField { id: "tenant-slug", label: "Tenant slug", value: "acme-retail" }
+                        TextField { id: "default-space", label: "Default space", value: "hosted-us-east" }
+                        TextField { id: "default-project", label: "Default project", value: "checkout" }
                     }
-                }
-                CardContent {
-                    div { class: "form-grid",
-                        div { class: "field",
-                            Label { html_for: "tenant-name", "Tenant name" }
-                            Input {
-                                id: "tenant-name",
-                                value: "Acme Retail",
-                                aria_label: "Tenant name"
-                            }
-                        }
-                        div { class: "field",
-                            Label { html_for: "tenant-slug", "Tenant slug" }
-                            Input {
-                                id: "tenant-slug",
-                                value: "acme-retail",
-                                aria_label: "Tenant slug"
-                            }
-                        }
-                        div { class: "field",
-                            Label { html_for: "default-space", "Default space" }
-                            Input {
-                                id: "default-space",
-                                value: "hosted-us-east",
-                                aria_label: "Default space"
-                            }
-                        }
-                        div { class: "field",
-                            Label { html_for: "default-project", "Default project" }
-                            Input {
-                                id: "default-project",
-                                value: "checkout",
-                                aria_label: "Default project"
-                            }
-                        }
-                    }
-                    div { class: "form-actions",
-                        Button { variant: ButtonVariant::Outline, "Cancel" }
-                        Button { "Save changes" }
+                    div { class: "card-actions justify-end pt-3",
+                        button { class: "btn btn-ghost", "Cancel" }
+                        button { class: "btn btn-primary", "Save changes" }
                     }
                 }
             }
 
-            Card {
-                CardHeader {
-                    CardTitle {
-                        Shield { size: 18 }
-                        "Network guardrails"
-                    }
-                }
-                CardContent {
-                    div { class: "switch-list",
+            div { class: "card border border-base-300 bg-base-100",
+                div { class: "card-body",
+                    h2 { class: "card-title", Shield { size: 18 } "Network guardrails" }
+                    div { class: "divide-y divide-base-300",
                         SwitchRow {
                             title: "Require target allow",
                             detail: "Private links need both source request and target approval.",
@@ -100,15 +54,10 @@ pub fn Settings() -> Element {
                 }
             }
 
-            Card {
-                CardHeader {
-                    CardTitle {
-                        Network { size: 18 }
-                        "Graph sources"
-                    }
-                }
-                CardContent {
-                    div { class: "detail-list",
+            div { class: "card border border-base-300 bg-base-100 lg:col-span-2",
+                div { class: "card-body",
+                    h2 { class: "card-title", Network { size: 18 } "Graph sources" }
+                    div { class: "divide-y divide-base-300",
                         GraphSource { label: "Network telemetry", value: "mTLS flow records and DNS targets" }
                         GraphSource { label: "Vault references", value: "secret/data/project/env/component paths" }
                         GraphSource { label: "Private links", value: "project intent plus target allow state" }
@@ -121,6 +70,16 @@ pub fn Settings() -> Element {
 }
 
 #[component]
+fn TextField(id: String, label: String, value: String) -> Element {
+    rsx! {
+        label { class: "form-control gap-2",
+            span { class: "label-text", "{label}" }
+            input { id, class: "input input-bordered w-full", value, aria_label: label }
+        }
+    }
+}
+
+#[component]
 fn SwitchRow(
     title: String,
     detail: String,
@@ -128,15 +87,17 @@ fn SwitchRow(
     onchange: EventHandler<bool>,
 ) -> Element {
     rsx! {
-        div { class: "switch-row",
-            div {
-                strong { "{title}" }
-                span { "{detail}" }
+        label { class: "flex cursor-pointer items-center justify-between gap-4 py-4",
+            span {
+                strong { class: "block", "{title}" }
+                span { class: "text-sm text-base-content/60", "{detail}" }
             }
-            Switch {
+            input {
+                r#type: "checkbox",
+                class: "toggle toggle-primary",
                 checked,
                 aria_label: title,
-                on_checked_change: move |value| onchange.call(value)
+                onchange: move |event| onchange.call(event.checked())
             }
         }
     }
@@ -145,9 +106,9 @@ fn SwitchRow(
 #[component]
 fn GraphSource(label: String, value: String) -> Element {
     rsx! {
-        div { class: "detail-item",
-            span { "{label}" }
-            strong { "{value}" }
+        div { class: "grid gap-2 py-3 sm:grid-cols-[12rem_1fr]",
+            span { class: "text-sm text-base-content/60", "{label}" }
+            strong { class: "text-sm", "{value}" }
         }
     }
 }

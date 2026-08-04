@@ -1,39 +1,64 @@
 # Netamos Mockup
 
-This Dioxus 0.7 app is a static routed mockup for Netamos, a network-aware
-platform as a service control plane.
+This Dioxus 0.7 app is a static Netamos control-plane mockup.
+It uses [daisyUI for Dioxus](https://daisyui.com/docs/install/dioxus/).
+It has no custom CSS selectors or custom UI component library.
 
-## What Is Included
+The app shows projects, private links, compute spaces, and topology data.
+The data is static.
+The visible actions do not connect to a backend.
 
-- Tenant overview for projects, environments, components, private links, and spaces.
-- Project topology graph inferred from private-link intent and observed traffic.
-- Project inventory and project detail views.
-- Component topology graph inside each project detail view, inferred from network
-  telemetry and Vault config references.
-- Private link handshake view with source request, target allow, and space checks.
-- Space inventory for shared hosted spaces and tenant-owned enterprise spaces.
-- Prebuilt Dioxus catalog components for sidebar layout, cards, buttons, badges, inputs,
-  tabs, progress bars, switches, labels, and avatar UI.
-- Static mock data only. Controls are present for product realism, but no backend
-  workflow is connected.
+## Setup
 
-## Run
+Enter the Nix development shell:
 
-Start the web dev server:
+```sh
+direnv allow
+```
+
+Install the locked JavaScript packages:
+
+```sh
+npm ci
+```
+
+## Run the app
+
+Run the Tailwind CSS watcher and the Dioxus server:
 
 ```sh
 make dev
 ```
 
-The Dioxus CLI prints the local URL after the web bundle builds.
+The Dioxus CLI shows the local URL.
 
-## Verify
+## Build the CSS
 
-Run the Rust check:
+Build the minified daisyUI file:
 
 ```sh
-cargo check
+make build-css
 ```
 
-The generated component catalog currently emits dead-code warnings for variants that
-this mockup does not use.
+The command reads `tailwind.css`.
+It writes `assets/main.css`.
+
+## Verify the app
+
+Build the CSS and check the Rust code:
+
+```sh
+make check
+```
+
+Run all Rust lint checks:
+
+```sh
+cargo clippy --all-targets --all-features -- -D warnings
+```
+
+## Result
+
+The migration removed 1,904 lines of custom component Rust code.
+It also removed 3,349 lines of custom CSS.
+The only authored CSS source is the three-line daisyUI setup in `tailwind.css`.
