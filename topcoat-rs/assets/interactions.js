@@ -121,47 +121,6 @@ for (const viewer of document.querySelectorAll("[data-log-viewer]")) {
   }
 }
 
-const positionDropdownPanel = (menu) => {
-  if (!(menu instanceof HTMLDetailsElement) || !menu.open) return;
-
-  const panel = menu.querySelector(":scope > div");
-  if (!(panel instanceof HTMLElement)) return;
-
-  const viewportPadding = 8;
-  panel.style.maxWidth = `calc(100vw - ${viewportPadding * 2}px)`;
-  panel.style.removeProperty("translate");
-
-  const rect = panel.getBoundingClientRect();
-  let offset = 0;
-
-  if (rect.right > window.innerWidth - viewportPadding) {
-    offset -= rect.right - (window.innerWidth - viewportPadding);
-  }
-  if (rect.left + offset < viewportPadding) {
-    offset += viewportPadding - (rect.left + offset);
-  }
-
-  if (offset !== 0) {
-    panel.style.translate = `${offset}px 0`;
-  }
-};
-
-for (const menu of document.querySelectorAll("details[data-dropdown-menu]")) {
-  menu.addEventListener("toggle", () => {
-    if (menu.open) {
-      requestAnimationFrame(() => positionDropdownPanel(menu));
-    }
-  });
-}
-
-window.addEventListener("resize", () => {
-  for (const menu of document.querySelectorAll(
-    "details[data-dropdown-menu][open]",
-  )) {
-    positionDropdownPanel(menu);
-  }
-});
-
 const formControlSelector =
   "button, fieldset, input, optgroup, option, select, textarea";
 const focusableFormControlSelector = [

@@ -1,4 +1,3 @@
-mod components;
 mod layout;
 mod mock;
 mod pages;

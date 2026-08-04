@@ -3,9 +3,4 @@ fn main() {
         .icon_set("feather")
         .stage()
         .unwrap();
-
-    topcoat::tailwind::BuildConfig::new()
-        .input("styles.css")
-        .render()
-        .unwrap();
 }

@@ -1,21 +1,4 @@
-use crate::{
-    components::{
-        badge::{BadgeVariant, badge},
-        button::{ButtonSize, ButtonVariant, button, button_variants},
-        card::{card, card_content, card_description, card_header, card_title},
-        dropdown_menu::{
-            dropdown_menu, dropdown_menu_content, dropdown_menu_label, dropdown_menu_link,
-            dropdown_menu_separator, dropdown_menu_trigger,
-        },
-        input::input,
-        label::label,
-        progress::progress,
-        select::select,
-        switch::switch,
-        textarea::textarea,
-    },
-    mock,
-};
+use crate::mock;
 use topcoat::{
     Result,
     context::Cx,
@@ -95,29 +78,17 @@ async fn index() -> Result {
 async fn login() -> Result {
     view! {
         <main class="grid min-h-screen place-items-center px-4 py-12">
-            card(
-                attrs: attributes! { class="w-full max-w-md" },
-                card_header(
-                    attrs: attributes! { class="items-center text-center" },
-                    <span class="mb-2">
+            <div class="card bg-base-100 w-full max-w-md"><div class="card-body items-center text-center"><span class="mb-2">
                         icon(data: iconify_icon!("feather:hexagon"), attrs: attributes! { class="size-10" })
                     </span>
-                    card_title(attrs: attributes! { class="text-xl" }, "Welcome to Netamos")
-                    card_description("Deploy and operate applications on your own infrastructure.")
-                )
-                card_content(
-                    <form action="/tenants/khuedoan" method="get">
-                        button(
-                            attrs: attributes! { class="w-full" type="submit" },
-                            icon(data: iconify_icon!("feather:log-in"), attrs: attributes! { class="size-4" })
-                            "Enter product demo"
-                        )
+                    <h3 class="card-title">"Welcome to Netamos"</h3>
+                    <p>"Deploy and operate applications on your own infrastructure."</p><form action="/tenants/khuedoan" method="get" class="w-full">
+                        <button class="btn btn-primary w-full" type="submit">icon(data: iconify_icon!("feather:log-in"), attrs: attributes! { class="size-4" })
+                            "Enter product demo"</button>
                     </form>
-                    <p class="mt-4 text-center text-xs text-muted-foreground">
+                    <p class="mt-4 text-center text-xs">
                         "This prototype uses representative sample workloads."
-                    </p>
-                )
-            )
+                    </p></div></div>
         </main>
     }
 }
@@ -156,8 +127,7 @@ async fn tenant_overview(cx: &Cx) -> Result {
     let project_filter = query.q.as_deref().unwrap_or("").trim().to_lowercase();
     let created_project: Option<&str> = None;
     let created_project_search = format!(
-        "{} {} provisioning",
-        created_project.unwrap_or(""),
+        "{} provisioning",
         query.description.as_deref().unwrap_or("")
     )
     .to_lowercase();
@@ -173,7 +143,7 @@ async fn tenant_overview(cx: &Cx) -> Result {
         tenant.projects.is_empty() && created_project.is_none() && project_filter.is_empty();
 
     view! {
-        <main class="mx-auto max-w-[90rem] px-4 py-7 sm:px-6 lg:px-8 lg:py-9">
+        <main class="p-6">
             <header class="mb-7 flex flex-wrap items-end justify-between gap-4">
                 <h1 class="text-2xl font-semibold tracking-tight">"Projects"</h1>
                 if !tenant_is_empty {
@@ -181,20 +151,17 @@ async fn tenant_overview(cx: &Cx) -> Result {
                         <form action=(tenant_path(tenant.slug)) method="get" class="min-w-0 flex-1 sm:w-64">
                             <label class="relative block">
                                 <span class="sr-only">"Filter projects"</span>
-                                icon(data: iconify_icon!("feather:search"), attrs: attributes! { class="pointer-events-none absolute top-1/2 left-3 size-3.5 -translate-y-1/2 text-muted-foreground" })
-                                input(attrs: attributes! {
-                                    class="pl-9"
-                                    name="q"
+                                icon(data: iconify_icon!("feather:search"), attrs: attributes! { class="pointer-events-none absolute top-1/2 left-3 size-3.5 -translate-y-1/2" })
+                                <input class="input w-full" name="q"
                                     value=(query.q.as_deref().unwrap_or(""))
                                     placeholder="Filter projects…"
-                                    data-project-filter=""
-                                })
+                                    data-project-filter="">
                             </label>
                             <button type="submit" class="sr-only">"Filter projects"</button>
                         </form>
                         <a
                             href=(format!("{}/projects/new", tenant_path(tenant.slug)))
-                            class=(button_variants(ButtonVariant::Primary, ButtonSize::Md))
+                            class="btn btn-primary"
                         >
                             icon(data: iconify_icon!("feather:plus"), attrs: attributes! { class="size-4" })
                             "New project"
@@ -205,9 +172,9 @@ async fn tenant_overview(cx: &Cx) -> Result {
 
             feedback_banner(message: feedback, is_error: feedback_is_error)
 
-            <section class="overflow-hidden rounded-md border border-border bg-background" aria-labelledby="projects-heading">
+            <section class="card bg-base-100" aria-labelledby="projects-heading">
                 <h2 id="projects-heading" class="sr-only">"Project list"</h2>
-                <div class="hidden grid-cols-[minmax(0,2fr)_minmax(9rem,1fr)_8rem_7rem_7rem_1rem] gap-4 border-b border-border bg-surface px-4 py-2.5 text-xs font-medium text-muted-foreground sm:grid">
+                <div class="hidden grid-cols-[minmax(0,2fr)_minmax(9rem,1fr)_8rem_7rem_7rem_1rem] gap-4 px-4 py-2.5 text-xs font-medium sm:grid">
                     <span>"Project"</span>
                     <span>"Environment"</span>
                     <span>"Region"</span>
@@ -215,7 +182,7 @@ async fn tenant_overview(cx: &Cx) -> Result {
                     <span>"Status"</span>
                     <span class="sr-only">"Open"</span>
                 </div>
-                <div class="divide-y divide-border">
+                <div>
                     match created_project {
                         Some(project_name) => <article
                             data-project-card=""
@@ -225,29 +192,29 @@ async fn tenant_overview(cx: &Cx) -> Result {
                         >
                             <span class="min-w-0">
                                 <span class="block truncate text-sm font-medium">(project_name)</span>
-                                <span class="mt-0.5 block truncate text-xs text-muted-foreground">
+                                <span class="mt-0.5 block truncate text-xs">
                                     (query.description.as_deref().unwrap_or("New project"))
                                 </span>
                             </span>
-                            <span class="flex flex-wrap items-center gap-x-3 text-xs text-muted-foreground sm:hidden">
+                            <span class="flex flex-wrap items-center gap-x-3 text-xs sm:hidden">
                                 <span>"Production"</span>
                                 <span>"Region pending"</span>
                                 <span>"0 components"</span>
                             </span>
-                            <span class="hidden text-xs text-muted-foreground sm:block">
+                            <span class="hidden text-xs sm:block">
                                 "Production"
                             </span>
-                            <span class="hidden text-xs text-muted-foreground sm:block">
+                            <span class="hidden text-xs sm:block">
                                 "—"
                             </span>
-                            <span class="hidden text-xs text-muted-foreground sm:block">
+                            <span class="hidden text-xs sm:block">
                                 "0"
                             </span>
                             <span class="flex items-center gap-2 text-xs">
-                                <span class="inline-block size-1.5 rounded-full bg-warning"></span>
+                                <span class="status status-warning"></span>
                                 "Provisioning"
                             </span>
-                            icon(data: iconify_icon!("feather:loader"), attrs: attributes! { class="hidden size-3.5 animate-spin text-muted-foreground sm:block" })
+                            icon(data: iconify_icon!("feather:loader"), attrs: attributes! { class="hidden size-3.5 animate-spin sm:block" })
                         </article>,
                         None => "",
                     }
@@ -299,45 +266,45 @@ async fn tenant_overview(cx: &Cx) -> Result {
                             data-project-card=""
                             data-project-search=(search_text)
                             hidden=(!matches_filter)
-                            class="group grid gap-2 px-4 py-3.5 hover:bg-surface sm:grid-cols-[minmax(0,2fr)_minmax(9rem,1fr)_8rem_7rem_7rem_1rem] sm:items-center sm:gap-4"
+                            class="group grid gap-2 px-4 py-3.5 sm:grid-cols-[minmax(0,2fr)_minmax(9rem,1fr)_8rem_7rem_7rem_1rem] sm:items-center sm:gap-4"
                         >
                             <span class="min-w-0">
-                                <span class="block truncate text-sm font-medium group-hover:underline">(project.name)</span>
-                                <span class="mt-0.5 block truncate text-xs text-muted-foreground">(project.description)</span>
+                                <span class="block truncate text-sm font-medium">(project.name)</span>
+                                <span class="mt-0.5 block truncate text-xs">(project.description)</span>
                             </span>
-                            <span class="flex flex-wrap items-center gap-x-3 text-xs text-muted-foreground sm:hidden">
+                            <span class="flex flex-wrap items-center gap-x-3 text-xs sm:hidden">
                                 <span>(environment_label.clone())</span>
                                 <span>(region)</span>
                                 <span>(count_label(component_count, "component", "components"))</span>
                             </span>
-                            <span class="hidden min-w-0 text-xs text-muted-foreground sm:block">
+                            <span class="hidden min-w-0 text-xs sm:block">
                                 <span class="truncate">(environment_label)</span>
                                 <span class="mt-0.5 hidden text-xs sm:block">
                                     (count_label(project.environments.len(), "environment", "environments"))
                                 </span>
                             </span>
-                            <span class="hidden text-xs text-muted-foreground sm:block">
+                            <span class="hidden text-xs sm:block">
                                 (region)
                             </span>
-                            <span class="hidden text-xs text-muted-foreground sm:block">
+                            <span class="hidden text-xs sm:block">
                                 (component_count)
                             </span>
                             <span class="flex items-center gap-2 text-xs">
-                                <span class=(if project_healthy { "status-dot" } else { "inline-block size-1.5 rounded-full bg-warning" })></span>
+                                <span class=(if project_healthy { "status status-success" } else { "status status-warning" })></span>
                                 (state_label)
                             </span>
-                            icon(data: iconify_icon!("feather:chevron-right"), attrs: attributes! { class="hidden size-3.5 text-muted-foreground transition-transform group-hover:translate-x-0.5 sm:block" })
+                            icon(data: iconify_icon!("feather:chevron-right"), attrs: attributes! { class="hidden size-3.5 sm:block" })
                         </a>
                     }
                     <div
                         data-project-empty=""
                         hidden=(visible_project_count != 0)
-                        class="border-t border-border px-6 py-10 text-center"
+                        class="px-6 py-10 text-center"
                     >
                         <h3 class="text-sm font-semibold">
                             if tenant_is_empty { "No projects yet" } else { "No matching projects" }
                         </h3>
-                        <p class="mt-1 text-xs text-muted-foreground">
+                        <p class="mt-1 text-xs">
                             if tenant_is_empty {
                                 "Create the first project for this tenant."
                             } else {
@@ -347,10 +314,7 @@ async fn tenant_overview(cx: &Cx) -> Result {
                         if tenant_is_empty {
                             <a
                                 href=(format!("{}/projects/new", tenant_path(tenant.slug)))
-                                class=(format!(
-                                    "mt-4 {}",
-                                    button_variants(ButtonVariant::Outline, ButtonSize::Sm),
-                                ))
+                                class="btn btn-outline btn-sm"
                             >
                                 icon(data: iconify_icon!("feather:plus"), attrs: attributes! { class="size-3.5" })
                                 "Create project"
@@ -376,48 +340,48 @@ async fn tenant_changes(cx: &Cx) -> Result {
     let tenant = mock::tenant(path_param::<Tenant>(cx)).ok_or_not_found()?;
 
     view! {
-        <main class="mx-auto max-w-[90rem] px-4 py-7 sm:px-6 lg:px-8 lg:py-9">
+        <main class="p-6">
             <header class="mb-7">
                 <h1 id="changes-heading" class="text-2xl font-semibold tracking-tight">"Changes"</h1>
-                <p class="mt-1 text-sm text-muted-foreground">"GitOps changes across every project."</p>
+                <p class="mt-1 text-sm">"GitOps changes across every project."</p>
             </header>
 
-            <section class="overflow-hidden rounded-md border border-border bg-background" aria-labelledby="changes-heading">
+            <section class="card bg-base-100" aria-labelledby="changes-heading">
                 if tenant.changes.is_empty() {
                     <div class="px-5 py-10 text-center">
                         <p class="text-sm font-medium">"No changes yet"</p>
-                        <p class="mt-1 text-xs text-muted-foreground">"Changes appear here after GitOps reconciliation."</p>
+                        <p class="mt-1 text-xs">"Changes appear here after GitOps reconciliation."</p>
                     </div>
                 } else {
-                    <ol class="divide-y divide-border">
+                    <ol>
                         for change in tenant.changes {
                             <li>
                                 <a
                                     href=(change_destination(tenant.slug, change))
-                                    class="group flex h-11 min-w-0 items-center gap-3 px-4 hover:bg-surface"
+                                    class="group flex h-11 min-w-0 items-center gap-3 px-4"
                                 >
-                                    <span class="min-w-0 flex-1 truncate text-sm font-medium group-hover:underline">
+                                    <span class="min-w-0 flex-1 truncate text-sm font-medium">
                                         (change.summary)
                                     </span>
-                                    <code class="hidden w-16 shrink-0 text-xs text-muted-foreground sm:block">
+                                    <code class="hidden w-16 shrink-0 text-xs sm:block">
                                         (change.sha)
                                     </code>
-                                    <span class="hidden w-64 shrink-0 truncate text-xs text-muted-foreground lg:block">
+                                    <span class="hidden w-64 shrink-0 truncate text-xs lg:block">
                                         (change.target.project_slug)
                                         " / "
                                         (change.target.environment_slug)
                                         " / "
                                         (change.target.component_slug)
                                     </span>
-                                    <span class="hidden w-28 shrink-0 truncate text-xs text-muted-foreground xl:block">
+                                    <span class="hidden w-28 shrink-0 truncate text-xs xl:block">
                                         (change.author)
                                     </span>
-                                    <time class="w-24 shrink-0 text-right text-xs text-muted-foreground">
+                                    <time class="w-24 shrink-0 text-right text-xs">
                                         (change.time)
                                     </time>
                                     icon(data: iconify_icon!("feather:chevron-right"), attrs: attributes! {
                                         aria-hidden="true"
-                                        class="size-3.5 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5"
+                                        class="size-3.5 shrink-0"
                                     })
                                 </a>
                             </li>
@@ -438,93 +402,78 @@ async fn tenant_usage(cx: &Cx) -> Result {
     let egress_quota = 500.0;
 
     view! {
-        <main class="mx-auto max-w-6xl px-4 py-7 sm:px-6 lg:px-8 lg:py-9">
+        <main class="p-6">
             <header class="mb-7 flex flex-wrap items-start justify-between gap-4">
                 <div>
                     <h1 class="text-2xl font-semibold tracking-tight">"Usage"</h1>
-                    <p class="mt-1 text-sm text-muted-foreground">
+                    <p class="mt-1 text-sm">
                         "Sample metering for July 1–31, 2026 · updated July 27 at 10:45 ICT"
                     </p>
-                    <p class="mt-1 text-xs text-muted-foreground">"Preview data, not an invoice."</p>
+                    <p class="mt-1 text-xs">"Preview data, not an invoice."</p>
                 </div>
-                <div class="rounded-md border border-border bg-background px-3 py-2 text-right">
-                    <p class="text-xs text-muted-foreground">"Plan"</p>
+                <div class="px-3 py-2 text-right">
+                    <p class="text-xs">"Plan"</p>
                     <p class="text-sm font-medium">"Team preview"</p>
                 </div>
             </header>
 
-            <dl class="mb-6 grid overflow-hidden rounded-md border border-border bg-background sm:grid-cols-3">
-                <div class="border-b border-border px-5 py-4 sm:border-r sm:border-b-0">
-                    <dt class="text-xs text-muted-foreground">"Compute"</dt>
-                    <dd class="mt-1 text-2xl font-semibold tracking-tight">(format!("{:.1}", usage.0))</dd>
-                    <dd class="mt-0.5 text-xs text-muted-foreground">
-                        (format!("of {compute_quota:.0} vCPU hours"))
-                    </dd>
-                    progress(
-                        value: usage.0 / compute_quota * 100.0,
-                        attrs: attributes! { class="mt-3" aria-label="Compute quota used" }
-                    )
+            <dl class="stats stats-vertical sm:stats-horizontal mb-6 w-full">
+                <div class="stat">
+                    <dt class="stat-title">"Compute"</dt>
+                    <dd class="stat-value">(format!("{:.1}", usage.0))</dd>
+                    <dd class="stat-desc">(format!("of {compute_quota:.0} vCPU hours"))</dd>
+                    <progress class="progress progress-primary w-full" value=(usage.0 / compute_quota * 100.0) max=(100.0) aria-label="Compute quota used"></progress>
                 </div>
-                <div class="border-b border-border px-5 py-4 sm:border-r sm:border-b-0">
-                    <dt class="text-xs text-muted-foreground">"Memory"</dt>
-                    <dd class="mt-1 text-2xl font-semibold tracking-tight">(format!("{:.1}", usage.1))</dd>
-                    <dd class="mt-0.5 text-xs text-muted-foreground">
-                        (format!("of {memory_quota:.0} GiB hours"))
-                    </dd>
-                    progress(
-                        value: usage.1 / memory_quota * 100.0,
-                        attrs: attributes! { class="mt-3" aria-label="Memory quota used" }
-                    )
+                <div class="stat">
+                    <dt class="stat-title">"Memory"</dt>
+                    <dd class="stat-value">(format!("{:.1}", usage.1))</dd>
+                    <dd class="stat-desc">(format!("of {memory_quota:.0} GiB hours"))</dd>
+                    <progress class="progress progress-primary w-full" value=(usage.1 / memory_quota * 100.0) max=(100.0) aria-label="Memory quota used"></progress>
                 </div>
-                <div class="px-5 py-4">
-                    <dt class="text-xs text-muted-foreground">"Egress"</dt>
-                    <dd class="mt-1 text-2xl font-semibold tracking-tight">(format!("{:.1}", usage.2))</dd>
-                    <dd class="mt-0.5 text-xs text-muted-foreground">
-                        (format!("of {egress_quota:.0} GB"))
-                    </dd>
-                    progress(
-                        value: usage.2 / egress_quota * 100.0,
-                        attrs: attributes! { class="mt-3" aria-label="Egress quota used" }
-                    )
+                <div class="stat">
+                    <dt class="stat-title">"Egress"</dt>
+                    <dd class="stat-value">(format!("{:.1}", usage.2))</dd>
+                    <dd class="stat-desc">(format!("of {egress_quota:.0} GB"))</dd>
+                    <progress class="progress progress-primary w-full" value=(usage.2 / egress_quota * 100.0) max=(100.0) aria-label="Egress quota used"></progress>
                 </div>
             </dl>
 
-            <section class="overflow-hidden rounded-md border border-border bg-background" aria-labelledby="usage-projects-heading">
-                <header class="border-b border-border px-5 py-4">
+            <section class="card bg-base-100" aria-labelledby="usage-projects-heading">
+                <header class="px-5 py-4">
                     <h2 id="usage-projects-heading" class="text-sm font-semibold">"Usage by project"</h2>
                 </header>
-                <div class="hidden grid-cols-[minmax(0,1fr)_9rem_9rem_8rem_1rem] gap-4 border-b border-border bg-surface px-5 py-3 text-xs font-medium text-muted-foreground sm:grid">
+                <div class="hidden grid-cols-[minmax(0,1fr)_9rem_9rem_8rem_1rem] gap-4 px-5 py-3 text-xs font-medium sm:grid">
                     <span>"Project"</span>
                     <span class="text-right">"Compute"</span>
                     <span class="text-right">"Memory"</span>
                     <span class="text-right">"Egress"</span>
                     <span class="sr-only">"Open"</span>
                 </div>
-                <div class="divide-y divide-border">
+                <div>
                     if tenant.projects.is_empty() {
-                        <div class="px-5 py-10 text-center text-sm text-muted-foreground">
+                        <div class="px-5 py-10 text-center text-sm">
                             "No metered project usage yet."
                         </div>
                     } else {
                         for project in tenant.projects {
                             <a
                                 href=(project_path(tenant.slug, project.slug))
-                                class="group grid grid-cols-3 gap-3 px-5 py-3.5 hover:bg-surface sm:grid-cols-[minmax(0,1fr)_9rem_9rem_8rem_1rem] sm:items-center sm:gap-4"
+                                class="group grid grid-cols-3 gap-3 px-5 py-3.5 sm:grid-cols-[minmax(0,1fr)_9rem_9rem_8rem_1rem] sm:items-center sm:gap-4"
                             >
-                                <span class="col-span-3 text-sm font-medium group-hover:underline sm:col-span-1">(project.name)</span>
+                                <span class="col-span-3 text-sm font-medium sm:col-span-1">(project.name)</span>
                                 <span class="font-mono text-xs sm:text-right">
-                                    <span class="mb-0.5 block text-muted-foreground sm:hidden">"Compute"</span>
+                                    <span class="mb-0.5 block sm:hidden">"Compute"</span>
                                     (format!("{:.1} vCPUh", project.usage.compute_vcpu_hours))
                                 </span>
                                 <span class="font-mono text-xs sm:text-right">
-                                    <span class="mb-0.5 block text-muted-foreground sm:hidden">"Memory"</span>
+                                    <span class="mb-0.5 block sm:hidden">"Memory"</span>
                                     (format!("{:.1} GiBh", project.usage.memory_gib_hours))
                                 </span>
                                 <span class="font-mono text-xs sm:text-right">
-                                    <span class="mb-0.5 block text-muted-foreground sm:hidden">"Egress"</span>
+                                    <span class="mb-0.5 block sm:hidden">"Egress"</span>
                                     (format!("{:.1} GB", project.usage.egress_gb))
                                 </span>
-                                icon(data: iconify_icon!("feather:chevron-right"), attrs: attributes! { class="hidden size-3.5 text-muted-foreground sm:block" })
+                                icon(data: iconify_icon!("feather:chevron-right"), attrs: attributes! { class="hidden size-3.5 sm:block" })
                             </a>
                         }
                     }
@@ -541,45 +490,36 @@ async fn create_project(cx: &Cx) -> Result {
     let action = tenant_path(tenant_slug);
 
     view! {
-        <main class="mx-auto max-w-2xl px-4 py-8 sm:px-6">
-            <nav class="mb-5 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground" aria-label="Breadcrumb">
-                <a href=(tenant_path(tenant_slug)) class="hover:text-foreground">"Projects"</a>
+        <main class="mx-auto max-w-2xl p-6">
+            <nav class="mb-5 flex flex-wrap items-center gap-1.5 text-xs" aria-label="Breadcrumb">
+                <a href=(tenant_path(tenant_slug))>"Projects"</a>
                 icon(data: iconify_icon!("feather:chevron-right"), attrs: attributes! { class="size-3" })
                 <span aria-current="page">"New project"</span>
             </nav>
             <header class="mb-6">
                 <h1 class="text-2xl font-semibold">"Create project"</h1>
-                <p class="mt-1 text-sm text-muted-foreground">"A production environment is created automatically."</p>
+                <p class="mt-1 text-sm">"A production environment is created automatically."</p>
             </header>
-            card(
-                card_header(card_title("Project details"))
-                card_content(
-                    <form action=(action) method="get" class="space-y-5">
+            <div class="card bg-base-100"><div class="card-body"><h3 class="card-title">"Project details"</h3><form action=(action) method="get" class="space-y-5">
                         <input type="hidden" name="action" value="create-project">
                         <div class="space-y-2">
-                            label(attrs: attributes! { for="project-name" }, "Name")
-                            input(attrs: attributes! {
-                                id="project-name"
+                            <label class="label" for="project-name">"Name"</label>
+                            <input class="input w-full" id="project-name"
                                 name="name"
                                 placeholder="Customer portal"
-                                required=(true)
-                            })
+                                required=(true)>
                         </div>
                         <div class="space-y-2">
-                            label(attrs: attributes! { for="project-description" }, "Description")
-                            textarea(attrs: attributes! {
-                                id="project-description"
+                            <label class="label" for="project-description">"Description"</label>
+                            <textarea class="textarea w-full" id="project-description"
                                 name="description"
-                                placeholder="What this project contains"
-                            })
+                                placeholder="What this project contains"></textarea>
                         </div>
                         <div class="flex justify-end gap-2">
-                            <a href=(tenant_path(tenant_slug)) class=(button_variants(ButtonVariant::Outline, ButtonSize::Md))>"Cancel"</a>
-                            button(attrs: attributes! { type="submit" }, "Create project")
+                            <a href=(tenant_path(tenant_slug)) class="btn btn-outline">"Cancel"</a>
+                            <button class="btn btn-primary" type="submit">"Create project"</button>
                         </div>
-                    </form>
-                )
-            )
+                    </form></div></div>
         </main>
     }
 }
@@ -622,9 +562,9 @@ async fn project_overview(cx: &Cx) -> Result {
         .sum::<usize>();
 
     view! {
-        <main class="mx-auto max-w-[90rem] px-4 py-7 sm:px-6 lg:px-8 lg:py-9">
-            <nav class="mb-5 flex items-center gap-1.5 text-xs text-muted-foreground" aria-label="Breadcrumb">
-                <a href=(tenant_path(tenant_slug)) class="hover:text-foreground">"Projects"</a>
+        <main class="p-6">
+            <nav class="mb-5 flex items-center gap-1.5 text-xs" aria-label="Breadcrumb">
+                <a href=(tenant_path(tenant_slug))>"Projects"</a>
                 <span class="inline-flex min-w-0 items-center gap-1.5">
                     breadcrumb_separator()
                     project_context_selector(
@@ -637,15 +577,15 @@ async fn project_overview(cx: &Cx) -> Result {
             <header class="mb-7 flex flex-wrap items-start justify-between gap-4">
                 <div>
                     <h1 class="text-2xl font-semibold tracking-tight">(project.name)</h1>
-                    <p class="mt-1 text-sm text-muted-foreground">(project.description)</p>
-                    <p class="mt-2 flex flex-wrap gap-x-3 text-xs text-muted-foreground">
+                    <p class="mt-1 text-sm">(project.description)</p>
+                    <p class="mt-2 flex flex-wrap gap-x-3 text-xs">
                         <span>(count_label(environment_count, "environment", "environments"))</span>
                         <span>(count_label(component_count, "component", "components"))</span>
                     </p>
                 </div>
                 <a
                     href=(format!("{}/environments/new", project_path(tenant_slug, project.slug)))
-                    class=(button_variants(ButtonVariant::Primary, ButtonSize::Md))
+                    class="btn btn-primary"
                 >
                     icon(data: iconify_icon!("feather:plus"), attrs: attributes! { class="size-4" })
                     "New environment"
@@ -654,9 +594,9 @@ async fn project_overview(cx: &Cx) -> Result {
 
             feedback_banner(message: feedback, is_error: feedback_is_error)
 
-            <section class="overflow-hidden rounded-md border border-border bg-background" aria-labelledby="environments-heading">
+            <section class="card bg-base-100" aria-labelledby="environments-heading">
                 <h2 id="environments-heading" class="sr-only">"Environment list"</h2>
-                <div class="hidden grid-cols-[minmax(10rem,1.5fr)_8rem_7rem_8rem_minmax(10rem,1fr)_1rem] gap-4 border-b border-border bg-surface px-4 py-2.5 text-xs font-medium text-muted-foreground md:grid">
+                <div class="hidden grid-cols-[minmax(10rem,1.5fr)_8rem_7rem_8rem_minmax(10rem,1fr)_1rem] gap-4 px-4 py-2.5 text-xs font-medium md:grid">
                     <span>"Environment"</span>
                     <span>"Region"</span>
                     <span>"Components"</span>
@@ -665,30 +605,30 @@ async fn project_overview(cx: &Cx) -> Result {
                     <span class="sr-only">"Open"</span>
                 </div>
 
-                <div class="divide-y divide-border">
+                <div>
                     match created_environment {
                         Some(environment_name) => <article class="grid gap-2 px-4 py-3.5 md:grid-cols-[minmax(10rem,1.5fr)_8rem_7rem_8rem_minmax(10rem,1fr)_1rem] md:items-center md:gap-4">
                             <span class="min-w-0">
                                 <span class="block truncate text-sm font-medium">(environment_name)</span>
-                                <span class="mt-0.5 block text-xs text-muted-foreground">"Creating environment"</span>
+                                <span class="mt-0.5 block text-xs">"Creating environment"</span>
                             </span>
-                            <span class="text-xs text-muted-foreground md:hidden">
+                            <span class="text-xs md:hidden">
                                 (region_label(query.region.as_deref()))
                             </span>
-                            <span class="hidden text-xs text-muted-foreground md:block">
+                            <span class="hidden text-xs md:block">
                                 (region_label(query.region.as_deref()))
                             </span>
-                            <span class="hidden text-xs text-muted-foreground md:block">
+                            <span class="hidden text-xs md:block">
                                 "0"
                             </span>
                             <span class="flex items-center gap-2 text-xs">
-                                <span class="inline-block size-1.5 rounded-full bg-warning"></span>
+                                <span class="status status-warning"></span>
                                 "Provisioning"
                             </span>
-                            <span class="hidden text-xs text-muted-foreground md:block">
+                            <span class="hidden text-xs md:block">
                                 "Queued"
                             </span>
-                            icon(data: iconify_icon!("feather:loader"), attrs: attributes! { class="hidden size-3.5 animate-spin text-muted-foreground md:block" })
+                            icon(data: iconify_icon!("feather:loader"), attrs: attributes! { class="hidden size-3.5 animate-spin md:block" })
                         </article>,
                         None => "",
                     }
@@ -711,28 +651,28 @@ async fn project_overview(cx: &Cx) -> Result {
                             .next();
                         <a
                             href=(environment_path(tenant_slug, project.slug, environment.slug))
-                            class="group grid gap-2 px-4 py-3.5 hover:bg-surface md:grid-cols-[minmax(10rem,1.5fr)_8rem_7rem_8rem_minmax(10rem,1fr)_1rem] md:items-center md:gap-4"
+                            class="group grid gap-2 px-4 py-3.5 md:grid-cols-[minmax(10rem,1.5fr)_8rem_7rem_8rem_minmax(10rem,1fr)_1rem] md:items-center md:gap-4"
                         >
                             <span class="min-w-0">
-                                <span class="block truncate text-sm font-medium group-hover:underline">(environment.name)</span>
-                                <span class="mt-0.5 block text-xs text-muted-foreground">
+                                <span class="block truncate text-sm font-medium">(environment.name)</span>
+                                <span class="mt-0.5 block text-xs">
                                     (count_label(environment.components.len(), "component", "components"))
                                 </span>
                             </span>
-                            <span class="text-xs text-muted-foreground md:hidden">
+                            <span class="text-xs md:hidden">
                                 (environment.region)
                             </span>
-                            <span class="hidden text-xs text-muted-foreground md:block">
+                            <span class="hidden text-xs md:block">
                                 (environment.region)
                             </span>
-                            <span class="hidden text-xs text-muted-foreground md:block">
+                            <span class="hidden text-xs md:block">
                                 (environment.components.len())
                             </span>
                             <span class="flex items-center gap-2 text-xs">
-                                <span class=(if all_healthy { "status-dot" } else { "inline-block size-1.5 rounded-full bg-warning" })></span>
+                                <span class=(if all_healthy { "status status-success" } else { "status status-warning" })></span>
                                 if all_healthy { "Healthy" } else if healthy_components == 0 { "Pending" } else { "Attention" }
                             </span>
-                            <span class="hidden min-w-0 text-xs text-muted-foreground md:block">
+                            <span class="hidden min-w-0 text-xs md:block">
                                 match latest_change {
                                     Some(change) => <span class="flex items-center gap-2">
                                         <code>(change.sha)</code>
@@ -741,13 +681,13 @@ async fn project_overview(cx: &Cx) -> Result {
                                     None => <span>"No changes"</span>,
                                 }
                             </span>
-                            icon(data: iconify_icon!("feather:chevron-right"), attrs: attributes! { class="hidden size-3.5 text-muted-foreground transition-transform group-hover:translate-x-0.5 md:block" })
+                            icon(data: iconify_icon!("feather:chevron-right"), attrs: attributes! { class="hidden size-3.5 md:block" })
                         </a>
                     }
                     if environment_count == 0 {
                         <div class="px-5 py-10 text-center">
                             <p class="text-sm font-medium">"No environments yet"</p>
-                            <p class="mt-1 text-xs text-muted-foreground">"Create an environment to add components."</p>
+                            <p class="mt-1 text-xs">"Create an environment to add components."</p>
                         </div>
                     }
                 </div>
@@ -768,27 +708,23 @@ async fn create_environment(cx: &Cx) -> Result {
         .map_or("Helsinki", |environment| environment.region);
 
     view! {
-        <main class="mx-auto max-w-2xl px-4 py-8 sm:px-6">
-            <nav class="mb-5 flex items-center gap-1.5 text-xs text-muted-foreground" aria-label="Breadcrumb">
-                <a href=(tenant_path(tenant_slug)) class="hover:text-foreground">"Projects"</a>
+        <main class="mx-auto max-w-2xl p-6">
+            <nav class="mb-5 flex items-center gap-1.5 text-xs" aria-label="Breadcrumb">
+                <a href=(tenant_path(tenant_slug))>"Projects"</a>
                 icon(data: iconify_icon!("feather:chevron-right"), attrs: attributes! { class="size-3" })
-                <a href=(project_path(tenant_slug, project_slug)) class="hover:text-foreground">(project.name)</a>
+                <a href=(project_path(tenant_slug, project_slug))>(project.name)</a>
                 icon(data: iconify_icon!("feather:chevron-right"), attrs: attributes! { class="size-3" })
                 <span aria-current="page">"New environment"</span>
             </nav>
             <header class="mb-6">
                 <h1 class="text-2xl font-semibold">"Create environment"</h1>
-                <p class="mt-1 text-sm text-muted-foreground">"Create an isolated target for this project's desired state."</p>
+                <p class="mt-1 text-sm">"Create an isolated target for this project's desired state."</p>
             </header>
-            card(
-                card_header(card_title("Environment details"))
-                card_content(
-                    <form action=(action) method="get" class="space-y-5">
+            <div class="card bg-base-100"><div class="card-body"><h3 class="card-title">"Environment details"</h3><form action=(action) method="get" class="space-y-5">
                         <input type="hidden" name="action" value="create-environment">
                         <div class="space-y-2">
-                            label(attrs: attributes! { for="environment-name" }, "Name")
-                            input(attrs: attributes! {
-                                id="environment-name"
+                            <label class="label" for="environment-name">"Name"</label>
+                            <input class="input w-full" id="environment-name"
                                 name="name"
                                 placeholder="Staging"
                                 required=(true)
@@ -798,25 +734,19 @@ async fn create_environment(cx: &Cx) -> Result {
                                     .iter()
                                     .map(|environment| environment.slug)
                                     .collect::<Vec<_>>()
-                                    .join(","))
-                            })
-                            <p class="text-xs text-muted-foreground">"Must be unique within this project."</p>
+                                    .join(","))>
+                            <p class="text-xs">"Must be unique within this project."</p>
                         </div>
                         <div class="space-y-2">
-                            label(attrs: attributes! { for="environment-region" }, "Region")
-                            select(
-                                attrs: attributes! { id="environment-region" name="region" },
-                                <option value="helsinki" selected=(default_region == "Helsinki")>"Helsinki"</option>
-                                <option value="saigon" selected=(default_region == "Saigon")>"Saigon"</option>
-                            )
+                            <label class="label" for="environment-region">"Region"</label>
+                            <select class="select w-full" id="environment-region" name="region"><option value="helsinki" selected=(default_region == "Helsinki")>"Helsinki"</option>
+                                <option value="saigon" selected=(default_region == "Saigon")>"Saigon"</option></select>
                         </div>
                         <div class="flex justify-end gap-2">
-                            <a href=(project_path(tenant_slug, project_slug)) class=(button_variants(ButtonVariant::Outline, ButtonSize::Md))>"Cancel"</a>
-                            button(attrs: attributes! { type="submit" }, "Create environment")
+                            <a href=(project_path(tenant_slug, project_slug)) class="btn btn-outline">"Cancel"</a>
+                            <button class="btn btn-primary" type="submit">"Create environment"</button>
                         </div>
-                    </form>
-                )
-            )
+                    </form></div></div>
         </main>
     }
 }
@@ -926,9 +856,9 @@ async fn environment_overview(cx: &Cx) -> Result {
         .sum::<usize>();
 
     view! {
-        <main class="mx-auto max-w-[90rem] px-4 py-7 sm:px-6 lg:px-8 lg:py-9">
-            <nav class="mb-5 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground" aria-label="Breadcrumb">
-                <a href=(tenant_path(tenant_slug)) class="hover:text-foreground">"Projects"</a>
+        <main class="p-6">
+            <nav class="mb-5 flex flex-wrap items-center gap-1.5 text-xs" aria-label="Breadcrumb">
+                <a href=(tenant_path(tenant_slug))>"Projects"</a>
                 <span class="inline-flex min-w-0 items-center gap-1.5">
                     breadcrumb_separator()
                     project_context_selector(
@@ -951,11 +881,11 @@ async fn environment_overview(cx: &Cx) -> Result {
             <header class="mb-5 flex flex-wrap items-start justify-between gap-4">
                 <div>
                     <h1 id="components-heading" class="text-2xl font-semibold tracking-tight">"Components"</h1>
-                    <p class="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                    <p class="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
                         <span>(count_label(visible_component_count, "component", "components"))</span>
                         <span>(environment.region)</span>
                         <span class="flex items-center gap-1.5">
-                            <span class=(if environment_healthy { "status-dot" } else { "inline-block size-1.5 rounded-full bg-warning" })></span>
+                            <span class=(if environment_healthy { "status status-success" } else { "status status-warning" })></span>
                             (format!("{healthy_count}/{visible_component_count} healthy"))
                         </span>
                     </p>
@@ -965,7 +895,7 @@ async fn environment_overview(cx: &Cx) -> Result {
                         "{}/new-component",
                         environment_path(tenant_slug, project_slug, environment.slug),
                     ))
-                    class=(button_variants(ButtonVariant::Primary, ButtonSize::Md))
+                    class="btn btn-primary"
                 >
                     icon(data: iconify_icon!("feather:plus"), attrs: attributes! { class="size-4" })
                     "New component"
@@ -975,8 +905,8 @@ async fn environment_overview(cx: &Cx) -> Result {
             feedback_banner(message: feedback, is_error: feedback_is_error)
 
             <div class="space-y-6">
-                <section id="components" class="overflow-hidden rounded-md border border-border bg-background" aria-labelledby="components-heading">
-                    <div class="hidden grid-cols-[minmax(12rem,2fr)_9rem_6rem_6rem_7rem_8rem_1rem] gap-4 border-b border-border bg-surface px-4 py-2.5 text-xs font-medium text-muted-foreground md:grid">
+                <section id="components" class="card bg-base-100" aria-labelledby="components-heading">
+                    <div class="hidden grid-cols-[minmax(12rem,2fr)_9rem_6rem_6rem_7rem_8rem_1rem] gap-4 px-4 py-2.5 text-xs font-medium md:grid">
                         <span>"Component"</span>
                         <span>"Kind"</span>
                         <span>"CPU"</span>
@@ -985,37 +915,37 @@ async fn environment_overview(cx: &Cx) -> Result {
                         <span>"Status"</span>
                         <span class="sr-only">"Open"</span>
                     </div>
-                    <div class="divide-y divide-border">
+                    <div>
                         match created_component {
                             Some(component_name) => <article class="grid gap-2 px-4 py-3.5 md:grid-cols-[minmax(12rem,2fr)_9rem_6rem_6rem_7rem_8rem_1rem] md:items-center md:gap-4">
                                 <span class="min-w-0">
                                     <span class="block truncate font-mono text-sm font-medium">(component_name)</span>
-                                    <span class="mt-0.5 block truncate text-xs text-muted-foreground">
+                                    <span class="mt-0.5 block truncate text-xs">
                                         "Preparing "
                                         (query.source.as_deref().unwrap_or("configured source"))
                                     </span>
                                 </span>
-                                <span class="flex flex-wrap items-center gap-x-3 text-xs text-muted-foreground md:hidden">
+                                <span class="flex flex-wrap items-center gap-x-3 text-xs md:hidden">
                                     <span>(component_kind_label(query.kind.as_deref()))</span>
                                     <span>(format!("{} desired", query.replicas.as_deref().unwrap_or("1")))</span>
                                 </span>
-                                <span class="hidden text-xs text-muted-foreground md:block">
+                                <span class="hidden text-xs md:block">
                                     (component_kind_label(query.kind.as_deref()))
                                 </span>
-                                <span class="hidden text-xs text-muted-foreground md:block">
+                                <span class="hidden text-xs md:block">
                                     "—"
                                 </span>
-                                <span class="hidden text-xs text-muted-foreground md:block">
+                                <span class="hidden text-xs md:block">
                                     "—"
                                 </span>
-                                <span class="hidden text-xs text-muted-foreground md:block">
+                                <span class="hidden text-xs md:block">
                                     (query.replicas.as_deref().unwrap_or("1"))
                                 </span>
                                 <span class="flex items-center gap-2 text-xs">
-                                    <span class="inline-block size-1.5 rounded-full bg-warning"></span>
+                                    <span class="status status-warning"></span>
                                     "Building"
                                 </span>
-                                icon(data: iconify_icon!("feather:loader"), attrs: attributes! { class="hidden size-3.5 animate-spin text-muted-foreground md:block" })
+                                icon(data: iconify_icon!("feather:loader"), attrs: attributes! { class="hidden size-3.5 animate-spin md:block" })
                             </article>,
                             None => "",
                         }
@@ -1028,13 +958,13 @@ async fn environment_overview(cx: &Cx) -> Result {
                                         environment.slug,
                                         component.slug,
                                     ))
-                                    class="group grid gap-2 px-4 py-3.5 hover:bg-surface md:grid-cols-[minmax(12rem,2fr)_9rem_6rem_6rem_7rem_8rem_1rem] md:items-center md:gap-4"
+                                    class="group grid gap-2 px-4 py-3.5 md:grid-cols-[minmax(12rem,2fr)_9rem_6rem_6rem_7rem_8rem_1rem] md:items-center md:gap-4"
                                 >
                                     <span class="min-w-0 flex-1">
-                                        <span class="block truncate font-mono text-sm font-medium group-hover:underline">(component.name)</span>
-                                        <span class="mt-0.5 block truncate text-xs text-muted-foreground">(component.summary)</span>
+                                        <span class="block truncate font-mono text-sm font-medium">(component.name)</span>
+                                        <span class="mt-0.5 block truncate text-xs">(component.summary)</span>
                                     </span>
-                                    <span class="flex flex-wrap items-center gap-x-3 text-xs text-muted-foreground md:hidden">
+                                    <span class="flex flex-wrap items-center gap-x-3 text-xs md:hidden">
                                         <span>(component.kind)</span>
                                         match component.observability {
                                             Some(observability) => <span class="contents">
@@ -1047,49 +977,49 @@ async fn environment_overview(cx: &Cx) -> Result {
                                             </span>,
                                         }
                                     </span>
-                                    <span class="hidden text-xs text-muted-foreground md:block">
+                                    <span class="hidden text-xs md:block">
                                         (component.kind)
                                     </span>
                                     match component.observability {
                                         Some(observability) => <span class="contents">
-                                            <span class="hidden text-xs text-muted-foreground md:block">
+                                            <span class="hidden text-xs md:block">
                                                 (format!("{}%", observability.cpu_percent))
                                             </span>
-                                            <span class="hidden text-xs text-muted-foreground md:block">
+                                            <span class="hidden text-xs md:block">
                                                 (format!("{}%", observability.memory_percent))
                                             </span>
-                                            <span class="hidden text-xs text-muted-foreground md:block">
+                                            <span class="hidden text-xs md:block">
                                                 (observability.replicas.split_whitespace().next().unwrap_or("—"))
                                             </span>
                                             <span class="flex items-center gap-2 text-xs">
-                                                <span class="status-dot"></span>
+                                                <span class="status status-success"></span>
                                                 (observability.health)
                                             </span>
                                         </span>,
                                         None => <span class="contents">
-                                            <span class="hidden text-xs text-muted-foreground md:block">
+                                            <span class="hidden text-xs md:block">
                                                 "—"
                                             </span>
-                                            <span class="hidden text-xs text-muted-foreground md:block">
+                                            <span class="hidden text-xs md:block">
                                                 "—"
                                             </span>
-                                            <span class="hidden text-xs text-muted-foreground md:block">
+                                            <span class="hidden text-xs md:block">
                                                 (setting_value(component, "Replicas"))
                                             </span>
                                             <span class="flex items-center gap-2 text-xs">
-                                                <span class="inline-block size-1.5 rounded-full bg-warning"></span>
+                                                <span class="status status-warning"></span>
                                                 (component.state)
                                             </span>
                                         </span>,
                                     }
-                                    icon(data: iconify_icon!("feather:chevron-right"), attrs: attributes! { class="hidden size-3.5 text-muted-foreground transition-transform group-hover:translate-x-0.5 md:block" })
+                                    icon(data: iconify_icon!("feather:chevron-right"), attrs: attributes! { class="hidden size-3.5 md:block" })
                                 </a>
                             }
                         }
                         if visible_component_count == 0 {
                             <div class="px-5 py-10 text-center">
                                 <p class="text-sm font-medium">"No components yet"</p>
-                                <p class="mt-1 text-xs text-muted-foreground">"Add a component to this environment."</p>
+                                <p class="mt-1 text-xs">"Add a component to this environment."</p>
                             </div>
                         }
                     </div>
@@ -1098,31 +1028,31 @@ async fn environment_overview(cx: &Cx) -> Result {
                 if let Some(storage) = retained_storage {
                     <section
                         id="retained-storage"
-                        class="overflow-hidden rounded-md border border-border bg-background"
+                        class="card bg-base-100"
                         aria-labelledby="retained-storage-heading"
                     >
-                        <header class="border-b border-border px-4 py-3">
+                        <header class="px-4 py-3">
                             <h2 id="retained-storage-heading" class="text-sm font-semibold">"Retained data"</h2>
                         </header>
                         <div class="grid gap-3 px-4 py-3.5 sm:grid-cols-[minmax(0,1fr)_7rem_8rem_auto_auto] sm:items-center sm:gap-4">
                             <span class="min-w-0">
                                 <span class="block truncate text-sm font-medium">
                                     "Data from "
-                                    (deleted_component.unwrap_or("component"))
+                                    "component"
                                 </span>
-                                <span class="mt-0.5 block truncate text-xs text-muted-foreground">
+                                <span class="mt-0.5 block truncate text-xs">
                                     (storage.binding.as_ref().map_or("/data", |binding| binding.mount_path))
                                 </span>
                             </span>
-                            <span class="text-xs text-muted-foreground">(format!("{} GiB", storage.capacity_gib))</span>
-                            <span class="text-xs text-muted-foreground">"Retained now"</span>
+                            <span class="text-xs">(format!("{} GiB", storage.capacity_gib))</span>
+                            <span class="text-xs">"Retained now"</span>
                             <a
                                 href=(format!(
                                     "{}/new-component?restore_storage={}",
                                     environment_path(tenant_slug, project_slug, environment.slug),
                                     storage.slug,
                                 ))
-                                class=(button_variants(ButtonVariant::Outline, ButtonSize::Sm))
+                                class="btn btn-outline btn-sm"
                             >
                                 "Use in new component"
                             </a>
@@ -1133,26 +1063,21 @@ async fn environment_overview(cx: &Cx) -> Result {
                             >
                                 <input type="hidden" name="action" value="delete-retained-storage">
                                 <input type="hidden" name="volume" value=(storage.slug)>
-                                button(
-                                    variant: ButtonVariant::Ghost,
-                                    size: ButtonSize::Sm,
-                                    attrs: attributes! { type="submit" class="text-destructive" },
-                                    "Delete"
-                                )
+                                <button class="btn btn-ghost btn-sm" type="submit">"Delete"</button>
                             </form>
                         </div>
                     </section>
                 }
 
                 if change_count > 0 {
-                    <section id="changes" class="overflow-hidden rounded-md border border-border bg-background" aria-labelledby="environment-changes-heading">
-                        <header class="flex h-11 items-center justify-between border-b border-border px-4">
+                    <section id="changes" class="card bg-base-100" aria-labelledby="environment-changes-heading">
+                        <header class="flex h-11 items-center justify-between px-4">
                             <h2 id="environment-changes-heading" class="text-sm font-semibold">"Changes"</h2>
-                            <span class="text-xs text-muted-foreground">
+                            <span class="text-xs">
                                 (count_label(change_count, "change", "changes"))
                             </span>
                         </header>
-                        <ol class="divide-y divide-border">
+                        <ol>
                             for component in environment.components {
                                 if Some(component.name) != deleted_component {
                                     for change in component.changes {
@@ -1167,26 +1092,26 @@ async fn environment_overview(cx: &Cx) -> Result {
                                                         component.slug,
                                                     ),
                                                 ))
-                                                class="group flex h-11 min-w-0 items-center gap-3 px-4 hover:bg-surface"
+                                                class="group flex h-11 min-w-0 items-center gap-3 px-4"
                                             >
-                                                <span class="min-w-0 flex-1 truncate text-sm font-medium group-hover:underline">
+                                                <span class="min-w-0 flex-1 truncate text-sm font-medium">
                                                     (change.summary)
                                                 </span>
-                                                <code class="hidden w-16 shrink-0 text-xs text-muted-foreground sm:block">
+                                                <code class="hidden w-16 shrink-0 text-xs sm:block">
                                                     (change.sha)
                                                 </code>
-                                                <span class="hidden w-32 shrink-0 truncate font-mono text-xs text-muted-foreground md:block">
+                                                <span class="hidden w-32 shrink-0 truncate font-mono text-xs md:block">
                                                     (component.name)
                                                 </span>
-                                                <span class="hidden w-28 shrink-0 truncate text-xs text-muted-foreground lg:block">
+                                                <span class="hidden w-28 shrink-0 truncate text-xs lg:block">
                                                     (change.author)
                                                 </span>
-                                                <time class="w-24 shrink-0 text-right text-xs text-muted-foreground">
+                                                <time class="w-24 shrink-0 text-right text-xs">
                                                     (change.time)
                                                 </time>
                                                 icon(data: iconify_icon!("feather:chevron-right"), attrs: attributes! {
                                                     aria-hidden="true"
-                                                    class="size-3.5 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5"
+                                                    class="size-3.5 shrink-0"
                                                 })
                                             </a>
                                         </li>
@@ -1269,13 +1194,13 @@ async fn create_component(cx: &Cx) -> Result {
         restored_storage.map_or("Disabled", |storage| storage.backup_policy);
 
     view! {
-        <main class="mx-auto max-w-2xl px-4 py-8 sm:px-6">
-            <nav class="mb-5 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground" aria-label="Breadcrumb">
-                <a href=(tenant_path(tenant_slug)) class="hover:text-foreground">"Projects"</a>
+        <main class="mx-auto max-w-2xl p-6">
+            <nav class="mb-5 flex flex-wrap items-center gap-1.5 text-xs" aria-label="Breadcrumb">
+                <a href=(tenant_path(tenant_slug))>"Projects"</a>
                 icon(data: iconify_icon!("feather:chevron-right"), attrs: attributes! { class="size-3" })
-                <a href=(project_path(tenant_slug, project_slug)) class="hover:text-foreground">(project.name)</a>
+                <a href=(project_path(tenant_slug, project_slug))>(project.name)</a>
                 icon(data: iconify_icon!("feather:chevron-right"), attrs: attributes! { class="size-3" })
-                <a href=(environment_path(tenant_slug, project_slug, environment_slug)) class="hover:text-foreground">
+                <a href=(environment_path(tenant_slug, project_slug, environment_slug))>
                     (environment.name)
                 </a>
                 icon(data: iconify_icon!("feather:chevron-right"), attrs: attributes! { class="size-3" })
@@ -1283,7 +1208,7 @@ async fn create_component(cx: &Cx) -> Result {
             </nav>
             <header class="mb-6">
                 <h1 class="text-2xl font-semibold">"New component"</h1>
-                <p class="mt-1 text-sm text-muted-foreground">
+                <p class="mt-1 text-sm">
                     "Add a component to "
                     (environment.name)
                     "."
@@ -1292,7 +1217,7 @@ async fn create_component(cx: &Cx) -> Result {
             <form
                 action=(action)
                 method="get"
-                class="overflow-hidden rounded-md border border-border bg-background"
+                class="card bg-base-100"
             >
                 <div class="space-y-6 px-5 py-5 sm:px-6">
                         <input type="hidden" name="action" value="create-component">
@@ -1301,84 +1226,63 @@ async fn create_component(cx: &Cx) -> Result {
                             <h2 id="component-basics-heading" class="text-sm font-semibold">"Component"</h2>
                             <div class="grid gap-5 sm:grid-cols-2">
                                 <div class="space-y-2">
-                                    label(attrs: attributes! { for="component-kind" }, "Type")
-                                    select(
-                                        attrs: attributes! {
-                                            id="component-kind"
+                                    <label class="label" for="component-kind">"Type"</label>
+                                    <select class="select w-full" id="component-kind"
                                             name="kind"
-                                            data-component-kind-select=""
-                                        },
-                                        <option value="application">"Application"</option>
+                                            data-component-kind-select=""><option value="application">"Application"</option>
                                         <option value="cron-job">"Cron job"</option>
                                         <option value="postgresql">"PostgreSQL"</option>
-                                        <option value="valkey">"Valkey"</option>
-                                    )
+                                        <option value="valkey">"Valkey"</option></select>
                                 </div>
                                 <div class="space-y-2">
-                                    label(attrs: attributes! { for="component-name" }, "Name")
-                                    input(attrs: attributes! {
-                                        id="component-name"
+                                    <label class="label" for="component-name">"Name"</label>
+                                    <input class="input w-full" id="component-name"
                                         name="name"
                                         placeholder="web"
                                         required=(true)
                                         pattern="[A-Za-z0-9](?:[A-Za-z0-9\\-]{0,61}[A-Za-z0-9])?"
                                         title="Use letters, numbers, and hyphens."
-                                        data-component-name=""
-                                    })
+                                        data-component-name="">
                                 </div>
                             </div>
                         </section>
 
                         <fieldset data-component-kind-fields="application" class="space-y-6">
                             <legend class="sr-only">"Application settings"</legend>
-                            <section class="space-y-4 border-t border-border pt-5" aria-labelledby="new-component-source-heading">
+                            <section class="space-y-4 pt-5" aria-labelledby="new-component-source-heading">
                                 <h2 id="new-component-source-heading" class="text-sm font-semibold">"Source"</h2>
                                 <div class="grid gap-5 sm:grid-cols-[10rem_minmax(0,1fr)]">
                                     <div class="space-y-2">
-                                        label(attrs: attributes! { for="application-source-kind" }, "Deploy from")
-                                        select(
-                                            attrs: attributes! {
-                                                id="application-source-kind"
+                                        <label class="label" for="application-source-kind">"Deploy from"</label>
+                                        <select class="select w-full" id="application-source-kind"
                                                 name="source_kind"
-                                                data-application-source-kind=""
-                                            },
-                                            <option value="repository">"Git repository"</option>
-                                            <option value="image">"Container image"</option>
-                                        )
+                                                data-application-source-kind=""><option value="repository">"Git repository"</option>
+                                            <option value="image">"Container image"</option></select>
                                     </div>
                                     <div class="space-y-2">
-                                        label(attrs: attributes! { for="application-source" }, "Repository or image")
-                                        input(
-                                            attrs: attributes! {
-                                                id="application-source"
+                                        <label class="label" for="application-source">"Repository or image"</label>
+                                        <input class="input w-full" id="application-source"
                                                 name="source"
                                                 placeholder="https://github.com/owner/repository"
                                                 required=(true)
-                                                data-application-source=""
-                                            }
-                                        )
+                                                data-application-source="">
                                     </div>
                                 </div>
                             </section>
 
-                            <section class="space-y-4 border-t border-border pt-5" aria-labelledby="new-component-access-heading">
+                            <section class="space-y-4 pt-5" aria-labelledby="new-component-access-heading">
                                 <h2 id="new-component-access-heading" class="text-sm font-semibold">"Access"</h2>
                                 <div class="grid gap-4 sm:grid-cols-[10rem_minmax(0,1fr)] sm:items-start">
                                     <div class="space-y-2">
-                                        label(attrs: attributes! { for="application-exposure" }, "Visibility")
-                                        select(
-                                            attrs: attributes! {
-                                                id="application-exposure"
+                                        <label class="label" for="application-exposure">"Visibility"</label>
+                                        <select class="select w-full" id="application-exposure"
                                                 name="exposure"
-                                                data-network-exposure=""
-                                            },
-                                            <option value="Public">"Public"</option>
-                                            <option value="Private">"Private"</option>
-                                        )
+                                                data-network-exposure=""><option value="Public">"Public"</option>
+                                            <option value="Private">"Private"</option></select>
                                     </div>
                                     <div data-public-network-fields="" class="min-w-0 space-y-3 sm:pt-0.5">
                                         <div class="min-w-0">
-                                            <p class="text-xs text-muted-foreground">"Domain"</p>
+                                            <p class="text-xs">"Domain"</p>
                                             <code
                                                 data-managed-domain-preview=""
                                                 data-domain-tenant=(tenant_slug)
@@ -1390,30 +1294,29 @@ async fn create_component(cx: &Cx) -> Result {
                                             </code>
                                         </div>
                                         <details class="group">
-                                            <summary class="flex w-fit cursor-pointer list-none items-center gap-1 rounded text-xs font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 [&::-webkit-details-marker]:hidden">
+                                            <summary class="flex w-fit cursor-pointer list-none items-center gap-1 text-xs font-medium outline-none [&::-webkit-details-marker]:hidden">
                                                 "Use a custom domain"
                                                 icon(
                                                     data: iconify_icon!("feather:chevron-down"),
-                                                    attrs: attributes! { class="size-3.5 text-muted-foreground transition-transform group-open:rotate-180" }
+                                                    attrs: attributes! { class="size-3.5 group-open:rotate-180" }
                                                 )
                                             </summary>
                                             if tenant.domains.is_empty() {
-                                                <div class="mt-3 max-w-sm rounded-md border border-border bg-surface px-3 py-3">
-                                                    <p class="text-xs text-muted-foreground">
+                                                <div class="mt-3 max-w-sm px-3 py-3">
+                                                    <p class="text-xs">
                                                         "Register and verify a tenant domain before assigning a custom hostname."
                                                     </p>
                                                     <a
                                                         href=(format!("{}/settings", tenant_path(tenant_slug)))
-                                                        class="mt-2 inline-block text-xs font-medium underline underline-offset-4"
+                                                        class="mt-2 inline-block text-xs font-medium"
                                                     >
                                                         "Register a domain"
                                                     </a>
                                                 </div>
                                             } else {
                                                 <div class="mt-3 max-w-sm space-y-2">
-                                                    label(attrs: attributes! { for="application-domain" }, "Hostname")
-                                                    input(attrs: attributes! {
-                                                        id="application-domain"
+                                                    <label class="label" for="application-domain">"Hostname"</label>
+                                                    <input class="input w-full" id="application-domain"
                                                         name="domain"
                                                         placeholder=(format!("app.{}", tenant.domains[0]))
                                                         inputmode="url"
@@ -1421,9 +1324,8 @@ async fn create_component(cx: &Cx) -> Result {
                                                         data-custom-domain=""
                                                         data-registered-domains=(tenant.domains.join(","))
                                                         pattern="[A-Za-z0-9](?:[A-Za-z0-9\\-]{0,61}[A-Za-z0-9])?(?:[.][A-Za-z0-9](?:[A-Za-z0-9\\-]{0,61}[A-Za-z0-9])?)+"
-                                                        title="Enter a hostname under a verified tenant domain."
-                                                    })
-                                                    <p class="text-xs text-muted-foreground">
+                                                        title="Enter a hostname under a verified tenant domain.">
+                                                    <p class="text-xs">
                                                         "Verified domains: "
                                                         (tenant.domains.join(", "))
                                                     </p>
@@ -1434,16 +1336,16 @@ async fn create_component(cx: &Cx) -> Result {
                                 </div>
                             </section>
 
-                            <section data-variable-editor="" class="space-y-4 border-t border-border pt-5" aria-labelledby="new-component-variables-heading">
+                            <section data-variable-editor="" class="space-y-4 pt-5" aria-labelledby="new-component-variables-heading">
                                 <div class="flex flex-wrap items-start justify-between gap-3">
                                     <div>
                                         <h2 id="new-component-variables-heading" class="text-sm font-semibold">"Environment variables"</h2>
-                                        <p class="mt-1 text-xs text-muted-foreground">"Values are encrypted and write-only."</p>
+                                        <p class="mt-1 text-xs">"Values are encrypted and write-only."</p>
                                     </div>
                                     <button
                                         type="button"
                                         data-add-variable=""
-                                        class=(button_variants(ButtonVariant::Outline, ButtonSize::Sm))
+                                        class="btn btn-outline btn-sm"
                                     >
                                         icon(data: iconify_icon!("feather:plus"), attrs: attributes! { class="size-3.5" })
                                         "Add variable"
@@ -1453,32 +1355,28 @@ async fn create_component(cx: &Cx) -> Result {
                                 <template data-variable-template="">
                                     <div data-variable-row="" data-variable-new="" class="grid gap-2 sm:grid-cols-[minmax(10rem,1fr)_minmax(12rem,1.4fr)_auto] sm:items-end">
                                         <label class="space-y-1.5">
-                                            <span class="block text-xs text-muted-foreground">"Key"</span>
-                                            input(attrs: attributes! {
-                                                data-variable-key=""
+                                            <span class="block text-xs">"Key"</span>
+                                            <input class="input w-full" data-variable-key=""
                                                 placeholder="VARIABLE_NAME"
                                                 aria-label="Variable key"
                                                 pattern="[A-Za-z_][A-Za-z0-9_]*"
                                                 title="Use letters, numbers, and underscores; do not start with a number."
-                                                required=(true)
-                                            })
+                                                required=(true)>
                                         </label>
                                         <label class="space-y-1.5">
-                                            <span class="block text-xs text-muted-foreground">"Value"</span>
-                                            input(attrs: attributes! {
-                                                data-variable-value=""
+                                            <span class="block text-xs">"Value"</span>
+                                            <input class="input w-full" data-variable-value=""
                                                 type="password"
                                                 placeholder="Required"
                                                 aria-label="Variable value"
                                                 autocomplete="new-password"
-                                                required=(true)
-                                            })
+                                                required=(true)>
                                         </label>
                                         <button
                                             type="button"
                                             data-remove-variable=""
                                             aria-label="Remove variable"
-                                            class=(button_variants(ButtonVariant::Outline, ButtonSize::Md))
+                                            class="btn btn-outline"
                                         >
                                             icon(data: iconify_icon!("feather:trash-2"), attrs: attributes! { class="size-3.5" })
                                             <span class="sm:sr-only">"Remove"</span>
@@ -1490,22 +1388,20 @@ async fn create_component(cx: &Cx) -> Result {
 
                             <section
                                 data-storage-config=""
-                                class="space-y-4 border-t border-border pt-5"
+                                class="space-y-4 pt-5"
                                 aria-labelledby="application-storage-heading"
                             >
                                 <div class="flex flex-wrap items-start justify-between gap-4">
                                     <div>
                                         <h2 id="application-storage-heading" class="text-sm font-semibold">"Persistent storage"</h2>
-                                        <p class="mt-1 text-xs text-muted-foreground">"One private disk, owned by this component."</p>
+                                        <p class="mt-1 text-xs">"One private disk, owned by this component."</p>
                                     </div>
                                     <div class="flex items-center gap-2">
-                                        switch(attrs: attributes! {
-                                            id="application-storage"
+                                        <input class="toggle toggle-primary" type="checkbox" role="switch" id="application-storage"
                                             name="storage_enabled"
                                             checked=(storage_enabled)
-                                            data-storage-toggle=""
-                                        })
-                                        label(attrs: attributes! { for="application-storage" }, "Enable")
+                                            data-storage-toggle="">
+                                        <label class="label" for="application-storage">"Enable"</label>
                                     </div>
                                 </div>
                                 <div
@@ -1514,7 +1410,7 @@ async fn create_component(cx: &Cx) -> Result {
                                     class="space-y-4"
                                 >
                                     match restored_storage {
-                                        Some(storage) => <div class="rounded-md border border-border bg-surface px-3 py-2.5">
+                                        Some(storage) => <div class="px-3 py-2.5">
                                             <input
                                                 type="hidden"
                                                 name="restore_storage"
@@ -1522,7 +1418,7 @@ async fn create_component(cx: &Cx) -> Result {
                                                 disabled=(!storage_enabled)
                                             >
                                             <p class="text-sm font-medium">"Using retained data from "(storage.name)</p>
-                                            <p class="mt-1 text-xs text-muted-foreground">
+                                            <p class="mt-1 text-xs">
                                                 (format!("{} GiB · backups preserved", storage.capacity_gib))
                                             </p>
                                         </div>,
@@ -1530,79 +1426,68 @@ async fn create_component(cx: &Cx) -> Result {
                                     }
                                     <div class="grid gap-4 sm:grid-cols-2">
                                         <div class="space-y-2">
-                                            label(attrs: attributes! { for="application-storage-size" }, "Size (GiB)")
-                                            input(attrs: attributes! {
-                                                id="application-storage-size"
+                                            <label class="label" for="application-storage-size">"Size (GiB)"</label>
+                                            <input class="input w-full" id="application-storage-size"
                                                 name="size"
                                                 type="number"
                                                 value=(storage_size)
                                                 min=(storage_size)
                                                 required=(true)
-                                                disabled=(!storage_enabled)
-                                            })
+                                                disabled=(!storage_enabled)>
                                         </div>
                                         <div class="space-y-2">
-                                            label(attrs: attributes! { for="application-mount-path" }, "Mount path")
-                                            input(attrs: attributes! {
-                                                id="application-mount-path"
+                                            <label class="label" for="application-mount-path">"Mount path"</label>
+                                            <input class="input w-full" id="application-mount-path"
                                                 name="mount_path"
                                                 value=(storage_mount_path)
                                                 pattern="/.*"
                                                 title="Use an absolute path beginning with /."
                                                 required=(true)
-                                                disabled=(!storage_enabled)
-                                            })
+                                                disabled=(!storage_enabled)>
                                         </div>
                                     </div>
                                     <div class="max-w-xs space-y-2">
-                                        label(attrs: attributes! { for="application-backup-policy" }, "Backup policy")
-                                        select(
-                                            attrs: attributes! {
-                                                id="application-backup-policy"
+                                        <label class="label" for="application-backup-policy">"Backup policy"</label>
+                                        <select class="select w-full" id="application-backup-policy"
                                                 name="backup_policy"
-                                                disabled=(!storage_enabled)
-                                            },
-                                            <option value="Disabled" selected=(storage_backup_policy == "Disabled")>"Disabled"</option>
+                                                disabled=(!storage_enabled)><option value="Disabled" selected=(storage_backup_policy == "Disabled")>"Disabled"</option>
                                             <option value="Daily · retain 7" selected=(storage_backup_policy == "Daily · retain 7")>"Daily · keep 7"</option>
                                             <option value="Daily · retain 14" selected=(storage_backup_policy == "Daily · retain 14")>"Daily · keep 14"</option>
-                                            <option value="Weekly · retain 4" selected=(storage_backup_policy == "Weekly · retain 4")>"Weekly · keep 4"</option>
-                                        )
+                                            <option value="Weekly · retain 4" selected=(storage_backup_policy == "Weekly · retain 4")>"Weekly · keep 4"</option></select>
                                     </div>
                                 </div>
                             </section>
 
-                            <details class="group border-t border-border pt-5">
-                                <summary class="flex cursor-pointer list-none items-center justify-between rounded text-sm font-semibold outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 [&::-webkit-details-marker]:hidden">
+                            <details class="group pt-5">
+                                <summary class="flex cursor-pointer list-none items-center justify-between text-sm font-semibold outline-none [&::-webkit-details-marker]:hidden">
                                     "Advanced"
                                     icon(
                                         data: iconify_icon!("feather:chevron-down"),
-                                        attrs: attributes! { class="size-4 text-muted-foreground transition-transform group-open:rotate-180" }
+                                        attrs: attributes! { class="size-4 group-open:rotate-180" }
                                     )
                                 </summary>
                                 <div class="mt-4 grid gap-5 sm:grid-cols-2">
                                     <div class="space-y-2">
-                                        label(attrs: attributes! { for="application-replicas" }, "Replicas")
-                                        input(attrs: attributes! { id="application-replicas" name="replicas" type="number" value="1" min="0" })
+                                        <label class="label" for="application-replicas">"Replicas"</label>
+                                        <input class="input w-full" id="application-replicas" name="replicas" type="number" value="1" min="0">
                                     </div>
                                     <div class="space-y-2">
-                                        label(attrs: attributes! { for="application-port" }, "Service port")
-                                        input(attrs: attributes! {
-                                            id="application-port"
+                                        <label class="label" for="application-port">"Service port"</label>
+                                        <input class="input w-full" id="application-port"
                                             name="port"
                                             type="number"
                                             placeholder="8080"
                                             min="1"
-                                            max="65535"
-                                        })
-                                        <p class="text-xs text-muted-foreground">
+                                            max="65535">
+                                        <p class="text-xs">
                                             "Optional. Buildpack apps receive the platform port in "
                                             <code>"PORT"</code>
                                             "; container images can override it here."
                                         </p>
                                     </div>
                                     <div class="flex items-center gap-2 sm:col-span-2">
-                                        switch(attrs: attributes! { id="application-auto-deploy" name="auto_deploy" checked=(true) })
-                                        label(attrs: attributes! { for="application-auto-deploy" }, "Automatically deploy updates")
+                                        <input class="toggle toggle-primary" type="checkbox" role="switch" id="application-auto-deploy" name="auto_deploy" checked=(true)>
+                                        <label class="label" for="application-auto-deploy">"Automatically deploy updates"</label>
                                     </div>
                                 </div>
                             </details>
@@ -1610,111 +1495,91 @@ async fn create_component(cx: &Cx) -> Result {
 
                         <fieldset
                             data-component-kind-fields="cron-job"
-                            class="space-y-5 border-t border-border pt-5"
+                            class="space-y-5 pt-5"
                             hidden=(true)
                         >
                             <legend class="sr-only">"Cron job settings"</legend>
                             <div class="space-y-2">
-                                label(attrs: attributes! { for="cron-source" }, "Repository or image")
-                                input(attrs: attributes! {
-                                    id="cron-source"
+                                <label class="label" for="cron-source">"Repository or image"</label>
+                                <input class="input w-full" id="cron-source"
                                     name="source"
                                     placeholder="https://github.com/owner/repository"
                                     required=(true)
-                                    disabled=(true)
-                                })
+                                    disabled=(true)>
                             </div>
                             <div class="space-y-2">
-                                label(attrs: attributes! { for="cron-command" }, "Command")
-                                input(attrs: attributes! {
-                                    id="cron-command"
+                                <label class="label" for="cron-command">"Command"</label>
+                                <input class="input w-full" id="cron-command"
                                     name="command"
                                     placeholder="bin/run-report"
                                     required=(true)
-                                    disabled=(true)
-                                })
+                                    disabled=(true)>
                             </div>
                             <div class="grid gap-5 sm:grid-cols-2">
                                 <div class="space-y-2">
-                                    label(attrs: attributes! { for="cron-expression" }, "Cron expression")
-                                    input(attrs: attributes! {
-                                    id="cron-expression"
+                                    <label class="label" for="cron-expression">"Cron expression"</label>
+                                    <input class="input w-full" id="cron-expression"
                                     name="cron"
                                     placeholder="0 3 * * *"
                                     required=(true)
-                                    disabled=(true)
-                                })
+                                    disabled=(true)>
                                 </div>
                                 <div class="space-y-2">
-                                    label(attrs: attributes! { for="cron-timezone" }, "Timezone")
-                                    select(
-                                        attrs: attributes! { id="cron-timezone" name="timezone" disabled=(true) },
-                                        <option value="UTC">"UTC"</option>
+                                    <label class="label" for="cron-timezone">"Timezone"</label>
+                                    <select class="select w-full" id="cron-timezone" name="timezone" disabled=(true)><option value="UTC">"UTC"</option>
                                         <option value="Asia/Ho_Chi_Minh">"Asia/Ho_Chi_Minh"</option>
-                                        <option value="Europe/Helsinki">"Europe/Helsinki"</option>
-                                    )
+                                        <option value="Europe/Helsinki">"Europe/Helsinki"</option></select>
                                 </div>
                             </div>
                             <section
                                 data-storage-config=""
-                                class="space-y-4 border-t border-border pt-5"
+                                class="space-y-4 pt-5"
                                 aria-labelledby="cron-storage-heading"
                             >
                                 <div class="flex flex-wrap items-start justify-between gap-4">
                                     <div>
                                         <h2 id="cron-storage-heading" class="text-sm font-semibold">"Persistent storage"</h2>
-                                        <p class="mt-1 text-xs text-muted-foreground">"One private disk, owned by this component."</p>
+                                        <p class="mt-1 text-xs">"One private disk, owned by this component."</p>
                                     </div>
                                     <div class="flex items-center gap-2">
-                                        switch(attrs: attributes! {
-                                            id="cron-storage"
+                                        <input class="toggle toggle-primary" type="checkbox" role="switch" id="cron-storage"
                                             name="storage_enabled"
                                             data-storage-toggle=""
-                                            disabled=(true)
-                                        })
-                                        label(attrs: attributes! { for="cron-storage" }, "Enable")
+                                            disabled=(true)>
+                                        <label class="label" for="cron-storage">"Enable"</label>
                                     </div>
                                 </div>
                                 <div data-storage-fields="" hidden=(true) class="space-y-4">
                                     <div class="grid gap-4 sm:grid-cols-2">
                                         <div class="space-y-2">
-                                            label(attrs: attributes! { for="cron-storage-size" }, "Size (GiB)")
-                                            input(attrs: attributes! {
-                                                id="cron-storage-size"
+                                            <label class="label" for="cron-storage-size">"Size (GiB)"</label>
+                                            <input class="input w-full" id="cron-storage-size"
                                                 name="size"
                                                 type="number"
                                                 value="10"
                                                 min="1"
                                                 required=(true)
-                                                disabled=(true)
-                                            })
+                                                disabled=(true)>
                                         </div>
                                         <div class="space-y-2">
-                                            label(attrs: attributes! { for="cron-mount-path" }, "Mount path")
-                                            input(attrs: attributes! {
-                                                id="cron-mount-path"
+                                            <label class="label" for="cron-mount-path">"Mount path"</label>
+                                            <input class="input w-full" id="cron-mount-path"
                                                 name="mount_path"
                                                 value="/data"
                                                 pattern="/.*"
                                                 title="Use an absolute path beginning with /."
                                                 required=(true)
-                                                disabled=(true)
-                                            })
+                                                disabled=(true)>
                                         </div>
                                     </div>
                                     <div class="max-w-xs space-y-2">
-                                        label(attrs: attributes! { for="cron-backup-policy" }, "Backup policy")
-                                        select(
-                                            attrs: attributes! {
-                                                id="cron-backup-policy"
+                                        <label class="label" for="cron-backup-policy">"Backup policy"</label>
+                                        <select class="select w-full" id="cron-backup-policy"
                                                 name="backup_policy"
-                                                disabled=(true)
-                                            },
-                                            <option value="Disabled">"Disabled"</option>
+                                                disabled=(true)><option value="Disabled">"Disabled"</option>
                                             <option value="Daily · retain 7">"Daily · keep 7"</option>
                                             <option value="Daily · retain 14">"Daily · keep 14"</option>
-                                            <option value="Weekly · retain 4">"Weekly · keep 4"</option>
-                                        )
+                                            <option value="Weekly · retain 4">"Weekly · keep 4"</option></select>
                                     </div>
                                 </div>
                             </section>
@@ -1722,103 +1587,83 @@ async fn create_component(cx: &Cx) -> Result {
 
                         <fieldset
                             data-component-kind-fields="postgresql"
-                            class="space-y-5 border-t border-border pt-5"
+                            class="space-y-5 pt-5"
                             hidden=(true)
                         >
                             <legend class="sr-only">"Managed PostgreSQL settings"</legend>
                             <div class="grid gap-5 sm:grid-cols-2">
                                 <div class="space-y-2">
-                                    label(attrs: attributes! { for="postgres-version" }, "PostgreSQL version")
-                                    select(
-                                        attrs: attributes! { id="postgres-version" name="version" disabled=(true) },
-                                        <option value="17">"17"</option>
+                                    <label class="label" for="postgres-version">"PostgreSQL version"</label>
+                                    <select class="select w-full" id="postgres-version" name="version" disabled=(true)><option value="17">"17"</option>
                                         <option value="16">"16"</option>
-                                        <option value="15">"15"</option>
-                                    )
+                                        <option value="15">"15"</option></select>
                                 </div>
                                 <div class="space-y-2">
-                                    label(attrs: attributes! { for="postgres-plan" }, "Compute plan")
-                                    select(
-                                        attrs: attributes! { id="postgres-plan" name="plan" disabled=(true) },
-                                        <option value="shared-1">"Shared · 1 vCPU / 1 GiB"</option>
+                                    <label class="label" for="postgres-plan">"Compute plan"</label>
+                                    <select class="select w-full" id="postgres-plan" name="plan" disabled=(true)><option value="shared-1">"Shared · 1 vCPU / 1 GiB"</option>
                                         <option value="standard-2">"Standard · 2 vCPU / 4 GiB"</option>
-                                        <option value="standard-4">"Standard · 4 vCPU / 8 GiB"</option>
-                                    )
+                                        <option value="standard-4">"Standard · 4 vCPU / 8 GiB"</option></select>
                                 </div>
                             </div>
                             <div class="space-y-2">
-                                label(attrs: attributes! { for="postgres-storage" }, "Storage (GiB)")
-                                input(attrs: attributes! {
-                                    id="postgres-storage"
+                                <label class="label" for="postgres-storage">"Storage (GiB)"</label>
+                                <input class="input w-full" id="postgres-storage"
                                     name="storage"
                                     type="number"
                                     value="20"
                                     min="10"
-                                    disabled=(true)
-                                })
+                                    disabled=(true)>
                             </div>
                             <div class="grid gap-3 sm:grid-cols-2">
                                 <div class="flex items-center gap-2">
-                                    switch(attrs: attributes! { id="postgres-backups" name="backups" checked=(true) disabled=(true) })
-                                    label(attrs: attributes! { for="postgres-backups" }, "Daily backups")
+                                    <input class="toggle toggle-primary" type="checkbox" role="switch" id="postgres-backups" name="backups" checked=(true) disabled=(true)>
+                                    <label class="label" for="postgres-backups">"Daily backups"</label>
                                 </div>
                                 <div class="flex items-center gap-2">
-                                    switch(attrs: attributes! { id="postgres-ha" name="high_availability" disabled=(true) })
-                                    label(attrs: attributes! { for="postgres-ha" }, "High availability")
+                                    <input class="toggle toggle-primary" type="checkbox" role="switch" id="postgres-ha" name="high_availability" disabled=(true)>
+                                    <label class="label" for="postgres-ha">"High availability"</label>
                                 </div>
                             </div>
                         </fieldset>
 
                         <fieldset
                             data-component-kind-fields="valkey"
-                            class="space-y-5 border-t border-border pt-5"
+                            class="space-y-5 pt-5"
                             hidden=(true)
                         >
                             <legend class="sr-only">"Managed Valkey settings"</legend>
                             <div class="grid gap-5 sm:grid-cols-2">
                                 <div class="space-y-2">
-                                    label(attrs: attributes! { for="valkey-version" }, "Valkey version")
-                                    select(
-                                        attrs: attributes! { id="valkey-version" name="version" disabled=(true) },
-                                        <option value="8">"8"</option>
-                                        <option value="7">"7"</option>
-                                    )
+                                    <label class="label" for="valkey-version">"Valkey version"</label>
+                                    <select class="select w-full" id="valkey-version" name="version" disabled=(true)><option value="8">"8"</option>
+                                        <option value="7">"7"</option></select>
                                 </div>
                                 <div class="space-y-2">
-                                    label(attrs: attributes! { for="valkey-plan" }, "Memory plan")
-                                    select(
-                                        attrs: attributes! { id="valkey-plan" name="plan" disabled=(true) },
-                                        <option value="256mb">"Shared · 256 MiB"</option>
+                                    <label class="label" for="valkey-plan">"Memory plan"</label>
+                                    <select class="select w-full" id="valkey-plan" name="plan" disabled=(true)><option value="256mb">"Shared · 256 MiB"</option>
                                         <option value="1gb">"Standard · 1 GiB"</option>
-                                        <option value="4gb">"Standard · 4 GiB"</option>
-                                    )
+                                        <option value="4gb">"Standard · 4 GiB"</option></select>
                                 </div>
                             </div>
                             <div class="grid gap-5 sm:grid-cols-2">
                                 <div class="space-y-2">
-                                    label(attrs: attributes! { for="valkey-persistence" }, "Persistence")
-                                    select(
-                                        attrs: attributes! { id="valkey-persistence" name="persistence" disabled=(true) },
-                                        <option value="none">"None"</option>
+                                    <label class="label" for="valkey-persistence">"Persistence"</label>
+                                    <select class="select w-full" id="valkey-persistence" name="persistence" disabled=(true)><option value="none">"None"</option>
                                         <option value="aof">"AOF"</option>
-                                        <option value="snapshot">"Snapshots"</option>
-                                    )
+                                        <option value="snapshot">"Snapshots"</option></select>
                                 </div>
                                 <div class="space-y-2">
-                                    label(attrs: attributes! { for="valkey-eviction" }, "Eviction policy")
-                                    select(
-                                        attrs: attributes! { id="valkey-eviction" name="eviction" disabled=(true) },
-                                        <option value="allkeys-lru">"allkeys-lru"</option>
+                                    <label class="label" for="valkey-eviction">"Eviction policy"</label>
+                                    <select class="select w-full" id="valkey-eviction" name="eviction" disabled=(true)><option value="allkeys-lru">"allkeys-lru"</option>
                                         <option value="volatile-lru">"volatile-lru"</option>
-                                        <option value="noeviction">"noeviction"</option>
-                                    )
+                                        <option value="noeviction">"noeviction"</option></select>
                                 </div>
                             </div>
                         </fieldset>
                 </div>
-                <div class="flex justify-end gap-2 border-t border-border bg-surface px-5 py-4 sm:px-6">
-                    <a href=(environment_path(tenant_slug, project_slug, environment_slug)) class=(button_variants(ButtonVariant::Outline, ButtonSize::Md))>"Cancel"</a>
-                    button(attrs: attributes! { type="submit" }, "Create component")
+                <div class="flex justify-end gap-2 px-5 py-4 sm:px-6">
+                    <a href=(environment_path(tenant_slug, project_slug, environment_slug)) class="btn btn-outline">"Cancel"</a>
+                    <button class="btn btn-primary" type="submit">"Create component"</button>
                 </div>
             </form>
         </main>
@@ -1852,9 +1697,9 @@ async fn component_layout(cx: &Cx, slot: Slot<'_>) -> Result {
     let feedback = feedback_message(query);
 
     view! {
-        <main class="mx-auto max-w-[90rem] px-4 py-7 sm:px-6 lg:px-8 lg:py-9">
-            <nav class="mb-5 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground" aria-label="Breadcrumb">
-                <a href=(tenant_path(tenant_slug)) class="hover:text-foreground">"Projects"</a>
+        <main class="p-6">
+            <nav class="mb-5 flex flex-wrap items-center gap-1.5 text-xs" aria-label="Breadcrumb">
+                <a href=(tenant_path(tenant_slug))>"Projects"</a>
                 <span class="inline-flex min-w-0 items-center gap-1.5">
                     breadcrumb_separator()
                     project_context_selector(
@@ -1886,11 +1731,11 @@ async fn component_layout(cx: &Cx, slot: Slot<'_>) -> Result {
                             component_suffix: component_suffix,
                         )
                     </div>
-                    <p class="mt-1 text-sm text-muted-foreground">(component.summary)</p>
-                    <p class="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                    <p class="mt-1 text-sm">(component.summary)</p>
+                    <p class="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
                         <span>(component.kind)</span>
                         <span class="flex items-center gap-1.5">
-                            <span class=(if component.observability.is_some() { "status-dot" } else { "inline-block size-1.5 rounded-full bg-warning" })></span>
+                            <span class=(if component.observability.is_some() { "status status-success" } else { "status status-warning" })></span>
                             match component.observability {
                                 Some(observability) => <span>(observability.health)</span>,
                                 None => <span>(component.state)</span>,
@@ -1898,7 +1743,7 @@ async fn component_layout(cx: &Cx, slot: Slot<'_>) -> Result {
                         </span>
                     </p>
                     if !dependencies.is_empty() {
-                        <p class="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                        <p class="mt-2 flex flex-wrap items-center gap-2 text-xs">
                             <span>"Depends on"</span>
                             for dependency in dependencies {
                                 <a
@@ -1908,7 +1753,7 @@ async fn component_layout(cx: &Cx, slot: Slot<'_>) -> Result {
                                         environment_slug,
                                         dependency.slug,
                                     ))
-                                    class="font-medium text-foreground underline underline-offset-4"
+                                    class="font-medium"
                                 >
                                     (dependency.name)
                                 </a>
@@ -1921,7 +1766,7 @@ async fn component_layout(cx: &Cx, slot: Slot<'_>) -> Result {
                         href=(url)
                         target="_blank"
                         rel="noopener"
-                        class=(button_variants(ButtonVariant::Outline, ButtonSize::Md))
+                        class="btn btn-outline"
                     >
                         icon(data: iconify_icon!("feather:external-link"), attrs: attributes! { class="size-4" })
                         "Open app"
@@ -1930,21 +1775,21 @@ async fn component_layout(cx: &Cx, slot: Slot<'_>) -> Result {
                 }
             </header>
             feedback_banner(message: feedback)
-            <nav class="mb-6 flex gap-5 border-b border-border" aria-label="Component">
+            <nav role="tablist" class="tabs tabs-border mb-6" aria-label="Component">
                 if current_path == base_path {
-                    <span aria-current="page" class="border-b-2 border-foreground px-0.5 pb-2.5 text-sm font-medium">"Overview"</span>
+                    <span role="tab" aria-current="page" class="tab tab-active">"Overview"</span>
                 } else {
-                    <a href=(base_path.clone()) class="px-0.5 pb-2.5 text-sm text-muted-foreground hover:text-foreground">"Overview"</a>
+                    <a role="tab" href=(base_path.clone()) class="tab">"Overview"</a>
                 }
                 if current_path == settings_path {
-                    <span aria-current="page" class="border-b-2 border-foreground px-0.5 pb-2.5 text-sm font-medium">"Settings"</span>
+                    <span role="tab" aria-current="page" class="tab tab-active">"Settings"</span>
                 } else {
-                    <a href=(settings_path.clone()) class="px-0.5 pb-2.5 text-sm text-muted-foreground hover:text-foreground">"Settings"</a>
+                    <a role="tab" href=(settings_path.clone()) class="tab">"Settings"</a>
                 }
                 if current_path == changes_path {
-                    <span aria-current="page" class="border-b-2 border-foreground px-0.5 pb-2.5 text-sm font-medium">"Changes"</span>
+                    <span role="tab" aria-current="page" class="tab tab-active">"Changes"</span>
                 } else {
-                    <a href=(changes_path.clone()) class="px-0.5 pb-2.5 text-sm text-muted-foreground hover:text-foreground">"Changes"</a>
+                    <a role="tab" href=(changes_path.clone()) class="tab">"Changes"</a>
                 }
             </nav>
             (slot.await?)
@@ -1957,9 +1802,9 @@ async fn component_overview(cx: &Cx) -> Result {
     let component = current_component(cx)?;
     let Some(observability) = component.observability else {
         return view! {
-            <section class="rounded-md border border-border bg-background px-6 py-10 text-center" aria-labelledby="observability-pending-heading">
+            <section class="card card-body bg-base-100 items-center text-center" aria-labelledby="observability-pending-heading">
                 <h2 id="observability-pending-heading" class="text-sm font-semibold">"Observability pending"</h2>
-                <p class="mt-1 text-xs text-muted-foreground">"Metrics and logs will appear after the first deployment."</p>
+                <p class="mt-1 text-xs">"Metrics and logs will appear after the first deployment."</p>
             </section>
         };
     };
@@ -1995,65 +1840,65 @@ async fn component_overview(cx: &Cx) -> Result {
     view! {
         <section class="space-y-5" aria-labelledby="observability-heading">
             <h2 id="observability-heading" class="sr-only">"Runtime overview"</h2>
-            <dl class="grid overflow-hidden rounded-md border border-border bg-background sm:grid-cols-3">
-                <div class="border-b border-border px-4 py-3.5 sm:border-r sm:border-b-0">
-                    <dt class="text-xs text-muted-foreground">"Uptime"</dt>
-                    <dd class="mt-1 text-xl font-semibold tracking-tight">(observability.uptime)</dd>
+            <dl class="stats stats-vertical sm:stats-horizontal w-full">
+                <div class="stat">
+                    <dt class="stat-title">"Uptime"</dt>
+                    <dd class="stat-value">(observability.uptime)</dd>
                 </div>
-                <div class="border-b border-border px-4 py-3.5 sm:border-r sm:border-b-0">
-                    <dt class="text-xs text-muted-foreground">(observability.primary_metric.label)</dt>
-                    <dd class="mt-1 text-xl font-semibold tracking-tight">(observability.primary_metric.value)</dd>
+                <div class="stat">
+                    <dt class="stat-title">(observability.primary_metric.label)</dt>
+                    <dd class="stat-value">(observability.primary_metric.value)</dd>
                 </div>
-                <div class="px-4 py-3.5">
-                    <dt class="text-xs text-muted-foreground">(observability.secondary_metric.label)</dt>
-                    <dd class="mt-1 text-xl font-semibold tracking-tight">(observability.secondary_metric.value)</dd>
+                <div class="stat">
+                    <dt class="stat-title">(observability.secondary_metric.label)</dt>
+                    <dd class="stat-value">(observability.secondary_metric.value)</dd>
                 </div>
             </dl>
 
             <div class="grid items-start gap-5 lg:grid-cols-2">
-                <section class="overflow-hidden rounded-md border border-border bg-background" aria-labelledby="resource-usage-heading">
-                    <header class="flex items-center justify-between border-b border-border px-4 py-3">
+                <section class="card bg-base-100" aria-labelledby="resource-usage-heading">
+                    <header class="flex items-center justify-between px-4 py-3">
                         <h3 id="resource-usage-heading" class="text-sm font-semibold">"Resource usage"</h3>
-                        <span class="text-xs text-muted-foreground">"Sample snapshot"</span>
+                        <span class="text-xs">"Sample snapshot"</span>
                     </header>
-                    <div class="divide-y divide-border px-4">
+                    <div class="px-4">
                         <div class="py-4">
                             <div class="mb-2 flex items-center justify-between gap-4 text-sm">
                                 <span>"CPU"</span>
                                 <span class="font-medium">(format!("{}%", observability.cpu_percent))</span>
                             </div>
-                            progress(value: observability.cpu_percent, attrs: attributes! { aria-label="CPU utilization" })
+                            <progress class="progress progress-primary w-full" value=(observability.cpu_percent) max=(100.0) aria-label="CPU utilization"></progress>
                         </div>
                         <div class="py-4">
                             <div class="mb-2 flex items-center justify-between gap-4 text-sm">
                                 <span>"Memory"</span>
                                 <span class="font-medium">(format!("{}%", observability.memory_percent))</span>
                             </div>
-                            progress(value: observability.memory_percent, attrs: attributes! { aria-label="Memory utilization" })
+                            <progress class="progress progress-primary w-full" value=(observability.memory_percent) max=(100.0) aria-label="Memory utilization"></progress>
                         </div>
                     </div>
                 </section>
 
-                <section class="overflow-hidden rounded-md border border-border bg-background" aria-labelledby="runtime-details-heading">
-                    <header class="border-b border-border px-4 py-3">
+                <section class="card bg-base-100" aria-labelledby="runtime-details-heading">
+                    <header class="px-4 py-3">
                         <h3 id="runtime-details-heading" class="text-sm font-semibold">"Runtime details"</h3>
                     </header>
-                    <dl class="divide-y divide-border px-4 text-xs">
+                    <dl class="px-4 text-xs">
                         <div class="flex items-start justify-between gap-4 py-3">
-                            <dt class="text-muted-foreground">"Applied revision"</dt>
+                            <dt>"Applied revision"</dt>
                             <dd class="max-w-64 break-words text-right font-mono font-medium">(observability.release)</dd>
                         </div>
                         <div class="flex items-start justify-between gap-4 py-3">
-                            <dt class="text-muted-foreground">"Replicas"</dt>
+                            <dt>"Replicas"</dt>
                             <dd class="text-right font-medium">(observability.replicas)</dd>
                         </div>
                         <div class="flex items-start justify-between gap-4 py-3">
-                            <dt class="text-muted-foreground">"Desired state"</dt>
+                            <dt>"Desired state"</dt>
                             <dd class="text-right font-medium">(component.state)</dd>
                         </div>
                         for setting in platform_settings {
                             <div class="flex items-start justify-between gap-4 py-3">
-                                <dt class="text-muted-foreground">(setting.label)</dt>
+                                <dt>(setting.label)</dt>
                                 <dd class="max-w-64 break-words text-right font-medium">(setting.value)</dd>
                             </div>
                         }
@@ -2063,34 +1908,28 @@ async fn component_overview(cx: &Cx) -> Result {
 
             <section
                 data-log-viewer=""
-                class="overflow-hidden rounded-md border border-border bg-background"
+                class="card bg-base-100"
                 aria-labelledby="logs-heading"
             >
-                <header class="space-y-3 border-b border-border px-4 py-3">
+                <header class="space-y-3 px-4 py-3">
                     <div class="flex items-center justify-between gap-3">
                         <h3 id="logs-heading" class="text-sm font-semibold">"Logs"</h3>
-                        <span data-log-count="" aria-live="polite" class="text-xs text-muted-foreground">
+                        <span data-log-count="" aria-live="polite" class="text-xs">
                             (count_label(observability.logs.len(), "line", "lines"))
                         </span>
                     </div>
                     <div class="grid gap-2 sm:grid-cols-[minmax(0,1fr)_9rem]">
                         <label class="relative block">
                             <span class="sr-only">"Filter logs"</span>
-                            icon(data: iconify_icon!("feather:search"), attrs: attributes! { class="pointer-events-none absolute top-1/2 left-3 size-3.5 -translate-y-1/2 text-muted-foreground" })
-                            input(attrs: attributes! {
-                                class="pl-9"
-                                type="search"
+                            icon(data: iconify_icon!("feather:search"), attrs: attributes! { class="pointer-events-none absolute top-1/2 left-3 size-3.5 -translate-y-1/2" })
+                            <input class="input w-full" type="search"
                                 placeholder="Filter logs"
-                                data-log-search=""
-                            })
+                                data-log-search="">
                         </label>
-                        select(
-                            attrs: attributes! { aria-label="Log level" data-log-level="" },
-                            <option value="All">"All levels"</option>
+                        <select class="select w-full" aria-label="Log level" data-log-level=""><option value="All">"All levels"</option>
                             <option value="INFO">"Info"</option>
                             <option value="WARN">"Warning"</option>
-                            <option value="ERROR">"Error"</option>
-                        )
+                            <option value="ERROR">"Error"</option></select>
                     </div>
                 </header>
                 <div class="relative">
@@ -2105,16 +1944,16 @@ async fn component_overview(cx: &Cx) -> Result {
                                     data-log-level=(line.level)
                                     class="block min-w-max whitespace-pre"
                                 ><span class=(match line.level {
-                                    "ERROR" => "text-destructive",
+                                    "ERROR" => "text-error",
                                     "WARN" => "text-warning",
-                                    _ => "text-muted-foreground",
+                                    _ => "text-base-content/60",
                                 })><time>(line.time)</time>" "(line.level)</span>" "(line.message)</span>
                             }</samp></pre>
                     <p
                         data-log-empty=""
                         hidden=(true)
                         role="status"
-                        class="px-4 py-8 text-center text-sm text-muted-foreground"
+                        class="px-4 py-8 text-center text-sm"
                     >
                         "No logs match these filters."
                     </p>
@@ -2227,59 +2066,43 @@ async fn component_settings(cx: &Cx) -> Result {
         return view! {
             <div class="space-y-6">
                 feedback_banner(message: mutation_error, is_error: true)
-                card(
-                    card_header(
-                        card_title(if managed_service == "postgresql" {
+                <div class="card bg-base-100"><div class="card-body"><h3 class="card-title">if managed_service == "postgresql" {
                             "PostgreSQL settings"
                         } else {
                             "Valkey settings"
-                        })
-                        card_description("Netamos manages lifecycle, credentials, and health checks.")
-                    )
-                    card_content(
-                        <form action=(action) method="get" class="space-y-5" data-settings-form="">
+                        }</h3>
+                        <p>"Netamos manages lifecycle, credentials, and health checks."</p><form action=(action) method="get" class="space-y-5" data-settings-form="">
                             <input type="hidden" name="action" value="save-component">
                             if managed_service == "postgresql" {
                                 <div class="grid gap-4 sm:grid-cols-2">
                                     <div class="space-y-2">
-                                        label(attrs: attributes! { for="postgres-version" }, "PostgreSQL version")
-                                        select(
-                                            attrs: attributes! { id="postgres-version" name="version" },
-                                            <option value="17" selected=(version == "17" || version.is_empty())>"17"</option>
+                                        <label class="label" for="postgres-version">"PostgreSQL version"</label>
+                                        <select class="select w-full" id="postgres-version" name="version"><option value="17" selected=(version == "17" || version.is_empty())>"17"</option>
                                             <option value="16" selected=(version == "16")>"16"</option>
-                                            <option value="15" selected=(version == "15")>"15"</option>
-                                        )
+                                            <option value="15" selected=(version == "15")>"15"</option></select>
                                     </div>
                                     <div class="space-y-2">
-                                        label(attrs: attributes! { for="postgres-compute" }, "Compute")
-                                        select(
-                                            attrs: attributes! { id="postgres-compute" name="plan" },
-                                            <option value="Shared 1 vCPU · 1 GiB" selected=(plan.is_empty() || plan == "Shared 1 vCPU · 1 GiB")>"Shared · 1 vCPU · 1 GiB"</option>
-                                            <option value="Dedicated 2 vCPU · 4 GiB" selected=(plan == "Dedicated 2 vCPU · 4 GiB")>"Dedicated · 2 vCPU · 4 GiB"</option>
-                                        )
+                                        <label class="label" for="postgres-compute">"Compute"</label>
+                                        <select class="select w-full" id="postgres-compute" name="plan"><option value="Shared 1 vCPU · 1 GiB" selected=(plan.is_empty() || plan == "Shared 1 vCPU · 1 GiB")>"Shared · 1 vCPU · 1 GiB"</option>
+                                            <option value="Dedicated 2 vCPU · 4 GiB" selected=(plan == "Dedicated 2 vCPU · 4 GiB")>"Dedicated · 2 vCPU · 4 GiB"</option></select>
                                     </div>
                                     <div class="space-y-2">
-                                        label(attrs: attributes! { for="postgres-storage" }, "Storage (GiB)")
-                                        input(attrs: attributes! {
-                                            id="postgres-storage"
+                                        <label class="label" for="postgres-storage">"Storage (GiB)"</label>
+                                        <input class="input w-full" id="postgres-storage"
                                             name="size"
                                             type="number"
                                             min="10"
                                             value=(numeric_setting(size, 20))
-                                            required=(true)
-                                        })
-                                        <p class="text-xs text-muted-foreground">"Can only be increased."</p>
+                                            required=(true)>
+                                        <p class="text-xs">"Can only be increased."</p>
                                     </div>
                                     <div class="space-y-2">
-                                        label(attrs: attributes! { for="postgres-backups" }, "Backups")
-                                        select(
-                                            attrs: attributes! { id="postgres-backups" name="backup_policy" },
-                                            <option value="Daily · retain 7" selected=(backup_policy.is_empty() || backup_policy == "Daily · retain 7")>"Daily · keep 7"</option>
-                                            <option value="Daily · retain 14" selected=(backup_policy == "Daily · retain 14")>"Daily · keep 14"</option>
-                                        )
+                                        <label class="label" for="postgres-backups">"Backups"</label>
+                                        <select class="select w-full" id="postgres-backups" name="backup_policy"><option value="Daily · retain 7" selected=(backup_policy.is_empty() || backup_policy == "Daily · retain 7")>"Daily · keep 7"</option>
+                                            <option value="Daily · retain 14" selected=(backup_policy == "Daily · retain 14")>"Daily · keep 14"</option></select>
                                     </div>
                                 </div>
-                                <label class="flex cursor-pointer items-start gap-3 border-t border-border pt-4">
+                                <label class="flex cursor-pointer items-start gap-3 pt-4">
                                     <input
                                         type="checkbox"
                                         name="high_availability"
@@ -2288,70 +2111,48 @@ async fn component_settings(cx: &Cx) -> Result {
                                         } else {
                                             setting_value(component, "High availability") == "Enabled"
                                         })
-                                        class="mt-0.5 size-4 accent-foreground"
+                                        class="checkbox checkbox-primary"
                                     >
                                     <span>
                                         <span class="block text-sm font-medium">"High availability"</span>
-                                        <span class="mt-0.5 block text-xs text-muted-foreground">"Run a synchronous standby in the same region."</span>
+                                        <span class="mt-0.5 block text-xs">"Run a synchronous standby in the same region."</span>
                                     </span>
                                 </label>
                             } else {
                                 <div class="grid gap-4 sm:grid-cols-2">
                                     <div class="space-y-2">
-                                        label(attrs: attributes! { for="valkey-version" }, "Valkey version")
-                                        select(
-                                            attrs: attributes! { id="valkey-version" name="version" },
-                                            <option value="8" selected=(version == "8" || version.is_empty())>"8"</option>
-                                            <option value="7" selected=(version == "7")>"7"</option>
-                                        )
+                                        <label class="label" for="valkey-version">"Valkey version"</label>
+                                        <select class="select w-full" id="valkey-version" name="version"><option value="8" selected=(version == "8" || version.is_empty())>"8"</option>
+                                            <option value="7" selected=(version == "7")>"7"</option></select>
                                     </div>
                                     <div class="space-y-2">
-                                        label(attrs: attributes! { for="valkey-memory" }, "Memory")
-                                        select(
-                                            attrs: attributes! { id="valkey-memory" name="plan" },
-                                            <option value="512 MiB" selected=(plan.is_empty() || plan == "512 MiB")>"512 MiB"</option>
+                                        <label class="label" for="valkey-memory">"Memory"</label>
+                                        <select class="select w-full" id="valkey-memory" name="plan"><option value="512 MiB" selected=(plan.is_empty() || plan == "512 MiB")>"512 MiB"</option>
                                             <option value="1 GiB" selected=(plan == "1 GiB")>"1 GiB"</option>
-                                            <option value="2 GiB" selected=(plan == "2 GiB")>"2 GiB"</option>
-                                        )
+                                            <option value="2 GiB" selected=(plan == "2 GiB")>"2 GiB"</option></select>
                                     </div>
                                     <div class="space-y-2">
-                                        label(attrs: attributes! { for="valkey-persistence" }, "Persistence")
-                                        select(
-                                            attrs: attributes! { id="valkey-persistence" name="persistence" },
-                                            <option value="AOF every second" selected=(persistence.is_empty() || persistence == "AOF every second")>"AOF every second"</option>
-                                            <option value="Disabled" selected=(persistence == "Disabled")>"Disabled"</option>
-                                        )
+                                        <label class="label" for="valkey-persistence">"Persistence"</label>
+                                        <select class="select w-full" id="valkey-persistence" name="persistence"><option value="AOF every second" selected=(persistence.is_empty() || persistence == "AOF every second")>"AOF every second"</option>
+                                            <option value="Disabled" selected=(persistence == "Disabled")>"Disabled"</option></select>
                                     </div>
                                     <div class="space-y-2">
-                                        label(attrs: attributes! { for="valkey-eviction" }, "Eviction policy")
-                                        select(
-                                            attrs: attributes! { id="valkey-eviction" name="eviction" },
-                                            <option value="noeviction" selected=(eviction.is_empty() || eviction == "noeviction")>"No eviction"</option>
+                                        <label class="label" for="valkey-eviction">"Eviction policy"</label>
+                                        <select class="select w-full" id="valkey-eviction" name="eviction"><option value="noeviction" selected=(eviction.is_empty() || eviction == "noeviction")>"No eviction"</option>
                                             <option value="allkeys-lru" selected=(eviction == "allkeys-lru")>"All keys · LRU"</option>
-                                            <option value="volatile-lru" selected=(eviction == "volatile-lru")>"Expiring keys · LRU"</option>
-                                        )
+                                            <option value="volatile-lru" selected=(eviction == "volatile-lru")>"Expiring keys · LRU"</option></select>
                                     </div>
                                 </div>
                             }
-                            <div class="flex items-center justify-between gap-3 border-t border-border pt-5">
-                                <p data-settings-status="" aria-live="polite" class="text-xs text-muted-foreground">
+                            <div class="flex items-center justify-between gap-3 pt-5">
+                                <p data-settings-status="" aria-live="polite" class="text-xs">
                                     "No unsaved changes"
                                 </p>
-                                button(
-                                    attrs: attributes! { type="submit" data-settings-submit="" },
-                                    "Save settings"
-                                )
+                                <button class="btn btn-primary" type="submit" data-settings-submit="">"Save settings"</button>
                             </div>
-                        </form>
-                    )
-                )
-                card(
-                    card_header(
-                        card_title("Delete component")
-                        card_description("This permanently removes the managed service and its data.")
-                    )
-                    card_content(
-                        if dependent_components.is_empty() {
+                        </form></div></div>
+                <div class="card bg-base-100"><div class="card-body"><h3 class="card-title">"Delete component"</h3>
+                        <p>"This permanently removes the managed service and its data."</p>if dependent_components.is_empty() {
                             <form
                                 action=(environment_action)
                                 method="get"
@@ -2359,11 +2160,7 @@ async fn component_settings(cx: &Cx) -> Result {
                             >
                                 <input type="hidden" name="action" value="delete-component">
                                 <input type="hidden" name="component" value=(component.slug)>
-                                button(
-                                    variant: ButtonVariant::Destructive,
-                                    attrs: attributes! { type="submit" },
-                                    "Delete managed service"
-                                )
+                                <button class="btn btn-error" type="submit">"Delete managed service"</button>
                             </form>
                         } else {
                             deletion_dependencies(
@@ -2372,9 +2169,7 @@ async fn component_settings(cx: &Cx) -> Result {
                                 environment_slug: environment_slug.to_owned(),
                                 dependents: dependent_components,
                             )
-                        }
-                    )
-                )
+                        }</div></div>
             </div>
         };
     }
@@ -2513,9 +2308,7 @@ async fn component_settings(cx: &Cx) -> Result {
     view! {
         <div class="max-w-4xl space-y-6">
             feedback_banner(message: mutation_error, is_error: true)
-            card(
-                card_content(
-                    <form action=(action) method="get" class="space-y-6" data-settings-form="">
+            <div class="card bg-base-100"><div class="card-body"><form action=(action) method="get" class="space-y-6" data-settings-form="">
                         <input type="hidden" name="action" value="save-component">
                         <input
                             type="hidden"
@@ -2526,43 +2319,39 @@ async fn component_settings(cx: &Cx) -> Result {
                         <section class="space-y-4" aria-labelledby="source-heading">
                             <h4 id="source-heading" class="font-medium">"Source"</h4>
                             <div class="space-y-2">
-                                label(attrs: attributes! { for="settings-source" }, (source_label))
-                                input(attrs: attributes! { id="settings-source" name="source" value=(source) })
+                                <label class="label" for="settings-source">(source_label)</label>
+                                <input class="input w-full" id="settings-source" name="source" value=(source)>
                             </div>
                             <div class="flex items-center gap-2">
-                                switch(attrs: attributes! { id="settings-auto-deploy" name="auto_deploy" checked=(auto_deploy) })
-                                label(attrs: attributes! { for="settings-auto-deploy" }, (auto_deploy_label))
+                                <input class="toggle toggle-primary" type="checkbox" role="switch" id="settings-auto-deploy" name="auto_deploy" checked=(auto_deploy)>
+                                <label class="label" for="settings-auto-deploy">(auto_deploy_label)</label>
                             </div>
                         </section>
-                        <hr class="border-border">
+                        <div class="divider"></div>
                         <section class="space-y-5" aria-labelledby="runtime-heading">
                             <h4 id="runtime-heading" class="font-medium">"Runtime"</h4>
                             <div class="grid gap-4 sm:grid-cols-3">
                                 <div class="space-y-2">
-                                    label(attrs: attributes! { for="settings-replicas" }, "Replicas")
-                                    input(attrs: attributes! {
-                                        id="settings-replicas"
+                                    <label class="label" for="settings-replicas">"Replicas"</label>
+                                    <input class="input w-full" id="settings-replicas"
                                         name="replicas"
                                         type="number"
                                         value=(replicas)
-                                        min="0"
-                                    })
+                                        min="0">
                                 </div>
                                 <div class="space-y-2">
-                                    label(attrs: attributes! { for="settings-port" }, "Service port")
-                                    input(attrs: attributes! {
-                                        id="settings-port"
+                                    <label class="label" for="settings-port">"Service port"</label>
+                                    <input class="input w-full" id="settings-port"
                                         name="port"
                                         type="number"
                                         value=(port)
                                         placeholder=(if branch == "chart" { "Chart default" } else { "8080" })
                                         min="1"
-                                        max="65535"
-                                    })
+                                        max="65535">
                                     if branch == "chart" && port.is_empty() {
-                                        <p class="text-xs text-muted-foreground">"Defined by the chart."</p>
+                                        <p class="text-xs">"Defined by the chart."</p>
                                     } else if branch != "image" && port.is_empty() {
-                                        <p class="text-xs text-muted-foreground">
+                                        <p class="text-xs">
                                             "Platform managed; the app receives it in "
                                             <code>"PORT"</code>
                                             "."
@@ -2570,17 +2359,12 @@ async fn component_settings(cx: &Cx) -> Result {
                                     }
                                 </div>
                                 <div class="space-y-2">
-                                    label(attrs: attributes! { for="settings-exposure" }, "Visibility")
+                                    <label class="label" for="settings-exposure">"Visibility"</label>
                                     if supports_public_access {
-                                        select(
-                                            attrs: attributes! {
-                                                id="settings-exposure"
+                                        <select class="select w-full" id="settings-exposure"
                                                 name="exposure"
-                                                data-network-exposure=""
-                                            },
-                                            <option value="Private" selected=(!public_access)>"Private"</option>
-                                            <option value="Public" selected=(public_access)>"Public"</option>
-                                        )
+                                                data-network-exposure=""><option value="Private" selected=(!public_access)>"Private"</option>
+                                            <option value="Public" selected=(public_access)>"Public"</option></select>
                                     } else {
                                         <input type="hidden" name="exposure" value="Private">
                                         <p class="flex h-9 items-center text-sm">"Private"</p>
@@ -2589,7 +2373,7 @@ async fn component_settings(cx: &Cx) -> Result {
                             </div>
 
                             <div class="grid gap-x-4 gap-y-2 text-xs sm:grid-cols-[7rem_minmax(0,1fr)]">
-                                <span class="text-muted-foreground">"Private endpoint"</span>
+                                <span>"Private endpoint"</span>
                                 <code class="break-all">(private_endpoint)</code>
                             </div>
 
@@ -2600,11 +2384,11 @@ async fn component_settings(cx: &Cx) -> Result {
                                     class="space-y-3"
                                 >
                                     <div class="grid gap-x-4 gap-y-2 text-xs sm:grid-cols-[7rem_minmax(0,1fr)]">
-                                        <span class="text-muted-foreground">"Domain"</span>
+                                        <span>"Domain"</span>
                                         <code class="break-all">(managed_domain)</code>
                                     </div>
                                     <details class="group" open=(!domain.is_empty())>
-                                        <summary class="flex w-fit cursor-pointer list-none items-center gap-1 rounded text-xs font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 [&::-webkit-details-marker]:hidden">
+                                        <summary class="flex w-fit cursor-pointer list-none items-center gap-1 text-xs font-medium outline-none [&::-webkit-details-marker]:hidden">
                                             if domain.is_empty() {
                                                 "Use a custom domain"
                                             } else {
@@ -2612,26 +2396,25 @@ async fn component_settings(cx: &Cx) -> Result {
                                             }
                                             icon(
                                                 data: iconify_icon!("feather:chevron-down"),
-                                                attrs: attributes! { class="size-3.5 text-muted-foreground transition-transform group-open:rotate-180" }
+                                                attrs: attributes! { class="size-3.5 group-open:rotate-180" }
                                             )
                                         </summary>
                                         if tenant.domains.is_empty() {
-                                            <div class="mt-3 max-w-sm rounded-md border border-border bg-surface px-3 py-3">
-                                                <p class="text-xs text-muted-foreground">
+                                            <div class="mt-3 max-w-sm px-3 py-3">
+                                                <p class="text-xs">
                                                     "Register and verify a tenant domain before assigning a custom hostname."
                                                 </p>
                                                 <a
                                                     href=(format!("{}/settings", tenant_path(tenant_slug)))
-                                                    class="mt-2 inline-block text-xs font-medium underline underline-offset-4"
+                                                    class="mt-2 inline-block text-xs font-medium"
                                                 >
                                                     "Register a domain"
                                                 </a>
                                             </div>
                                         } else {
                                             <div class="mt-3 max-w-sm space-y-2">
-                                                label(attrs: attributes! { for="settings-domain" }, "Hostname")
-                                                input(attrs: attributes! {
-                                                    id="settings-domain"
+                                                <label class="label" for="settings-domain">"Hostname"</label>
+                                                <input class="input w-full" id="settings-domain"
                                                     name="domain"
                                                     value=(domain.as_str())
                                                     placeholder=(format!("app.{}", tenant.domains[0]))
@@ -2641,9 +2424,8 @@ async fn component_settings(cx: &Cx) -> Result {
                                                     data-registered-domains=(tenant.domains.join(","))
                                                     pattern="[A-Za-z0-9](?:[A-Za-z0-9\\-]{0,61}[A-Za-z0-9])?(?:[.][A-Za-z0-9](?:[A-Za-z0-9\\-]{0,61}[A-Za-z0-9])?)+"
                                                     title="Enter a hostname under a verified tenant domain."
-                                                    disabled=(!public_access)
-                                                })
-                                                <p class="text-xs text-muted-foreground">
+                                                    disabled=(!public_access)>
+                                                <p class="text-xs">
                                                     "Verified domains: "
                                                     (tenant.domains.join(", "))
                                                 </p>
@@ -2652,26 +2434,26 @@ async fn component_settings(cx: &Cx) -> Result {
                                     </details>
                                 </div>
                             } else if protocol == "UDP" {
-                                <p class="text-xs text-muted-foreground">"Public access provisions a UDP address; custom domains are unavailable."</p>
+                                <p class="text-xs">"Public access provisions a UDP address; custom domains are unavailable."</p>
                             }
                         </section>
-                        <hr class="border-border">
+                        <div class="divider"></div>
                         <section data-variable-editor="" class="space-y-4" aria-labelledby="variables-heading">
                             <div class="flex flex-wrap items-start justify-between gap-3">
                                 <div>
                                     <h4 id="variables-heading" class="font-medium">"Environment variables"</h4>
-                                    <p class="mt-1 text-xs text-muted-foreground">"Values are encrypted and cannot be viewed after saving."</p>
+                                    <p class="mt-1 text-xs">"Values are encrypted and cannot be viewed after saving."</p>
                                 </div>
                                 <button
                                     type="button"
                                     data-add-variable=""
-                                    class=(button_variants(ButtonVariant::Outline, ButtonSize::Sm))
+                                    class="btn btn-outline btn-sm"
                                 >
                                     icon(data: iconify_icon!("feather:plus"), attrs: attributes! { class="size-3.5" })
                                     "Add variable"
                                 </button>
                             </div>
-                            <div data-variable-rows="" class="divide-y divide-border overflow-hidden rounded-md border border-border empty:hidden">
+                            <div data-variable-rows="" class="overflow-hidden empty:hidden">
                                 for (variable_index, variable) in variables.iter().enumerate() {
                                     let value_id = format!("variable-value-{variable_index}");
                                     let variable_key = variable.key.as_str();
@@ -2680,35 +2462,20 @@ async fn component_settings(cx: &Cx) -> Result {
                                         <div class="flex flex-wrap items-center justify-between gap-3">
                                             <div class="min-w-0">
                                                 <code class="block truncate text-sm font-medium">(variable_key)</code>
-                                                <span class="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
+                                                <span class="mt-1 flex items-center gap-2 text-xs">
                                                     <span class="font-mono tracking-wider" aria-label="Value hidden">"••••••••"</span>
-                                                    <span class="status-dot"></span>
+                                                    <span class="status status-success"></span>
                                                     "Encrypted value set"
                                                 </span>
                                             </div>
                                             <div class="flex items-center gap-1">
-                                                button(
-                                                    variant: ButtonVariant::Ghost,
-                                                    size: ButtonSize::Sm,
-                                                    attrs: attributes! {
-                                                        type="button"
+                                                <button class="btn btn-ghost btn-sm" type="button"
                                                         data-edit-variable=""
                                                         aria-controls=(value_id.clone())
-                                                        aria-expanded="false"
-                                                    },
-                                                    "Replace"
-                                                )
-                                                button(
-                                                    variant: ButtonVariant::Ghost,
-                                                    size: ButtonSize::Sm,
-                                                    attrs: attributes! {
-                                                        type="button"
+                                                        aria-expanded="false">"Replace"</button>
+                                                <button class="btn btn-ghost btn-sm" type="button"
                                                         data-remove-variable=""
-                                                        aria-label=(format!("Remove {variable_key}"))
-                                                        class="text-destructive"
-                                                    },
-                                                    "Remove"
-                                                )
+                                                        aria-label=(format!("Remove {variable_key}"))>"Remove"</button>
                                             </div>
                                         </div>
                                         <div
@@ -2717,17 +2484,15 @@ async fn component_settings(cx: &Cx) -> Result {
                                             class="mt-3 max-w-md space-y-1.5"
                                         >
                                             <label for=(value_id.clone()) class="text-xs font-medium">"New value"</label>
-                                            input(attrs: attributes! {
-                                                id=(value_id)
+                                            <input class="input w-full" id=(value_id)
                                                 data-variable-value=""
                                                 type="password"
                                                 placeholder="Enter replacement value"
                                                 autocomplete="new-password"
                                                 aria-label=(format!("New value for {variable_key}"))
                                                 required=(true)
-                                                disabled=(true)
-                                            })
-                                            <p class="text-xs text-muted-foreground">"The current value cannot be viewed."</p>
+                                                disabled=(true)>
+                                            <p class="text-xs">"The current value cannot be viewed."</p>
                                         </div>
                                     </div>
                                 }
@@ -2735,43 +2500,31 @@ async fn component_settings(cx: &Cx) -> Result {
                             <template data-variable-template="">
                                 <div data-variable-row="" data-variable-new="" class="grid gap-3 px-3 py-3 sm:grid-cols-[minmax(10rem,1fr)_minmax(12rem,1.4fr)_auto] sm:items-end">
                                     <label class="space-y-1.5 text-xs font-medium">
-                                        <span class="block text-xs text-muted-foreground">"Key"</span>
-                                        input(attrs: attributes! {
-                                            data-variable-key=""
+                                        <span class="block text-xs">"Key"</span>
+                                        <input class="input w-full" data-variable-key=""
                                             placeholder="VARIABLE_NAME"
                                             aria-label="Variable key"
                                             pattern="[A-Za-z_][A-Za-z0-9_]*"
                                             title="Use letters, numbers, and underscores; do not start with a number."
-                                            required=(true)
-                                        })
+                                            required=(true)>
                                     </label>
                                     <label class="space-y-1.5 text-xs font-medium">
-                                        <span class="block text-xs text-muted-foreground">"Value"</span>
-                                        input(attrs: attributes! {
-                                            data-variable-value=""
+                                        <span class="block text-xs">"Value"</span>
+                                        <input class="input w-full" data-variable-value=""
                                             type="password"
                                             placeholder="Required"
                                             aria-label="Variable value"
                                             autocomplete="new-password"
-                                            required=(true)
-                                        })
+                                            required=(true)>
                                     </label>
-                                    button(
-                                        variant: ButtonVariant::Ghost,
-                                        size: ButtonSize::Sm,
-                                        attrs: attributes! {
-                                            type="button"
+                                    <button class="btn btn-ghost btn-sm" type="button"
                                             data-remove-variable=""
-                                            aria-label="Remove variable"
-                                            class="text-destructive"
-                                        },
-                                        "Remove"
-                                    )
+                                            aria-label="Remove variable">"Remove"</button>
                                 </div>
                             </template>
                             <p data-variable-status="" class="sr-only" aria-live="polite"></p>
                         </section>
-                        <hr class="border-border">
+                        <div class="divider"></div>
                         <section
                             id="storage"
                             data-storage-config=""
@@ -2781,33 +2534,20 @@ async fn component_settings(cx: &Cx) -> Result {
                             <div class="flex flex-wrap items-start justify-between gap-4">
                                 <div>
                                     <h4 id="component-storage-heading" class="font-medium">"Storage"</h4>
-                                    <p class="mt-1 text-xs text-muted-foreground">"Data persists across deploys and restarts."</p>
+                                    <p class="mt-1 text-xs">"Data persists across deploys and restarts."</p>
                                 </div>
                                 match storage {
                                     Some(storage) => <div class="flex items-center gap-2">
                                         if !matches!(storage.state, "Ready" | "Attached") {
-                                            badge(variant: BadgeVariant::Outline, (storage.state))
+                                            <span class="badge badge-outline">(storage.state)</span>
                                         }
-                                        button(
-                                            variant: ButtonVariant::Ghost,
-                                            size: ButtonSize::Sm,
-                                            attrs: attributes! {
-                                                type="submit"
-                                                form="delete-component-storage"
-                                                class="text-destructive"
-                                            },
-                                            "Delete storage"
-                                        )
+                                        <button class="btn btn-ghost btn-sm" type="submit"
+                                                form="delete-component-storage">"Delete storage"</button>
                                     </div>,
                                     None => if storage_requested {
-                                        badge(variant: BadgeVariant::Secondary, "Provisioning")
+                                        <span class="badge badge-ghost">"Provisioning"</span>
                                     } else {
-                                        button(
-                                            variant: ButtonVariant::Outline,
-                                            size: ButtonSize::Sm,
-                                            attrs: attributes! { type="button" data-add-storage="" },
-                                            "Add storage"
-                                        )
+                                        <button class="btn btn-outline btn-sm" type="button" data-add-storage="">"Add storage"</button>
                                     },
                                 }
                             </div>
@@ -2818,12 +2558,9 @@ async fn component_settings(cx: &Cx) -> Result {
                                         <span class="font-medium">
                                             (format!("{:.1} of {} GiB used", storage.used_gib, storage.capacity_gib))
                                         </span>
-                                        <span class="text-muted-foreground">(format!("{storage_usage_percent:.0}%"))</span>
+                                        <span>(format!("{storage_usage_percent:.0}%"))</span>
                                     </div>
-                                    progress(
-                                        value: storage_usage_percent,
-                                        attrs: attributes! { aria-label="Storage usage" }
-                                    )
+                                    <progress class="progress progress-primary w-full" value=(storage_usage_percent) max=(100.0) aria-label="Storage usage"></progress>
                                 </div>,
                                 None => "",
                             }
@@ -2844,51 +2581,42 @@ async fn component_settings(cx: &Cx) -> Result {
                                 class="grid gap-4 sm:grid-cols-3"
                             >
                                 <div class="space-y-2">
-                                    label(attrs: attributes! { for="settings-storage-size" }, "Capacity (GiB)")
-                                    input(attrs: attributes! {
-                                        id="settings-storage-size"
+                                    <label class="label" for="settings-storage-size">"Capacity (GiB)"</label>
+                                    <input class="input w-full" id="settings-storage-size"
                                         name="size"
                                         type="number"
                                         value=(storage_size)
                                         min=(storage.map_or(1, |storage| storage.capacity_gib))
                                         required=(true)
-                                        disabled=(!storage_requested)
-                                    })
+                                        disabled=(!storage_requested)>
                                     if storage.is_some() {
-                                        <p class="text-xs text-muted-foreground">"Can only be increased."</p>
+                                        <p class="text-xs">"Can only be increased."</p>
                                     }
                                 </div>
                                 <div class="space-y-2">
-                                    label(attrs: attributes! { for="settings-mount-path" }, "Mount path")
-                                    input(attrs: attributes! {
-                                        id="settings-mount-path"
+                                    <label class="label" for="settings-mount-path">"Mount path"</label>
+                                    <input class="input w-full" id="settings-mount-path"
                                         name="mount_path"
                                         value=(storage_mount_path)
                                         pattern="/.*"
                                         title="Use an absolute path beginning with /."
                                         required=(true)
-                                        disabled=(!storage_requested)
-                                    })
+                                        disabled=(!storage_requested)>
                                     if storage.is_some() {
-                                        <p class="text-xs text-muted-foreground">"Changing this redeploys the component."</p>
+                                        <p class="text-xs">"Changing this redeploys the component."</p>
                                     }
                                 </div>
                                 <div class="space-y-2">
-                                    label(attrs: attributes! { for="settings-backup-policy" }, "Backups")
-                                    select(
-                                        attrs: attributes! {
-                                            id="settings-backup-policy"
+                                    <label class="label" for="settings-backup-policy">"Backups"</label>
+                                    <select class="select w-full" id="settings-backup-policy"
                                             name="backup_policy"
-                                            disabled=(!storage_requested)
-                                        },
-                                        <option value="Disabled" selected=(storage_backup_policy == "Disabled")>"Disabled"</option>
+                                            disabled=(!storage_requested)><option value="Disabled" selected=(storage_backup_policy == "Disabled")>"Disabled"</option>
                                         <option value="Daily · retain 7" selected=(storage_backup_policy == "Daily · retain 7")>"Daily · keep 7"</option>
                                         <option value="Daily · retain 14" selected=(storage_backup_policy == "Daily · retain 14")>"Daily · keep 14"</option>
-                                        <option value="Weekly · retain 4" selected=(storage_backup_policy == "Weekly · retain 4")>"Weekly · keep 4"</option>
-                                    )
+                                        <option value="Weekly · retain 4" selected=(storage_backup_policy == "Weekly · retain 4")>"Weekly · keep 4"</option></select>
                                     match latest_backup {
                                         Some(backup) => <p
-                                            class="flex flex-wrap gap-x-2 text-xs text-muted-foreground"
+                                            class="flex flex-wrap gap-x-2 text-xs"
                                             title=(format!("{} · {}", backup.id, backup.state))
                                         >
                                             <span>"Last: " (backup.created_at)</span>
@@ -2899,14 +2627,11 @@ async fn component_settings(cx: &Cx) -> Result {
                                 </div>
                             </div>
                         </section>
-                        <div class="flex flex-wrap items-center justify-between gap-3 border-t border-border pt-5">
-                            <p data-settings-status="" aria-live="polite" class="text-xs text-muted-foreground">
+                        <div class="flex flex-wrap items-center justify-between gap-3 pt-5">
+                            <p data-settings-status="" aria-live="polite" class="text-xs">
                                 "No unsaved changes"
                             </p>
-                            button(
-                                attrs: attributes! { type="submit" data-settings-submit="" },
-                                "Save component settings"
-                            )
+                            <button class="btn btn-primary" type="submit" data-settings-submit="">"Save component settings"</button>
                         </div>
                     </form>
                     match storage {
@@ -2920,17 +2645,10 @@ async fn component_settings(cx: &Cx) -> Result {
                             <input type="hidden" name="volume" value=(storage.slug)>
                         </form>,
                         None => "",
-                    }
-                )
-            )
+                    }</div></div>
 
-            card(
-                card_header(
-                    card_title("Delete component")
-                    card_description("This stops the workload and removes the component.")
-                )
-                card_content(
-                    if !dependent_components.is_empty() {
+            <div class="card bg-base-100"><div class="card-body"><h3 class="card-title">"Delete component"</h3>
+                    <p>"This stops the workload and removes the component."</p>if !dependent_components.is_empty() {
                         deletion_dependencies(
                             tenant_slug: tenant_slug.to_owned(),
                             project_slug: project_slug.to_owned(),
@@ -2938,17 +2656,17 @@ async fn component_settings(cx: &Cx) -> Result {
                             dependents: dependent_components,
                         )
                     } else if storage_requested {
-                        <div class="flex items-start gap-3 rounded-md border border-warning/30 bg-warning/8 px-3 py-3 text-sm">
+                        <div class="alert alert-warning">
                             icon(data: iconify_icon!("feather:hard-drive"), attrs: attributes! {
                                 aria-hidden="true"
-                                class="mt-0.5 size-4 shrink-0 text-warning"
+                                class="mt-0.5 size-4 shrink-0"
                             })
                             <div>
                                 <p class="font-medium">"Storage is still attached"</p>
-                                <p class="mt-1 text-xs text-muted-foreground">
+                                <p class="mt-1 text-xs">
                                     "Delete the component’s storage and backups before deleting the component."
                                 </p>
-                                <a href="#storage" class="mt-2 inline-block text-xs font-medium underline underline-offset-4">
+                                <a href="#storage" class="mt-2 inline-block text-xs font-medium">
                                     "Go to storage"
                                 </a>
                             </div>
@@ -2956,38 +2674,29 @@ async fn component_settings(cx: &Cx) -> Result {
                     } else {
                         <details class="group">
                             <summary
-                                class=(format!(
-                                    "flex w-fit list-none items-center gap-2 [&::-webkit-details-marker]:hidden {}",
-                                    button_variants(ButtonVariant::Destructive, ButtonSize::Md),
-                                ))
+                                class="btn btn-error"
                             >
                                 "Delete component"
                                 icon(
                                     data: iconify_icon!("feather:chevron-down"),
                                     attrs: attributes! {
                                         aria-hidden="true"
-                                        class="size-3.5 transition-transform group-open:rotate-180"
+                                        class="size-3.5 group-open:rotate-180"
                                     }
                                 )
                             </summary>
                             <form
                                 action=(environment_action)
                                 method="get"
-                                class="mt-5 border-t border-border pt-5"
+                                class="mt-5 pt-5"
                                 data-confirm="Delete this component from the mock environment?"
                             >
                                 <input type="hidden" name="action" value="delete-component">
                                 <input type="hidden" name="component" value=(component.slug)>
-                                button(
-                                    variant: ButtonVariant::Destructive,
-                                    attrs: attributes! { type="submit" },
-                                    "Confirm deletion"
-                                )
+                                <button class="btn btn-error" type="submit">"Confirm deletion"</button>
                             </form>
                         </details>
-                    }
-                )
-            )
+                    }</div></div>
         </div>
     }
 }
@@ -3043,43 +2752,33 @@ async fn component_changes(cx: &Cx) -> Result {
     view! {
         <div class="space-y-6">
             feedback_banner(message: mutation_error, is_error: true)
-            card(
-                card_header(
-                    card_title("Apply latest revision")
-                    card_description((change_description))
-                )
-                card_content(
-                    <dl class="mb-5 grid gap-4 text-sm sm:grid-cols-2">
+            <div class="card bg-base-100"><div class="card-body"><h3 class="card-title">"Apply latest revision"</h3>
+                    <p>(change_description)</p><dl class="mb-5 grid gap-4 text-sm sm:grid-cols-2">
                         <div>
-                            <dt class="text-muted-foreground">"Source"</dt>
+                            <dt>"Source"</dt>
                             <dd class="mt-1 font-mono">(setting_value(component, "Source"))</dd>
                         </div>
                         <div>
-                            <dt class="text-muted-foreground">(reference_label)</dt>
+                            <dt>(reference_label)</dt>
                             <dd class="mt-1 font-mono">(reference_value)</dd>
                         </div>
                     </dl>
                     <form action=(action) method="get">
                         <input type="hidden" name="action" value="apply-change">
                         <input type="hidden" name="component" value=(component.name)>
-                        button(
-                            attrs: attributes! { type="submit" },
-                            icon(data: iconify_icon!("feather:upload-cloud"), attrs: attributes! { class="size-4" })
-                            "Apply change"
-                        )
-                    </form>
-                )
-            )
+                        <button class="btn btn-primary" type="submit">icon(data: iconify_icon!("feather:upload-cloud"), attrs: attributes! { class="size-4" })
+                            "Apply change"</button>
+                    </form></div></div>
 
-            <section class="overflow-hidden rounded-md border border-border bg-background" aria-labelledby="component-changes-heading">
-                <header class="flex h-11 items-center justify-between border-b border-border px-4">
+            <section class="card bg-base-100" aria-labelledby="component-changes-heading">
+                <header class="flex h-11 items-center justify-between px-4">
                     <h2 id="component-changes-heading" class="text-sm font-semibold">"Changes"</h2>
-                    <span class="text-xs text-muted-foreground">
+                    <span class="text-xs">
                         (count_label(component.changes.len(), "change", "changes"))
                     </span>
                 </header>
                 if component.changes.is_empty() {
-                    <p class="px-4 py-8 text-center text-sm text-muted-foreground">"No changes recorded."</p>
+                    <p class="px-4 py-8 text-center text-sm">"No changes recorded."</p>
                 } else {
                     change_list(changes: component.changes)
                 }
@@ -3144,14 +2843,14 @@ async fn tenant_settings(cx: &Cx) -> Result {
     let feedback = mutation_error.or_else(|| feedback_message(query));
     let display_name = tenant.name;
     let added_domain = (query.notice.as_deref() == Some("domain-registered"))
-        .then(|| query.domain.as_deref())
+        .then_some(query.domain.as_deref())
         .flatten();
     let action = uri(cx).path();
 
     view! {
-        <main class="mx-auto max-w-6xl px-4 py-8 sm:px-6">
-            <nav class="mb-5 flex items-center gap-1.5 text-xs text-muted-foreground" aria-label="Breadcrumb">
-                <a href=(tenant_path(tenant.slug)) class="hover:text-foreground">"Projects"</a>
+        <main class="p-6">
+            <nav class="mb-5 flex items-center gap-1.5 text-xs" aria-label="Breadcrumb">
+                <a href=(tenant_path(tenant.slug))>"Projects"</a>
                 icon(data: iconify_icon!("feather:chevron-right"), attrs: attributes! { class="size-3" })
                 <span aria-current="page">"Settings"</span>
             </nav>
@@ -3160,41 +2859,26 @@ async fn tenant_settings(cx: &Cx) -> Result {
             </header>
             feedback_banner(message: feedback, is_error: feedback_is_error)
             <div class="grid items-start gap-6 lg:grid-cols-2">
-                card(
-                    card_header(
-                        card_title("General")
-                        card_description("Tenant identity and source of truth.")
-                    )
-                    card_content(
-                        <form action=(action) method="get" class="space-y-4" data-settings-form="">
+                <div class="card bg-base-100"><div class="card-body"><h3 class="card-title">"General"</h3>
+                        <p>"Tenant identity and source of truth."</p><form action=(action) method="get" class="space-y-4" data-settings-form="">
                             <input type="hidden" name="action" value="save-tenant">
                             <div class="space-y-2">
-                                label(attrs: attributes! { for="tenant-display-name" }, "Display name")
-                                input(attrs: attributes! { id="tenant-display-name" name="display_name" value=(display_name) })
+                                <label class="label" for="tenant-display-name">"Display name"</label>
+                                <input class="input w-full" id="tenant-display-name" name="display_name" value=(display_name)>
                             </div>
                             <div class="space-y-2">
-                                label(attrs: attributes! { for="tenant-current-slug" }, "Slug")
-                                input(attrs: attributes! { id="tenant-current-slug" value=(tenant.slug) disabled=(true) })
+                                <label class="label" for="tenant-current-slug">"Slug"</label>
+                                <input class="input w-full" id="tenant-current-slug" value=(tenant.slug) disabled=(true)>
                             </div>
-                            <div class="flex items-center justify-between gap-3 border-t border-border pt-4">
-                                <p data-settings-status="" aria-live="polite" class="text-xs text-muted-foreground">
+                            <div class="flex items-center justify-between gap-3 pt-4">
+                                <p data-settings-status="" aria-live="polite" class="text-xs">
                                     "No unsaved changes"
                                 </p>
-                                button(
-                                    attrs: attributes! { type="submit" data-settings-submit="" },
-                                    "Save changes"
-                                )
+                                <button class="btn btn-primary" type="submit" data-settings-submit="">"Save changes"</button>
                             </div>
-                        </form>
-                    )
-                )
-                card(
-                    card_header(
-                        card_title("Registered domains")
-                        card_description("Use verified domains for custom component hostnames.")
-                    )
-                    card_content(
-                        <ul class="divide-y divide-border text-sm">
+                        </form></div></div>
+                <div class="card bg-base-100"><div class="card-body"><h3 class="card-title">"Registered domains"</h3>
+                        <p>"Use verified domains for custom component hostnames."</p><ul class="text-sm">
                             for domain in tenant.domains {
                                 let assignments = domain_assignment_count(tenant, domain);
                                 let is_pending = added_domain == Some(*domain);
@@ -3203,12 +2887,12 @@ async fn tenant_settings(cx: &Cx) -> Result {
                                         <span class="flex flex-wrap items-center gap-2">
                                             <code class="break-all">(domain)</code>
                                             if is_pending {
-                                                badge(variant: BadgeVariant::Outline, "Pending DNS")
+                                                <span class="badge badge-outline">"Pending DNS"</span>
                                             } else {
-                                                badge(variant: BadgeVariant::Secondary, "Verified")
+                                                <span class="badge badge-ghost">"Verified"</span>
                                             }
                                         </span>
-                                        <span class="mt-1 block text-xs text-muted-foreground">
+                                        <span class="mt-1 block text-xs">
                                             "CNAME target "
                                             <code>"edge.netamos.app"</code>
                                             if assignments > 0 {
@@ -3226,21 +2910,13 @@ async fn tenant_settings(cx: &Cx) -> Result {
                                     >
                                         <input type="hidden" name="action" value="remove-domain">
                                         <input type="hidden" name="domain" value=(domain)>
-                                        button(
-                                            variant: ButtonVariant::Ghost,
-                                            size: ButtonSize::Sm,
-                                            attrs: attributes! {
-                                                type="submit"
+                                        <button class="btn btn-ghost btn-sm" type="submit"
                                                 disabled=(assignments > 0)
                                                 title=(if assignments > 0 {
                                                     "Remove assigned hostnames first"
                                                 } else {
                                                     "Remove registered domain"
-                                                })
-                                                class="text-destructive"
-                                            },
-                                            "Remove"
-                                        )
+                                                })>"Remove"</button>
                                     </form>
                                 </li>
                             }
@@ -3248,31 +2924,24 @@ async fn tenant_settings(cx: &Cx) -> Result {
                         <form action=(action) method="get" class="mt-5 space-y-3">
                             <input type="hidden" name="action" value="add-domain">
                             <div class="space-y-2">
-                                label(attrs: attributes! { for="new-domain" }, "Register a domain")
-                                input(attrs: attributes! {
-                                    id="new-domain"
+                                <label class="label" for="new-domain">"Register a domain"</label>
+                                <input class="input w-full" id="new-domain"
                                     name="domain"
                                     placeholder="example.com"
                                     required=(true)
                                     pattern="[A-Za-z0-9](?:[A-Za-z0-9\\-]{0,61}[A-Za-z0-9])?(?:[.][A-Za-z0-9](?:[A-Za-z0-9\\-]{0,61}[A-Za-z0-9])?)+"
-                                    title="Enter a base domain such as example.com."
-                                })
-                                <p class="text-xs text-muted-foreground">
+                                    title="Enter a base domain such as example.com.">
+                                <p class="text-xs">
                                     "After registration, point it to "
                                     <code>"edge.netamos.app"</code>
                                     " to verify ownership."
                                 </p>
                             </div>
                             <div class="flex justify-end">
-                                button(
-                                    attrs: attributes! { type="submit" },
-                                    icon(data: iconify_icon!("feather:plus"), attrs: attributes! { class="size-4" })
-                                    "Register domain"
-                                )
+                                <button class="btn btn-primary" type="submit">icon(data: iconify_icon!("feather:plus"), attrs: attributes! { class="size-4" })
+                                    "Register domain"</button>
                             </div>
-                        </form>
-                    )
-                )
+                        </form></div></div>
             </div>
         </main>
     }
@@ -3936,7 +3605,7 @@ fn component_context_destination(
 #[topcoat::view::component]
 async fn breadcrumb_separator() -> Result {
     view! {
-        <span aria-hidden="true" class="shrink-0 px-0.5 text-muted-foreground">"/"</span>
+        <span aria-hidden="true" class="shrink-0 px-0.5">"/"</span>
     }
 }
 
@@ -3948,28 +3617,20 @@ async fn project_context_selector(
 ) -> Result {
     view! {
         if tenant.projects.len() <= 1 {
-            <span class="inline-flex h-7 max-w-48 items-center px-1.5 text-sm font-medium text-foreground sm:max-w-64">
-                <span class="truncate">(project.name)</span>
-            </span>
+            <span class="truncate">(project.name)</span>
         } else {
-            dropdown_menu(
-                attrs: attributes! { data-project-switcher="" },
-                dropdown_menu_trigger(
-                    attrs: attributes! {
-                        aria-label=(format!("Switch project; current project {}", project.name))
-                        class="inline-flex h-7 max-w-48 items-center gap-1 rounded-md px-1.5 text-sm font-medium text-foreground transition-colors hover:bg-foreground/5 group-open:bg-foreground/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:max-w-64"
-                    },
-                    <span class="min-w-0 truncate">(project.name)</span>
+            <details class="dropdown" data-dropdown-menu="" data-project-switcher="">
+                <summary class="btn btn-ghost btn-sm" aria-label=(format!("Switch project; current project {}", project.name))>
+                    (project.name)
                     icon(data: iconify_icon!("feather:chevron-down"), attrs: attributes! {
                         aria-hidden="true"
-                        class="size-3 shrink-0 text-muted-foreground transition-transform group-open:rotate-180"
+                        class="size-3"
                     })
-                )
-                dropdown_menu_content(
-                    attrs: attributes! { class="w-72" },
-                    dropdown_menu_label("Switch project")
+                </summary>
+                <ul class="dropdown-content menu bg-base-100 rounded-box z-50 w-72 p-2 shadow-sm">
+                    <li class="menu-title">"Switch project"</li>
                     if tenant.projects.len() >= 8 {
-                        <div class="px-1 pb-1">
+                        <li>
                             <label class="sr-only" for="project-switcher-search">"Find project"</label>
                             <input
                                 id="project-switcher-search"
@@ -3977,66 +3638,49 @@ async fn project_context_selector(
                                 autocomplete="off"
                                 placeholder="Find project…"
                                 data-project-switcher-search=""
-                                class="h-8 w-full rounded-md border border-border bg-background px-2.5 text-sm outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring"
+                                class="input input-sm w-full"
                             >
-                        </div>
+                        </li>
                     }
-                    <div class="max-h-72 overflow-y-auto" data-project-switcher-options="">
-                        for candidate in tenant.projects {
-                            let candidate_target = project_context_destination(
-                                tenant.slug,
-                                candidate,
-                                current_environment_slug,
-                            );
-                            let environment_count = candidate.environments.len();
-                            if candidate.slug == project.slug {
-                                <span
-                                    data-project-switcher-option=""
-                                    data-project-search=(format!("{} {}", candidate.name, candidate.slug).to_lowercase())
-                                    class="flex h-9 items-center gap-2 rounded-md bg-foreground/5 px-2 text-sm"
-                                >
+                    for candidate in tenant.projects {
+                        let candidate_target = project_context_destination(
+                            tenant.slug,
+                            candidate,
+                            current_environment_slug,
+                        );
+                        let environment_count = candidate.environments.len();
+
+                        <li>
+                            <a
+                                href=(candidate_target)
+                                data-project-switcher-option=""
+                                data-project-search=(format!("{} {}", candidate.name, candidate.slug).to_lowercase())
+                                class=(if candidate.slug == project.slug { "menu-active" } else { "" })
+                                aria-current=(if candidate.slug == project.slug { "true" } else { "false" })
+                            >
+                                if candidate.slug == project.slug {
                                     icon(data: iconify_icon!("feather:check"), attrs: attributes! {
                                         aria-hidden="true"
                                         class="size-4"
                                     })
-                                    <span class="min-w-0 flex-1 truncate">(candidate.name)</span>
-                                    <span class="shrink-0 text-xs text-muted-foreground">
-                                        (count_label(environment_count, "env", "envs"))
-                                    </span>
-                                    <span class="sr-only">"Current project"</span>
-                                </span>
-                            } else {
-                                <a
-                                    href=(candidate_target)
-                                    data-project-switcher-option=""
-                                    data-project-search=(format!("{} {}", candidate.name, candidate.slug).to_lowercase())
-                                    class="flex h-9 items-center gap-2 rounded-md px-2 text-sm outline-none hover:bg-foreground/5 focus-visible:bg-foreground/5"
-                                >
-                                    <span aria-hidden="true" class="size-4"></span>
-                                    <span class="min-w-0 flex-1 truncate">(candidate.name)</span>
-                                    <span class="shrink-0 text-xs text-muted-foreground">
-                                        (count_label(environment_count, "env", "envs"))
-                                    </span>
-                                </a>
-                            }
-                        }
-                    </div>
-                    <p hidden="" data-project-switcher-empty="" class="px-2 py-5 text-center text-xs text-muted-foreground">
-                        "No projects found"
-                    </p>
-                    dropdown_menu_separator()
-                    dropdown_menu_link(
-                        attrs: attributes! {
-                            href=(format!("{}/projects/new", tenant_path(tenant.slug)))
-                        },
-                        icon(data: iconify_icon!("feather:plus"), attrs: attributes! {
-                            aria-hidden="true"
-                            class="size-4"
-                        })
-                        "New project"
-                    )
-                )
-            )
+                                }
+                                <span class="truncate">(candidate.name)</span>
+                                <span class="badge badge-sm">(count_label(environment_count, "env", "envs"))</span>
+                            </a>
+                        </li>
+                    }
+                    <li hidden="" data-project-switcher-empty="">"No projects found"</li>
+                    <li>
+                        <a href=(format!("{}/projects/new", tenant_path(tenant.slug)))>
+                            icon(data: iconify_icon!("feather:plus"), attrs: attributes! {
+                                aria-hidden="true"
+                                class="size-4"
+                            })
+                            "New project"
+                        </a>
+                    </li>
+                </ul>
+            </details>
         }
     }
 }
@@ -4051,65 +3695,55 @@ async fn environment_context_selector(
 ) -> Result {
     view! {
         if project.environments.len() <= 1 {
-            <span class="inline-flex h-7 max-w-48 items-center px-1.5 text-sm font-medium text-foreground sm:max-w-64">
-                <span class="truncate">(environment.name)</span>
-            </span>
+            <span class="truncate">(environment.name)</span>
         } else {
-            dropdown_menu(
-            dropdown_menu_trigger(
-                attrs: attributes! {
-                    aria-label=(format!("Switch environment; current environment {}", environment.name))
-                    class="inline-flex h-7 max-w-48 items-center gap-1 rounded-md px-1.5 text-sm font-medium text-foreground transition-colors hover:bg-foreground/5 group-open:bg-foreground/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:max-w-64"
-                },
-                <span class="min-w-0 truncate">(environment.name)</span>
-                icon(data: iconify_icon!("feather:chevron-down"), attrs: attributes! {
-                    aria-hidden="true"
-                    class="size-3 shrink-0 text-muted-foreground transition-transform group-open:rotate-180"
-                })
-            )
-            dropdown_menu_content(
-                attrs: attributes! { class="max-h-80 w-64 overflow-y-auto" },
-                dropdown_menu_label("Switch environment")
-                for candidate in project.environments {
-                    let component_is_available = component.is_none_or(|component| {
-                        candidate
-                            .components
-                            .iter()
-                            .any(|candidate_component| candidate_component.slug == component.slug)
-                    });
-                    let candidate_target = environment_context_destination(
-                        tenant_slug,
-                        project.slug,
-                        candidate,
-                        component,
-                        component_suffix,
-                    );
-                    if candidate.slug == environment.slug {
-                        <span class="flex items-center gap-2 rounded-md bg-foreground/5 px-2 py-2 text-sm">
-                            icon(data: iconify_icon!("feather:check"), attrs: attributes! {
-                                aria-hidden="true"
-                                class="size-4"
-                            })
-                            <span class="min-w-0 flex-1 truncate">(candidate.name)</span>
-                            <span class="text-xs text-muted-foreground">(candidate.region)</span>
-                            <span class="sr-only">"Current environment"</span>
-                        </span>
-                    } else {
-                        <a
-                            href=(candidate_target)
-                            class="flex items-center gap-2 rounded-md px-2 py-2 text-sm outline-none hover:bg-foreground/5 focus-visible:bg-foreground/5"
-                        >
-                            <span aria-hidden="true" class="size-4"></span>
-                            <span class="min-w-0 flex-1 truncate">(candidate.name)</span>
-                            <span class="text-xs text-muted-foreground">(candidate.region)</span>
-                            if !component_is_available {
-                                <span class="sr-only">"Component unavailable; opens component list"</span>
-                            }
-                        </a>
+            <details class="dropdown" data-dropdown-menu="">
+                <summary class="btn btn-ghost btn-sm" aria-label=(format!("Switch environment; current environment {}", environment.name))>
+                    (environment.name)
+                    icon(data: iconify_icon!("feather:chevron-down"), attrs: attributes! {
+                        aria-hidden="true"
+                        class="size-3"
+                    })
+                </summary>
+                <ul class="dropdown-content menu bg-base-100 rounded-box z-50 max-h-80 w-64 overflow-y-auto p-2 shadow-sm">
+                    <li class="menu-title">"Switch environment"</li>
+                    for candidate in project.environments {
+                        let component_is_available = component.is_none_or(|component| {
+                            candidate
+                                .components
+                                .iter()
+                                .any(|candidate_component| candidate_component.slug == component.slug)
+                        });
+                        let candidate_target = environment_context_destination(
+                            tenant_slug,
+                            project.slug,
+                            candidate,
+                            component,
+                            component_suffix,
+                        );
+
+                        <li>
+                            <a
+                                href=(candidate_target)
+                                class=(if candidate.slug == environment.slug { "menu-active" } else { "" })
+                                aria-current=(if candidate.slug == environment.slug { "true" } else { "false" })
+                            >
+                                if candidate.slug == environment.slug {
+                                    icon(data: iconify_icon!("feather:check"), attrs: attributes! {
+                                        aria-hidden="true"
+                                        class="size-4"
+                                    })
+                                }
+                                <span class="truncate">(candidate.name)</span>
+                                <span class="badge badge-sm">(candidate.region)</span>
+                                if !component_is_available {
+                                    <span class="sr-only">"Component unavailable; opens component list"</span>
+                                }
+                            </a>
+                        </li>
                     }
-                }
-            )
-            )
+                </ul>
+            </details>
         }
     }
 }
@@ -4124,32 +3758,17 @@ async fn component_title_switcher(
 ) -> Result {
     view! {
         if environment.components.len() > 1 {
-            dropdown_menu(
-                dropdown_menu_trigger(
-                    attrs: attributes! {
-                        aria-label=(format!("Switch component; current component {}", component.name))
-                        class="grid size-7 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-foreground/5 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    },
+            <details class="dropdown" data-dropdown-menu="">
+                <summary class="btn btn-ghost btn-sm btn-square" aria-label=(format!("Switch component; current component {}", component.name))>
                     icon(data: iconify_icon!("feather:chevron-down"), attrs: attributes! {
                         aria-hidden="true"
-                        class="size-4 transition-transform group-open:rotate-180"
+                        class="size-4"
                     })
-                )
-                dropdown_menu_content(
-                    attrs: attributes! { class="max-h-80 w-72 overflow-y-auto" },
-                    dropdown_menu_label("Components")
+                </summary>
+                <ul class="dropdown-content menu bg-base-100 rounded-box z-50 max-h-80 w-72 overflow-y-auto p-2 shadow-sm">
+                    <li class="menu-title">"Components"</li>
                     for candidate in environment.components {
-                        if candidate.slug == component.slug {
-                            <span class="flex items-center gap-2 rounded-md bg-foreground/5 px-2 py-2 text-sm">
-                                icon(data: iconify_icon!("feather:check"), attrs: attributes! {
-                                    aria-hidden="true"
-                                    class="size-4"
-                                })
-                                <span class="min-w-0 flex-1 truncate font-mono">(candidate.name)</span>
-                                <span class="truncate text-xs text-muted-foreground">(candidate.kind)</span>
-                                <span class="sr-only">"Current component"</span>
-                            </span>
-                        } else {
+                        <li>
                             <a
                                 href=(component_context_destination(
                                     tenant_slug,
@@ -4158,20 +3777,28 @@ async fn component_title_switcher(
                                     candidate.slug,
                                     component_suffix,
                                 ))
-                                class="flex items-center gap-2 rounded-md px-2 py-2 text-sm outline-none hover:bg-foreground/5 focus-visible:bg-foreground/5"
+                                class=(if candidate.slug == component.slug { "menu-active" } else { "" })
+                                aria-current=(if candidate.slug == component.slug { "true" } else { "false" })
                             >
-                                <span aria-hidden="true" class=(if candidate.observability.is_some() {
-                                    "status-dot"
+                                if candidate.slug == component.slug {
+                                    icon(data: iconify_icon!("feather:check"), attrs: attributes! {
+                                        aria-hidden="true"
+                                        class="size-4"
+                                    })
                                 } else {
-                                    "inline-block size-1.5 rounded-full bg-warning"
-                                })></span>
-                                <span class="min-w-0 flex-1 truncate font-mono">(candidate.name)</span>
-                                <span class="truncate text-xs text-muted-foreground">(candidate.kind)</span>
+                                    <span aria-hidden="true" class=(if candidate.observability.is_some() {
+                                        "status status-success"
+                                    } else {
+                                        "status status-warning"
+                                    })></span>
+                                }
+                                <span class="truncate font-mono">(candidate.name)</span>
+                                <span class="badge badge-sm">(candidate.kind)</span>
                             </a>
-                        }
+                        </li>
                     }
-                )
-            )
+                </ul>
+            </details>
         } else {
             ""
         }
@@ -4186,9 +3813,9 @@ async fn deletion_dependencies(
     dependents: Vec<&'static mock::Component>,
 ) -> Result {
     view! {
-        <div class="rounded-md border border-warning/30 bg-warning/8 px-3 py-3 text-sm">
+        <div role="alert" class="alert alert-warning">
             <p class="font-medium">"Other components still depend on this component"</p>
-            <p class="mt-1 text-xs text-muted-foreground">
+            <p class="mt-1 text-xs">
                 "Remove or reconfigure these dependencies before deleting it."
             </p>
             <ul class="mt-3 space-y-1.5">
@@ -4201,7 +3828,7 @@ async fn deletion_dependencies(
                                 &environment_slug,
                                 dependent.slug,
                             ))
-                            class="inline-flex items-center gap-1.5 text-xs font-medium underline underline-offset-4"
+                            class="inline-flex items-center gap-1.5 text-xs font-medium"
                         >
                             (dependent.name)
                             icon(data: iconify_icon!("feather:arrow-up-right"), attrs: attributes! {
@@ -4225,16 +3852,12 @@ async fn feedback_banner(message: Option<String>, #[default] is_error: bool) -> 
                 role=(if is_error { "alert" } else { "status" })
                 aria-live="polite"
                 class=(if is_error {
-                    "mb-6 flex items-start gap-3 rounded-md border border-destructive/25 bg-destructive/8 px-4 py-3 text-sm"
+                    "alert alert-error mb-6 items-start"
                 } else {
-                    "mb-6 flex items-start gap-3 rounded-md border border-success/25 bg-success/8 px-4 py-3 text-sm"
+                    "alert alert-success mb-6 items-start"
                 })
             >
-                <span class=(if is_error {
-                    "mt-0.5 grid size-5 shrink-0 place-items-center rounded-full bg-destructive/15 text-destructive"
-                } else {
-                    "mt-0.5 grid size-5 shrink-0 place-items-center rounded-full bg-success/15 text-success-foreground"
-                })>
+                <span class="mt-0.5">
                     icon(
                         data: if is_error {
                             iconify_icon!("feather:alert-circle")
@@ -4249,7 +3872,7 @@ async fn feedback_banner(message: Option<String>, #[default] is_error: bool) -> 
                     type="button"
                     data-dismiss-feedback=""
                     aria-label="Dismiss notification"
-                    class="grid size-6 shrink-0 place-items-center rounded text-muted-foreground hover:bg-foreground/5 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+                    class="btn btn-circle btn-ghost btn-xs"
                 >
                     icon(data: iconify_icon!("feather:x"), attrs: attributes! { class="size-3.5" })
                 </button>
@@ -4262,18 +3885,18 @@ async fn feedback_banner(message: Option<String>, #[default] is_error: bool) -> 
 #[topcoat::view::component]
 async fn change_list(changes: &'static [mock::Change]) -> Result {
     view! {
-        <ol class="divide-y divide-border">
+        <ol>
             for change in changes {
                 <li>
                     <article class="flex h-11 min-w-0 items-center gap-3 px-4">
                         <h3 class="min-w-0 flex-1 truncate text-sm font-medium">(change.summary)</h3>
-                        <code class="hidden w-16 shrink-0 text-xs text-muted-foreground sm:block">
+                        <code class="hidden w-16 shrink-0 text-xs sm:block">
                             (change.sha)
                         </code>
-                        <span class="hidden w-28 shrink-0 truncate text-xs text-muted-foreground md:block">
+                        <span class="hidden w-28 shrink-0 truncate text-xs md:block">
                             (change.author)
                         </span>
-                        <time class="w-24 shrink-0 text-right text-xs text-muted-foreground">
+                        <time class="w-24 shrink-0 text-right text-xs">
                             (change.time)
                         </time>
                     </article>

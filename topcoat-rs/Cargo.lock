@@ -1351,8 +1351,6 @@ dependencies = [
  "topcoat-runtime",
  "topcoat-runtime-macro",
  "topcoat-session",
- "topcoat-tailwind",
- "topcoat-ui-registry",
  "topcoat-view",
  "topcoat-view-macro",
 ]
@@ -1618,28 +1616,9 @@ dependencies = [
  "sha2 0.11.0",
  "thiserror",
  "tokio",
- "topcoat-cookie",
  "topcoat-core",
  "topcoat-router",
 ]
-
-[[package]]
-name = "topcoat-tailwind"
-version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3e6776b0ed30e0f92192cc942c4a7ac8d0f1fa197a0ec0094eebf7ede887ee90"
-dependencies = [
- "sha2 0.11.0",
- "thiserror",
- "topcoat-core",
- "ureq",
-]
-
-[[package]]
-name = "topcoat-ui-registry"
-version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0d4f2d4a5ec84adce65f380bb24c2840bff0998d95e3a2d8278e120aa3ce0fb6"
 
 [[package]]
 name = "topcoat-view"

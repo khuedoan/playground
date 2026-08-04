@@ -1,0 +1,13 @@
+{
+  "name": "netamos-web-topcoat",
+  "private": true,
+  "scripts": {
+    "build:css": "tailwindcss -i ./tailwind.css -o ./assets/main.css --minify",
+    "dev:css": "tailwindcss -i ./tailwind.css -o ./assets/main.css --watch"
+  },
+  "devDependencies": {
+    "@tailwindcss/cli": "^4.3.3",
+    "daisyui": "^5.7.15",
+    "tailwindcss": "^4.3.3"
+  }
+}

@@ -6,7 +6,15 @@ rust-version = "1.88"
 
 [dependencies]
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
-topcoat = { version = "0.4.0", features = ["font-fontsource", "icon-iconify", "tailwind", "ui"] }
+topcoat = { version = "0.4.0", default-features = false, features = [
+    "asset",
+    "compression",
+    "discover",
+    "icon-iconify",
+    "router",
+    "runtime",
+    "view",
+] }
 
 [build-dependencies]
-topcoat = { version = "0.4.0", default-features = false, features = ["icon-iconify", "tailwind"] }
+topcoat = { version = "0.4.0", default-features = false, features = ["icon-iconify"] }

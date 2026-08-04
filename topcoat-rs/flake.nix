@@ -38,6 +38,7 @@
               pkgs.cargo
               pkgs.rustc
               pkgs.clippy
+              pkgs.nodejs
               pkgs.rustfmt
               topcoat-cli
             ];
