@@ -1,0 +1,11 @@
+--- a/run-dev-server.js
++++ b/run-dev-server.js
+@@ -303,5 +303,8 @@
+ const args = configs.flatMap(c => ["-c", c]);
+ const backendHost = process.env.VITE_BACKEND_HOST;
++// The container publishes Wrangler's port, so listen beyond its loopback interface.
++args.push("--ip", "0.0.0.0");
++
+ if (backendHost) {
+   let wranglerPort;
+   try {

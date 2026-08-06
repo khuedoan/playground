@@ -1,0 +1,15 @@
+services:
+  cloudflare-os:
+    build:
+      context: .
+      args:
+        CLOUDFLARE_OS_REV: aedcda8b3066ff666f57ae28ecef7341d6c2dee7
+        CLOUDFLARE_OS_SHA256: d0dff6a820f6e19c42eba02d937c6330de3a2c6a0de9bcb3a294262376360c93
+    init: true
+    ports:
+      - "${PORT:-8787}:8787"
+    volumes:
+      - cloudflare-os-data:/opt/cloudflare-os/.wrangler
+
+volumes:
+  cloudflare-os-data:
