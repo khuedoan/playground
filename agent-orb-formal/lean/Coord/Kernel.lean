@@ -3,8 +3,9 @@ import Std.Tactic
 namespace AgentOrb
 
 abbrev OrbId := Nat
-abbrev PresenceId := Nat
+abbrev AgentId := Nat
 abbrev ResourceId := Nat
+abbrev EnvironmentId := Nat
 
 inductive Right where
   | observe
@@ -34,10 +35,17 @@ structure OrbState where
   policyEpoch : Nat
 deriving DecidableEq
 
-structure PresenceState where
-  id : PresenceId
+structure OwnerSessionState where
+  /-- The permanent owner of this orb. This field is never reassigned. -/
+  agentId : AgentId
   active : Bool
-  revocationEpoch : Nat
+  ownerEpoch : Nat
+deriving DecidableEq
+
+structure EnvironmentState where
+  id : EnvironmentId
+  connected : Bool
+  epoch : Nat
 deriving DecidableEq
 
 structure ResourceState where
@@ -45,7 +53,7 @@ structure ResourceState where
   generation : Nat
   fence : Nat
   version : Nat
-  owner : Option PresenceId
+  owner : Option AgentId
 
 structure BudgetState where
   available : Nat
@@ -65,8 +73,9 @@ structure Snapshot where
   /-- CAS revision for one resource/escrow actor shard, never a system-global lock. -/
   shardRevision : Nat
   orb : OrbState
-  presence : PresenceState
+  ownerSession : OwnerSessionState
   resource : ResourceState
+  environment : EnvironmentState
   /-- A monotone delivery cursor; this is not a proof of causal consistency. -/
   observedSequence : Nat
   committedSequence : Nat
@@ -78,7 +87,7 @@ structure Snapshot where
 def OwnerSafe (s : Snapshot) : Prop :=
   match s.resource.owner with
   | none => True
-  | some owner => owner = s.presence.id ∧ s.presence.active = true
+  | some owner => owner = s.ownerSession.agentId ∧ s.ownerSession.active = true
 
 def Valid (s : Snapshot) : Prop :=
   s.resource.generation = s.orb.generation ∧
@@ -89,8 +98,8 @@ structure Token where
   orbId : OrbId
   orbGeneration : Nat
   policyEpoch : Nat
-  presenceId : PresenceId
-  revocationEpoch : Nat
+  agentId : AgentId
+  ownerEpoch : Nat
   resourceId : ResourceId
   resourceFence : Nat
   visibleThrough : Nat
@@ -99,13 +108,13 @@ structure Token where
   rights : Rights
 
 /-!
-Trust boundary: `Token`, `AdminToken`, `BrokerReceipt`, and `EscrowReceipt` are
+Trust boundary: `Token`, `EnvironmentToken`, `AdminToken`, `BrokerReceipt`, and `EscrowReceipt` are
 logical projections of credentials already authenticated by the gateway.  This
 kernel proves admission from their fields; it does not prove cryptography,
 credential minting, durable CAS, or that every production path invokes `step`.
 -/
 
-/-- Restrict a bearer for the same presence; cross-presence minting is supervisor-only. -/
+/-- Restrict a bearer for the same owner. It cannot change the agent identity. -/
 def Token.restrict (parent : Token) (requested : Rights)
     (visibleThrough expiresAt maxReservation : Nat) : Token :=
   { parent with
@@ -118,8 +127,8 @@ def Token.Attenuates (child parent : Token) : Prop :=
   child.orbId = parent.orbId ∧
   child.orbGeneration = parent.orbGeneration ∧
   child.policyEpoch = parent.policyEpoch ∧
-  child.presenceId = parent.presenceId ∧
-  child.revocationEpoch = parent.revocationEpoch ∧
+  child.agentId = parent.agentId ∧
+  child.ownerEpoch = parent.ownerEpoch ∧
   child.resourceId = parent.resourceId ∧
   child.resourceFence = parent.resourceFence ∧
   child.visibleThrough ≤ parent.visibleThrough ∧
@@ -141,6 +150,17 @@ structure AdminToken where
   orbGeneration : Nat
   policyEpoch : Nat
   rights : Rights
+
+/-- A separate capability for a shared service. It grants no access to another orb. -/
+structure EnvironmentToken where
+  orbId : OrbId
+  orbGeneration : Nat
+  policyEpoch : Nat
+  agentId : AgentId
+  ownerEpoch : Nat
+  environmentId : EnvironmentId
+  environmentEpoch : Nat
+  expiresAt : Nat
 
 def AdminCurrent (s : Snapshot) (token : AdminToken) : Prop :=
   token.orbId = s.orb.id ∧
@@ -181,12 +201,29 @@ def Current (s : Snapshot) (token : Token) : Prop :=
   token.orbId = s.orb.id ∧
   token.orbGeneration = s.orb.generation ∧
   token.policyEpoch = s.orb.policyEpoch ∧
-  token.presenceId = s.presence.id ∧
-  token.revocationEpoch = s.presence.revocationEpoch ∧
-  s.presence.active = true ∧
+  token.agentId = s.ownerSession.agentId ∧
+  token.ownerEpoch = s.ownerSession.ownerEpoch ∧
+  s.ownerSession.active = true ∧
   token.resourceId = s.resource.id ∧
   token.resourceFence = s.resource.fence ∧
   s.logicalTime < token.expiresAt
+
+def EnvironmentCurrent (s : Snapshot) (token : EnvironmentToken) : Prop :=
+  token.orbId = s.orb.id ∧
+  token.orbGeneration = s.orb.generation ∧
+  token.policyEpoch = s.orb.policyEpoch ∧
+  token.agentId = s.ownerSession.agentId ∧
+  token.ownerEpoch = s.ownerSession.ownerEpoch ∧
+  s.ownerSession.active = true ∧
+  token.environmentId = s.environment.id ∧
+  token.environmentEpoch = s.environment.epoch ∧
+  s.environment.connected = true ∧
+  s.logicalTime < token.expiresAt
+
+instance (s : Snapshot) (token : EnvironmentToken) :
+    Decidable (EnvironmentCurrent s token) := by
+  unfold EnvironmentCurrent
+  infer_instance
 
 instance (s : Snapshot) (token : Token) : Decidable (Current s token) := by
   unfold Current
@@ -213,6 +250,13 @@ theorem authorized?_eq_true_iff (s : Snapshot) (token : Token) (right : Right) :
     authorized? s token right = true ↔ Authorized s token right := by
   simp [authorized?]
 
+/-- Agent communication is data-only. It deliberately has no orb or capability field. -/
+structure AgentMessage where
+  fromAgent : AgentId
+  toAgent : AgentId
+  payloadHash : Nat
+deriving DecidableEq
+
 inductive Reject where
   | staleRevision
   | unauthorized
@@ -224,10 +268,12 @@ inductive Reject where
 deriving DecidableEq
 
 inductive Event where
-  | joined
-  | presenceRevoked
+  | ownerSessionStarted
+  | ownerSessionRevoked
   | generationAdvanced
   | policyAdvanced
+  | environmentConnected
+  | environmentDisconnected
   | leaseAcquired
   | leaseReleased
   | mutationCommitted
@@ -245,10 +291,12 @@ inductive Event where
 deriving DecidableEq
 
 inductive Command where
-  | join (admin : AdminToken) (expectedRevocationEpoch : Nat)
-  | revokePresence (admin : AdminToken) (expectedRevocationEpoch : Nat)
+  | startOwnerSession (admin : AdminToken) (expectedOwnerEpoch : Nat)
+  | revokeOwnerSession (admin : AdminToken) (expectedOwnerEpoch : Nat)
   | advanceGeneration (admin : AdminToken)
   | advancePolicy (admin : AdminToken)
+  | connectEnvironment (admin : AdminToken)
+  | disconnectEnvironment (admin : AdminToken) (expectedEnvironmentEpoch : Nat)
   | advanceTime (admin : AdminToken) (next : Nat)
   | commitSequence (admin : AdminToken) (next : Nat)
   | acquireExclusive (token : Token)
@@ -258,10 +306,11 @@ inductive Command where
   | reserveBudget (token : Token) (amount : Nat)
   | settleBudget (receipt : EscrowReceipt)
   | refundBudget (receipt : EscrowReceipt)
-  | submitEffect (token : Token) (idempotencyKey : Nat)
+  | submitEffect (token : Token) (environmentToken : EnvironmentToken)
+      (idempotencyKey : Nat)
   | markEffectUnknown (receipt : BrokerReceipt)
   | grantExplicitRetry (admin : AdminToken) (expectedAttempt : Nat)
-  | retryEffect (token : Token)
+  | retryEffect (token : Token) (environmentToken : EnvironmentToken)
   | confirmEffect (receipt : BrokerReceipt)
 
 structure Envelope where
@@ -273,33 +322,33 @@ structure Applied where
   event : Event
 
 def applyCommand (s : Snapshot) : Command → Except Reject Applied
-  | .join admin epoch =>
-      if AdminCurrent s admin ∧ epoch = s.presence.revocationEpoch then
-        let presence := { s.presence with active := true }
-        .ok ⟨{ s with presence }, .joined⟩
+  | .startOwnerSession admin epoch =>
+      if AdminCurrent s admin ∧ epoch = s.ownerSession.ownerEpoch then
+        let ownerSession := { s.ownerSession with active := true }
+        .ok ⟨{ s with ownerSession }, .ownerSessionStarted⟩
       else .error .staleSystemEpoch
-  | .revokePresence admin epoch =>
-      if AdminCurrent s admin ∧ epoch = s.presence.revocationEpoch then
-        let presence := { s.presence with
+  | .revokeOwnerSession admin epoch =>
+      if AdminCurrent s admin ∧ epoch = s.ownerSession.ownerEpoch then
+        let ownerSession := { s.ownerSession with
           active := false
-          revocationEpoch := s.presence.revocationEpoch + 1 }
+          ownerEpoch := s.ownerSession.ownerEpoch + 1 }
         let resource := { s.resource with
           owner := none
           fence := s.resource.fence + 1 }
-        .ok ⟨{ s with presence, resource }, .presenceRevoked⟩
+        .ok ⟨{ s with ownerSession, resource }, .ownerSessionRevoked⟩
       else .error .staleSystemEpoch
   | .advanceGeneration admin =>
       if AdminCurrent s admin then
         let nextGeneration := s.orb.generation + 1
         let orb := { s.orb with generation := nextGeneration }
-        let presence := { s.presence with
+        let ownerSession := { s.ownerSession with
           active := false
-          revocationEpoch := s.presence.revocationEpoch + 1 }
+          ownerEpoch := s.ownerSession.ownerEpoch + 1 }
         let resource := { s.resource with
           generation := nextGeneration
           owner := none
           fence := s.resource.fence + 1 }
-        .ok ⟨{ s with orb, presence, resource }, .generationAdvanced⟩
+        .ok ⟨{ s with orb, ownerSession, resource }, .generationAdvanced⟩
       else .error .staleSystemEpoch
   | .advancePolicy admin =>
       if AdminCurrent s admin then
@@ -308,6 +357,18 @@ def applyCommand (s : Snapshot) : Command → Except Reject Applied
           owner := none
           fence := s.resource.fence + 1 }
         .ok ⟨{ s with orb, resource }, .policyAdvanced⟩
+      else .error .staleSystemEpoch
+  | .connectEnvironment admin =>
+      if AdminCurrent s admin then
+        let environment := { s.environment with connected := true }
+        .ok ⟨{ s with environment }, .environmentConnected⟩
+      else .error .staleSystemEpoch
+  | .disconnectEnvironment admin epoch =>
+      if AdminCurrent s admin ∧ epoch = s.environment.epoch then
+        let environment := { s.environment with
+          connected := false
+          epoch := s.environment.epoch + 1 }
+        .ok ⟨{ s with environment }, .environmentDisconnected⟩
       else .error .staleSystemEpoch
   | .advanceTime admin next =>
       if AdminCurrent s admin ∧ s.logicalTime ≤ next then
@@ -321,7 +382,7 @@ def applyCommand (s : Snapshot) : Command → Except Reject Applied
       if Authorized s token .operate then
         match s.resource.owner with
         | none =>
-            let resource := { s.resource with owner := some token.presenceId }
+            let resource := { s.resource with owner := some token.agentId }
             .ok ⟨{ s with resource }, .leaseAcquired⟩
         | some _ => .error .resourceBusy
       else .error .unauthorized
@@ -329,7 +390,7 @@ def applyCommand (s : Snapshot) : Command → Except Reject Applied
       if Authorized s token .operate then
         match s.resource.owner with
         | some owner =>
-            if owner = token.presenceId then
+            if owner = token.agentId then
               let resource := { s.resource with
                 owner := none
                 fence := s.resource.fence + 1 }
@@ -341,7 +402,7 @@ def applyCommand (s : Snapshot) : Command → Except Reject Applied
       if Authorized s token .operate then
         match s.resource.owner with
         | some owner =>
-            if owner = token.presenceId then
+            if owner = token.agentId then
               if expectedVersion = s.resource.version then
                 let resource := { s.resource with version := s.resource.version + 1 }
                 .ok ⟨{ s with resource }, .mutationCommitted⟩
@@ -384,8 +445,9 @@ def applyCommand (s : Snapshot) : Command → Except Reject Applied
           escrowFence := s.budget.escrowFence + 1 }
         .ok ⟨{ s with budget }, .budgetRefunded⟩
       else .error .unauthorized
-  | .submitEffect token idempotencyKey =>
-      if Authorized s token .operate then
+  | .submitEffect token environmentToken idempotencyKey =>
+      if Authorized s token .operate ∧ EnvironmentCurrent s environmentToken ∧
+          environmentToken.agentId = token.agentId then
         match s.effect with
         | .absent =>
             let nextFence := s.effectFence + 1
@@ -412,8 +474,9 @@ def applyCommand (s : Snapshot) : Command → Except Reject Applied
             else .error .invalidEffectState
         | _ => .error .invalidEffectState
       else .error .unauthorized
-  | .retryEffect token =>
-      if Authorized s token .retryEffect then
+  | .retryEffect token environmentToken =>
+      if Authorized s token .retryEffect ∧ EnvironmentCurrent s environmentToken ∧
+          environmentToken.agentId = token.agentId then
         match s.effect with
         | .unknown key _ true =>
             let nextFence := s.effectFence + 1
@@ -451,7 +514,7 @@ def step (s : Snapshot) (envelope : Envelope) : Except Reject Applied :=
 def BudgetTotal (budget : BudgetState) : Nat :=
   budget.available + budget.reserved + budget.spent
 
-theorem exclusive_owner_unique (s : Snapshot) {first second : PresenceId}
+theorem exclusive_owner_unique (s : Snapshot) {first second : AgentId}
     (hfirst : s.resource.owner = some first)
     (hsecond : s.resource.owner = some second) : first = second := by
   rw [hfirst] at hsecond
@@ -469,7 +532,7 @@ theorem acquire_requires_unowned {s : Snapshot} {token : Token} {applied : Appli
 
 theorem acquire_sets_unique_owner {s : Snapshot} {token : Token} {applied : Applied}
     (success : applyCommand s (.acquireExclusive token) = .ok applied) :
-    applied.state.resource.owner = some token.presenceId := by
+    applied.state.resource.owner = some token.agentId := by
   grind [applyCommand]
 
 theorem commit_success_current {s : Snapshot} {token : Token} {version : Nat}
@@ -481,7 +544,7 @@ theorem commit_success_current {s : Snapshot} {token : Token} {version : Nat}
 theorem commit_success_fenced_owner {s : Snapshot} {token : Token} {version : Nat}
     {applied : Applied}
     (success : applyCommand s (.commitMutation token version) = .ok applied) :
-    s.resource.owner = some token.presenceId := by
+    s.resource.owner = some token.agentId := by
   grind [applyCommand]
 
 theorem commit_success_resource_cas {s : Snapshot} {token : Token} {version : Nat}
@@ -495,8 +558,8 @@ theorem stale_generation_rejected {s : Snapshot} {token : Token} {version : Nat}
     applyCommand s (.commitMutation token version) ≠ .ok applied := by
   grind [applyCommand, Authorized, Current]
 
-theorem stale_revocation_rejected {s : Snapshot} {token : Token} {version : Nat}
-    {applied : Applied} (stale : token.revocationEpoch ≠ s.presence.revocationEpoch) :
+theorem stale_owner_epoch_rejected {s : Snapshot} {token : Token} {version : Nat}
+    {applied : Applied} (stale : token.ownerEpoch ≠ s.ownerSession.ownerEpoch) :
     applyCommand s (.commitMutation token version) ≠ .ok applied := by
   grind [applyCommand, Authorized, Current]
 
@@ -568,9 +631,11 @@ theorem refund_consumes_and_fences {s : Snapshot} {receipt : EscrowReceipt}
   grind [applyCommand, BudgetTotal]
 
 theorem retry_success_requires_explicit_gate {s : Snapshot} {token : Token}
-    {applied : Applied}
-    (success : applyCommand s (.retryEffect token) = .ok applied) :
+    {environmentToken : EnvironmentToken} {applied : Applied}
+    (success : applyCommand s (.retryEffect token environmentToken) = .ok applied) :
     Authorized s token .retryEffect ∧
+    EnvironmentCurrent s environmentToken ∧
+    environmentToken.agentId = token.agentId ∧
     ∃ key attempt, s.effect = .unknown key attempt true ∧
       applied.state.effect = .submitted key (s.effectFence + 1) := by
   grind [applyCommand]
@@ -581,11 +646,34 @@ theorem broker_unknown_success_is_fenced {s : Snapshot} {receipt : BrokerReceipt
     BrokerCurrent s receipt := by
   grind [applyCommand]
 
-theorem join_success_requires_admin {s : Snapshot} {admin : AdminToken} {epoch : Nat}
+theorem start_session_requires_admin {s : Snapshot} {admin : AdminToken} {epoch : Nat}
     {applied : Applied}
-    (success : applyCommand s (.join admin epoch) = .ok applied) :
+    (success : applyCommand s (.startOwnerSession admin epoch) = .ok applied) :
     AdminCurrent s admin := by
   grind [applyCommand]
+
+theorem submit_effect_requires_owner_and_environment {s : Snapshot} {token : Token}
+    {environmentToken : EnvironmentToken} {key : Nat} {applied : Applied}
+    (success : applyCommand s (.submitEffect token environmentToken key) = .ok applied) :
+    Authorized s token .operate ∧
+    EnvironmentCurrent s environmentToken ∧
+    environmentToken.agentId = token.agentId := by
+  grind [applyCommand]
+
+theorem current_token_is_orb_owner {s : Snapshot} {token : Token}
+    (current : Current s token) : token.agentId = s.ownerSession.agentId := by
+  grind [Current]
+
+theorem disconnected_environment_rejects_submit {s : Snapshot} {token : Token}
+    {environmentToken : EnvironmentToken} {key : Nat} {applied : Applied}
+    (disconnected : s.environment.connected = false) :
+    applyCommand s (.submitEffect token environmentToken key) ≠ .ok applied := by
+  grind [applyCommand, EnvironmentCurrent]
+
+theorem applyCommand_preserves_permanent_owner {s : Snapshot} {command : Command}
+    {applied : Applied} (success : applyCommand s command = .ok applied) :
+    applied.state.ownerSession.agentId = s.ownerSession.agentId := by
+  cases command <;> grind [applyCommand]
 
 theorem applyCommand_preserves_valid {s : Snapshot} {command : Command}
     {applied : Applied} (valid : Valid s)

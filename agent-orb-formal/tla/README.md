@@ -1,47 +1,41 @@
-# Agent-Orb Fabric TLA+ model
+# Agent-owned Orb TLA+ model
 
-`AgentOrbFabric.tla` is a finite safety model of the control protocol. It
-models agent/orb presences, supervisor-issued roles, revocation epochs, orb
-failure and generation recovery, resource ownership/fencing/version-CAS,
-stamped commands, broker effects, reconciled retries, and per-effect budget
-escrow.
+`AgentOrbOwnership.tla` is a finite safety model for personal agent compute.
+The permanent function `orbOwner` assigns exactly one owner to each orb and is
+never changed. The same agent may own several orbs. Other agents can send and
+receive messages, but message transitions cannot change resource, session, or
+environment authority.
 
-It does **not** model or verify checkpoint consistency, causal delivery,
-liveness, the supervisor's authentication, storage isolation, or an
-implementation refinement. The TLC results below are exhaustive only for the
-listed finite configurations.
+Shared environments are separate services. An effect needs an active owner
+session and a current per-orb environment connection. Disconnecting the
+environment advances its epoch and invalidates old submissions and retry
+authority.
 
 ## Checked configurations
 
 | Config | Purpose | Generated | Distinct | Depth | Result |
 |---|---|---:|---:|---:|---|
-| `AgentOrbFabric.cfg` | Combined 1-agent/1-orb interactions | 10,446 | 4,366 | 17 | Pass |
-| `AgentOrbFabricPresence.cfg` | Dynamic 2-agent x 2-orb presence graph | 1,047,329 | 135,424 | 15 | Pass |
-| `AgentOrbFabricCommand.cfg` | Command generation/epoch/fence/CAS | 257 | 167 | 10 | Pass |
-| `AgentOrbFabricEffect.cfg` | Effect retry/idempotency/escrow | 2,238 | 857 | 13 | Pass |
+| `OwnershipOneAgentManyOrbs.cfg` | One agent permanently owns two orbs | 11,781,089 | 2,311,872 | 29 | Pass |
+| `OwnershipTwoAgents.cfg` | Two owners and data-only messages | 53,124 | 14,400 | 11 | Pass |
+| `OwnershipCommand.cfg` | Owner-only fencing and version CAS | 128 | 104 | 9 | Pass |
+| `OwnershipEffect.cfg` | Shared environment, retry, and escrow | 15,960 | 5,232 | 18 | Pass |
+| `OwnershipUnsafe.cfg` | Commit without current validation | 51 before violation | 41 before violation | 6 | Expected failure |
 
-The checked invariants are `TypeOK`, `OwnerAuthorized`, `NoStaleCommit`,
-`BudgetConserved`, `TerminalEscrowSettled`,
-`RetryOnlyAfterReconciliation`, and `EffectWellFormed`.
+The safe configurations check `TypeOK`, `OneOwnerPerOrb`, and the applicable
+ownership, message, stale-commit, effect, retry, and budget invariants. The
+unsafe trace is: start owner session, acquire resource, issue command, revoke
+owner session, then incorrectly accept the stale command.
 
-Run from this directory with the bundled official TLA+ tools:
+Run a configuration from this directory:
 
 ```sh
 mkdir -p .tlc-tmp
 LD_LIBRARY_PATH=/usr/lib/jvm/java-17-openjdk-amd64/lib \
-java -Djava.io.tmpdir=.tlc-tmp \
-  -cp ../../tools/tla/tla2tools.jar tlc2.TLC \
-  -config AgentOrbFabric.cfg -workers 2 AgentOrbFabric.tla
+java -Djava.io.tmpdir=.tlc-tmp -XX:+UseParallelGC -Xmx768m \
+  -cp ../../tools/tla/tla2tools.jar tlc2.TLC -cleanup -workers 4 \
+  -config OwnershipCommand.cfg AgentOrbOwnership.tla
 ```
 
-Safety caveat: after an `Unknown` effect is reconciled as not having occurred,
-the checked model keeps its retry bound to the original generation, presence,
-and policy stamps. Revocation or recovery can therefore strand that effect's
-escrow. A production protocol needs a supervisor-linearized effect rebind to a
-new authorized presence, or a terminal reconciliation/cancellation operation
-that refunds the escrow. Progress of either operation is not proved here.
-
-The earlier `AgentOrb.tla`/`AgentOrbUnsafe.cfg` intentionally demonstrates a
-stale command accepted when commit-time validation is disabled. Its safe
-configuration is a narrower scalar-orb model and must not be used to claim
-verification of the full fabric.
+These are exhaustive results only for the stated finite bounds. The model
+proves safety, not liveness, authentication, isolation of real machines,
+message confidentiality, or provider behavior.
