@@ -1,0 +1,6 @@
+name = "agent_orb_policy"
+version = "0.1.0"
+defaultTargets = ["Coord"]
+
+[[lean_lib]]
+name = "Coord"
