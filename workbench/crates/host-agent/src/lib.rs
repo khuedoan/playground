@@ -256,11 +256,8 @@ impl MicrovmBackend {
 
     async fn stop(&self, name: &str) -> Result<()> {
         if self.is_active(name).await? {
-            self.run(
-                &self.systemctl,
-                &["stop".to_owned(), Self::unit(name)],
-            )
-            .await?;
+            self.run(&self.systemctl, &["stop".to_owned(), Self::unit(name)])
+                .await?;
         }
         Ok(())
     }
@@ -337,11 +334,8 @@ impl VmBackend for MicrovmBackend {
                         .await?;
                 }
                 if !self.is_active(&name).await? {
-                    self.run(
-                        &self.systemctl,
-                        &["start".to_owned(), Self::unit(&name)],
-                    )
-                    .await?;
+                    self.run(&self.systemctl, &["start".to_owned(), Self::unit(&name)])
+                        .await?;
                 }
                 self.wait_healthy(address).await?;
                 Ok(Self::running_status(request, address))
@@ -717,14 +711,28 @@ mod tests {
         let status = backend.apply(&request).await.unwrap();
 
         assert_eq!(status.actual_state, ActualState::Running);
-        assert_eq!(status.ip_address.as_deref().unwrap().split('.').take(2).collect::<Vec<_>>(), ["10", "88"]);
-        assert!(status.desktop_url.as_deref().unwrap().contains(":6080/vnc.html"));
+        assert_eq!(
+            status
+                .ip_address
+                .as_deref()
+                .unwrap()
+                .split('.')
+                .take(2)
+                .collect::<Vec<_>>(),
+            ["10", "88"]
+        );
+        assert!(
+            status
+                .desktop_url
+                .as_deref()
+                .unwrap()
+                .contains(":6080/vnc.html")
+        );
         assert!(status.code_url.as_deref().unwrap().contains(":3000"));
         let name = MicrovmBackend::vm_name(id);
-        let spec = std::fs::read_to_string(
-            directory.path().join("specs").join(&name).join("flake.nix"),
-        )
-        .unwrap();
+        let spec =
+            std::fs::read_to_string(directory.path().join("specs").join(&name).join("flake.nix"))
+                .unwrap();
         assert!(spec.contains("workbench.lib.mkWorkspace"));
         assert!(spec.contains("memoryMib = 8192"));
         assert!(spec.contains("diskGiB = 40"));
