@@ -27,7 +27,14 @@ try {
   await page.getByRole("button", {name: "Launch"}).click()
 
   const card = page.locator("article.workspace-card").filter({hasText: title})
-  await card.getByText("running", {exact: true}).waitFor({timeout: bootTimeout})
+  const running = card.getByText("running", {exact: true})
+  const failed = card.getByText("failed", {exact: true})
+  await Promise.race([
+    running.waitFor({timeout: bootTimeout}),
+    failed.waitFor({timeout: bootTimeout}).then(async () => {
+      throw new Error((await card.textContent()) || "MicroVM provisioning failed")
+    }),
+  ])
   await page.waitForTimeout(3_000)
 
   await card.getByPlaceholder("Ask Pi to do something in this workspace…").fill(prompt)

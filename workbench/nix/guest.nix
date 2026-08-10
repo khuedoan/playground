@@ -155,15 +155,33 @@ in
         after = [ "workbench-prepare-workspace.service" ];
         requires = [ "workbench-prepare-workspace.service" ];
       };
+      systemd.services.workbench-model-credentials = {
+        description = "Stage ephemeral model credentials for the unprivileged guest agent";
+        before = [ "workbench-guest-agent.service" ];
+        unitConfig.RequiresMountsFor = [ "/run/credentials/workbench" ];
+        serviceConfig = {
+          Type = "oneshot";
+          RemainAfterExit = true;
+        };
+        script = ''
+          ${pkgs.coreutils}/bin/install -d -m 0750 -o root -g workbench /run/workbench
+          ${pkgs.coreutils}/bin/install -m 0400 -o workbench -g workbench \
+            /run/credentials/workbench/model.env /run/workbench/model.env
+        '';
+      };
       systemd.services.workbench-guest-agent = {
         description = "Workbench guest agent with persistent Pi RPC";
         wantedBy = [ "multi-user.target" ];
         after = [
           "local-fs.target"
           "network-online.target"
+          "workbench-model-credentials.service"
           "workbench-prepare-workspace.service"
         ];
-        requires = [ "workbench-prepare-workspace.service" ];
+        requires = [
+          "workbench-model-credentials.service"
+          "workbench-prepare-workspace.service"
+        ];
         wants = [ "network-online.target" ];
         path = with pkgs; [
           bashInteractive
@@ -191,15 +209,26 @@ in
         };
         serviceConfig = {
           ExecStart = "${guestAgent}/bin/workbench-guest-agent";
-          EnvironmentFile = "%d/model.env";
-          LoadCredential = [ "model.env:/run/credentials/workbench/model.env" ];
+          EnvironmentFile = "/run/workbench/model.env";
           Restart = "on-failure";
           RestartSec = 2;
           User = "workbench";
           Group = "workbench";
           WorkingDirectory = "/workspace";
         };
-        unitConfig.RequiresMountsFor = [ "/run/credentials/workbench" ];
+        unitConfig.OnFailure = [ "workbench-guest-agent-diagnostics.service" ];
+      };
+      systemd.services.workbench-guest-agent-diagnostics = {
+        description = "Print a failed guest-agent unit status to the serial console";
+        serviceConfig = {
+          Type = "oneshot";
+          StandardOutput = "journal+console";
+          StandardError = "journal+console";
+        };
+        script = ''
+          ${pkgs.systemd}/bin/systemctl --no-pager --full status workbench-guest-agent.service || true
+          ${pkgs.systemd}/bin/journalctl --no-pager -u workbench-guest-agent.service -n 40 || true
+        '';
       };
     }
 
