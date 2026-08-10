@@ -8,7 +8,9 @@ The host agent runs as root because it creates MicroVM definitions and controls 
 
 ## Model privacy
 
-Each guest runs Pi against a llama.cpp server bound to guest loopback. The pinned Qwen2.5 Coder GGUF is part of the declarative guest closure; prompts, tool schemas, and model output stay inside the MicroVM.
+Production guests run Pi against a llama.cpp server bound to guest loopback. The pinned Qwen2.5 Coder GGUF is part of the default declarative guest closure; prompts, tool schemas, and model output stay inside the MicroVM.
+
+The GitHub Actions end-to-end configuration explicitly enables a deterministic OpenAI-compatible mock on the same guest-loopback address. This test-only service needs no credential and replaces only model generation; Pi, tool execution, and the MicroVM boundary remain real.
 
 Private-network access would not automatically make hosted inference private. If the local model is replaced, use an internal inference endpoint and block direct internet egress from workspace TAP interfaces. Do not put long-lived provider secrets in generated flakes or the Nix store.
 

@@ -52,6 +52,7 @@ pub struct MicrovmBackend {
     spec_root: PathBuf,
     state_root: PathBuf,
     health_timeout: Duration,
+    e2e_mock_llm: bool,
 }
 
 impl MicrovmBackend {
@@ -62,6 +63,7 @@ impl MicrovmBackend {
         spec_root: PathBuf,
         state_root: PathBuf,
         health_timeout: Duration,
+        e2e_mock_llm: bool,
     ) -> Self {
         Self {
             microvm,
@@ -70,6 +72,7 @@ impl MicrovmBackend {
             spec_root,
             state_root,
             health_timeout,
+            e2e_mock_llm,
         }
     }
 
@@ -137,6 +140,7 @@ impl MicrovmBackend {
       gateway = {gateway};
       mac = {mac};
       tapInterface = {tap};
+      mockLlm = {mock_llm};
     }};
   }};
 }}
@@ -153,6 +157,7 @@ impl MicrovmBackend {
             gateway = nix_string(&gateway.to_string()),
             mac = nix_string(&mac),
             tap = nix_string(&Self::tap_name(request.workspace_id)),
+            mock_llm = self.e2e_mock_llm,
         ))
     }
 
@@ -620,6 +625,28 @@ mod tests {
         assert_eq!(backend.0.load(Ordering::SeqCst), 1);
     }
 
+    #[test]
+    fn e2e_mock_llm_is_injected_into_generated_flake() {
+        let directory = tempfile::tempdir().unwrap();
+        let flake_root = directory.path().join("source");
+        std::fs::create_dir(&flake_root).unwrap();
+        let backend = MicrovmBackend::new(
+            directory.path().join("microvm"),
+            directory.path().join("systemctl"),
+            flake_root,
+            directory.path().join("specs"),
+            directory.path().join("microvms"),
+            Duration::ZERO,
+            true,
+        );
+        let id = Uuid::new_v4();
+        let spec = backend
+            .render_spec(&request(id, Uuid::new_v4(), 1))
+            .unwrap();
+
+        assert!(spec.contains("mockLlm = true"));
+    }
+
     #[tokio::test]
     async fn microvm_backend_generates_and_starts_a_resource_limited_guest() {
         let directory = tempfile::tempdir().unwrap();
@@ -655,6 +682,7 @@ mod tests {
             directory.path().join("specs"),
             state_root,
             Duration::ZERO,
+            false,
         );
         let id = Uuid::new_v4();
         let request = request(id, Uuid::new_v4(), 1);
@@ -686,6 +714,7 @@ mod tests {
         assert!(spec.contains("workbench.lib.mkWorkspace"));
         assert!(spec.contains("memoryMib = 8192"));
         assert!(spec.contains("diskGiB = 40"));
+        assert!(spec.contains("mockLlm = false"));
         let calls = std::fs::read_to_string(command_log).unwrap();
         assert!(calls.contains("microvm -f"));
         assert!(calls.contains(&format!("systemctl start microvm@{name}.service")));

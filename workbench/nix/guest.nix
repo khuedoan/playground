@@ -8,6 +8,10 @@
 let
   cfg = config.workbench;
   guestAgent = self.packages.${pkgs.system}.guest-agent;
+  modelProvider = if cfg.mockLlm.enable then "e2e-mock" else "local-llama";
+  modelId = if cfg.mockLlm.enable then "workbench-e2e-mock" else "local-coder";
+  modelName = if cfg.mockLlm.enable then "Workbench E2E Mock" else "Local Qwen2.5 Coder 0.5B";
+  modelService = if cfg.mockLlm.enable then "workbench-mock-llm.service" else "llama-cpp.service";
   localCoderModel = pkgs.fetchurl {
     name = "qwen2.5-coder-0.5b-instruct-q4_0.gguf";
     url = "https://huggingface.co/Qwen/Qwen2.5-Coder-0.5B-Instruct-GGUF/resolve/56c037aa51c4d689c272c21ea2a8b9c13341e8b2/qwen2.5-coder-0.5b-instruct-q4_0.gguf";
@@ -15,18 +19,18 @@ let
   };
   piModels = pkgs.writeText "workbench-pi-models.json" (
     builtins.toJSON {
-      providers.local-llama = {
+      providers.${modelProvider} = {
         baseUrl = "http://127.0.0.1:8080/v1";
         api = "openai-completions";
-        apiKey = "none";
+        apiKey = if cfg.mockLlm.enable then "mock" else "none";
         compat = {
           supportsDeveloperRole = false;
           supportsReasoningEffort = false;
         };
         models = [
           {
-            id = "local-coder";
-            name = "Local Qwen2.5 Coder 0.5B";
+            id = modelId;
+            name = modelName;
             reasoning = false;
             input = [ "text" ];
             contextWindow = 8192;
@@ -64,6 +68,7 @@ in
     gui.enable = lib.mkEnableOption "the headless Wayland desktop" // {
       default = true;
     };
+    mockLlm.enable = lib.mkEnableOption "the deterministic mock LLM used by end-to-end tests";
   };
 
   config = lib.mkMerge [
@@ -159,7 +164,7 @@ in
         after = [ "workbench-prepare-workspace.service" ];
         requires = [ "workbench-prepare-workspace.service" ];
       };
-      services.llama-cpp = {
+      services.llama-cpp = lib.mkIf (!cfg.mockLlm.enable) {
         enable = true;
         settings = {
           model = localCoderModel;
@@ -174,14 +179,25 @@ in
           jinja = true;
         };
       };
-      systemd.services.llama-cpp = {
+      systemd.services.llama-cpp = lib.mkIf (!cfg.mockLlm.enable) {
         unitConfig.OnFailure = [ "workbench-guest-agent-diagnostics.service" ];
         serviceConfig.RestartSec = lib.mkForce 2;
       };
-      systemd.services.workbench-local-model-ready = {
-        description = "Wait for the local coding model";
-        after = [ "llama-cpp.service" ];
-        requires = [ "llama-cpp.service" ];
+      systemd.services.workbench-mock-llm = lib.mkIf cfg.mockLlm.enable {
+        description = "Deterministic OpenAI-compatible LLM for end-to-end tests";
+        serviceConfig = {
+          ExecStart = "${pkgs.python3}/bin/python3 ${../scripts/mock_llm.py}";
+          Restart = "on-failure";
+          RestartSec = 1;
+          User = "workbench";
+          Group = "workbench";
+        };
+        unitConfig.OnFailure = [ "workbench-guest-agent-diagnostics.service" ];
+      };
+      systemd.services.workbench-model-ready = {
+        description = "Wait for the configured LLM API";
+        after = [ modelService ];
+        requires = [ modelService ];
         before = [ "workbench-guest-agent.service" ];
         unitConfig.OnFailure = [ "workbench-guest-agent-diagnostics.service" ];
         serviceConfig = {
@@ -195,7 +211,7 @@ in
             fi
             ${pkgs.coreutils}/bin/sleep 0.5
           done
-          echo "local coding model did not become ready" >&2
+          echo "LLM API did not become ready" >&2
           exit 1
         '';
       };
@@ -205,11 +221,11 @@ in
         after = [
           "local-fs.target"
           "network-online.target"
-          "workbench-local-model-ready.service"
+          "workbench-model-ready.service"
           "workbench-prepare-workspace.service"
         ];
         requires = [
-          "workbench-local-model-ready.service"
+          "workbench-model-ready.service"
           "workbench-prepare-workspace.service"
         ];
         wants = [ "network-online.target" ];
@@ -233,9 +249,9 @@ in
         environment = {
           HOME = "/home/workbench";
           PI_EXECUTABLE = "${pkgs.pi-coding-agent}/bin/pi";
-          PI_API_KEY = "none";
-          PI_MODEL = "local-coder";
-          PI_PROVIDER = "local-llama";
+          PI_API_KEY = if cfg.mockLlm.enable then "mock" else "none";
+          PI_MODEL = modelId;
+          PI_PROVIDER = modelProvider;
           WORKBENCH_GUEST_LISTEN = "0.0.0.0:7070";
           WORKBENCH_WORKSPACE_ROOT = "/workspace";
           WORKBENCH_WORKSPACE_ID = cfg.workspaceId;
@@ -259,8 +275,8 @@ in
         };
         script = ''
           ${pkgs.curl}/bin/curl --silent --show-error http://127.0.0.1:8080/health || true
-          ${pkgs.systemd}/bin/systemctl --no-pager --full status llama-cpp.service workbench-local-model-ready.service || true
-          ${pkgs.systemd}/bin/journalctl --no-pager -u llama-cpp.service -u workbench-local-model-ready.service -n 80 || true
+          ${pkgs.systemd}/bin/systemctl --no-pager --full status ${modelService} workbench-model-ready.service || true
+          ${pkgs.systemd}/bin/journalctl --no-pager -u ${modelService} -u workbench-model-ready.service -n 80 || true
           ${pkgs.systemd}/bin/systemctl --no-pager --full status workbench-guest-agent.service || true
           ${pkgs.systemd}/bin/journalctl --no-pager -u workbench-guest-agent.service -n 40 || true
         '';

@@ -15,3 +15,11 @@
 - Pi uses the real Qwen2.5 Coder GGUF through a guest-local llama.cpp server, so the gate needs no model-provider secret and sends no prompt outside the MicroVM.
 - The gate requires a real guest boot, Pi tool use, code-server, Sway, wayvnc, noVNC, Blender, and persistence across a MicroVM restart.
 - Playwright records the real UI session and the workflow uploads the video together with systemd and network diagnostics.
+
+## 2026-08-10 — deterministic E2E model API
+
+- Replaced Qwen download and llama.cpp inference in the GitHub Actions E2E configuration with a deterministic OpenAI-compatible API inside the real MicroVM.
+- Kept the production default unchanged: normal generated guests still use the pinned local Qwen model and llama.cpp.
+- The mock emits a real Pi `bash` tool call, Pi executes the requested command, and a second streamed completion returns the expected assistant response. MicroVM boot, Phoenix reconciliation, Pi RPC, tool execution, GUI services, recording, and restart persistence remain covered.
+- E2E model artifact downloads: 1 GGUF to 0, lower is better. The browser agent timeout was reduced from 900 seconds to 60 seconds.
+- Full timing still requires the KVM GitHub Actions runner; this sandbox cannot boot the guest.

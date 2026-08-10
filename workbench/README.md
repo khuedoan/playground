@@ -100,7 +100,7 @@ make check
 
 `nix flake check` builds both Rust agents. `cargo test` covers command idempotency, stale generations, concurrent retries, generated workspace flakes, and MicroVM lifecycle commands. Phoenix tests cover durable jobs, audit events, reconciliation, and LiveView behavior.
 
-GitHub Actions also runs `scripts/e2e.sh` on a KVM-enabled Linux runner. It provisions the production host agent and official MicroVM runner, boots a real Cloud Hypervisor guest, creates a workspace through Phoenix, asks the real Pi process to modify and verify a file using the guest's local llama.cpp coding model, checks code-server and the Wayland/noVNC/Blender services, restarts the MicroVM, and verifies the workspace file persisted. The job uploads the browser video and host/guest diagnostics as `workbench-real-microvm-<run-id>`.
+GitHub Actions also runs `scripts/e2e.sh` on a KVM-enabled Linux runner. It provisions the production host agent and official MicroVM runner, boots a real Cloud Hypervisor guest, and creates a workspace through Phoenix. For this test only, the generated workspace flake replaces Qwen and llama.cpp with a deterministic guest-local OpenAI-compatible API. The real Pi process consumes that API, executes its real `bash` tool to modify and verify a file, and returns the final response. The test then checks code-server and the Wayland/noVNC/Blender services, restarts the MicroVM, and verifies the workspace file persisted. This keeps the isolation and agent integration coverage while removing model download and inference from the critical path. The job uploads the browser video and host/guest diagnostics as `workbench-real-microvm-<run-id>`.
 
 ## Real demo recording
 
@@ -110,7 +110,7 @@ After the NixOS host and Phoenix are running:
 ./scripts/demo.sh
 ```
 
-The script refuses to run without `/dev/kvm`, an active host agent, and a reachable Phoenix UI. Playwright then creates a real MicroVM through the UI, waits for a real Pi response, and records `demo/artifacts/workbench-demo.webm`. It has no mock or simulated-success path. When `ffmpeg` is available it also emits `demo/artifacts/workbench-demo.mp4`.
+The script refuses to run without `/dev/kvm`, an active host agent, and a reachable Phoenix UI. Playwright then creates a real MicroVM through the UI, waits for a real Pi response, and records `demo/artifacts/workbench-demo.webm`. The CI configuration mocks only the LLM API response; it does not bypass the MicroVM, Pi RPC, tool execution, UI, or persistence paths. A normal host-agent deployment continues to use the local Qwen model. When `ffmpeg` is available the script also emits `demo/artifacts/workbench-demo.mp4`.
 
 ## Security boundary
 

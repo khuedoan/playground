@@ -63,6 +63,7 @@
           gateway,
           mac,
           tapInterface,
+          mockLlm ? false,
           system ? "x86_64-linux",
         }:
         nixpkgs.lib.nixosSystem {
@@ -75,6 +76,7 @@
               workbench = {
                 inherit workspaceId;
                 gui.enable = gui;
+                mockLlm.enable = mockLlm;
               };
 
               microvm = {

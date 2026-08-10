@@ -41,6 +41,8 @@ struct Options {
         default_value_t = 180
     )]
     guest_health_timeout_seconds: u64,
+    #[arg(long, env = "WORKBENCH_E2E_MOCK_LLM", default_value_t = false)]
+    e2e_mock_llm: bool,
 }
 
 #[tokio::main]
@@ -56,6 +58,7 @@ async fn main() -> Result<()> {
         options.spec_root,
         options.microvm_state_root,
         Duration::from_secs(options.guest_health_timeout_seconds),
+        options.e2e_mock_llm,
     ));
     let store = Arc::new(VmStore::open(options.state, backend).await?);
     let app = router(AppState { store }).layer(TraceLayer::new_for_http());

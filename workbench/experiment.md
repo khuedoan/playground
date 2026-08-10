@@ -12,6 +12,7 @@ Only `workbench/` in `khuedoan/playground`.
 
 - `microvm.nix` is the sole host backend.
 - Each guest includes Wayland, Blender, code-server, Pi, and the language toolchains used by the agent.
+- Production guests use local Qwen; the KVM end-to-end gate may substitute a deterministic guest-local API while keeping Pi and tool execution real.
 - Provisioning remains idempotent across retries and host-agent restarts.
 - No claim of an end-to-end VM boot without a KVM-capable NixOS host.
 

@@ -86,7 +86,7 @@ jobs:
       ARTIFACTS_DIR: ${{ github.workspace }}/workbench/demo/artifacts
       CONTROL_URL: http://127.0.0.1:4000
       DATABASE_URL: ecto://postgres:postgres@127.0.0.1/workbench_e2e
-      DEMO_AGENT_TIMEOUT_MS: "900000"
+      DEMO_AGENT_TIMEOUT_MS: "60000"
       DEMO_BOOT_TIMEOUT_MS: "1800000"
       HOST_AGENT_TIMEOUT_MS: "1800000"
       HOST_AGENT_URL: http://127.0.0.1:9090
@@ -94,6 +94,7 @@ jobs:
       PHX_HOST: 127.0.0.1
       SECRET_KEY_BASE: "1111111111111111111111111111111111111111111111111111111111111111"
       WORKBENCH_DISK_GIB: "8"
+      WORKBENCH_E2E_MOCK_LLM: "true"
       WORKBENCH_MEMORY_MIB: "3072"
       WORKBENCH_VCPUS: "2"
     steps:

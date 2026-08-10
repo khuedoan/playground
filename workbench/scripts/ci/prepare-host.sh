@@ -9,6 +9,11 @@ fi
 : "${WORKBENCH_HOST_AGENT_BIN:?set WORKBENCH_HOST_AGENT_BIN}"
 : "${WORKBENCH_MICROVM_BIN:?set WORKBENCH_MICROVM_BIN}"
 : "${WORKBENCH_FLAKE_ROOT:?set WORKBENCH_FLAKE_ROOT}"
+mock_llm="${WORKBENCH_E2E_MOCK_LLM:-false}"
+case "$mock_llm" in
+  true|false) ;;
+  *) echo "WORKBENCH_E2E_MOCK_LLM must be true or false" >&2; exit 1 ;;
+esac
 
 script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 unit_dir="$script_dir/systemd"
@@ -72,6 +77,7 @@ umask 077
   printf 'WORKBENCH_SPEC_ROOT=/var/lib/workbench/specs\n'
   printf 'WORKBENCH_MICROVM_STATE_ROOT=/var/lib/microvms\n'
   printf 'WORKBENCH_GUEST_HEALTH_TIMEOUT_SECONDS=300\n'
+  printf 'WORKBENCH_E2E_MOCK_LLM=%s\n' "$mock_llm"
   printf 'RUST_LOG=info\n'
 } > /run/workbench-e2e/host.env
 
