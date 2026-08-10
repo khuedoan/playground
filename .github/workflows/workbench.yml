@@ -140,6 +140,7 @@ jobs:
           sudo env \
             WORKBENCH_FLAKE_ROOT="$PWD" \
             WORKBENCH_HOST_AGENT_BIN="$PWD/.tmp/host-agent/bin/workbench-host-agent" \
+            WORKBENCH_E2E_MOCK_LLM="$WORKBENCH_E2E_MOCK_LLM" \
             WORKBENCH_MICROVM_BIN="$PWD/.tmp/microvm/bin/microvm" \
             "$PWD/scripts/ci/prepare-host.sh"
 

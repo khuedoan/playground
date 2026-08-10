@@ -295,6 +295,7 @@ in
       systemd.services.workbench-sway = {
         description = "Workbench headless Sway desktop";
         wantedBy = [ "multi-user.target" ];
+        path = [ pkgs.dbus ];
         environment = {
           HOME = "/home/workbench";
           WLR_BACKENDS = "headless";
@@ -344,6 +345,7 @@ in
         wantedBy = [ "multi-user.target" ];
         after = [ "workbench-wayvnc.service" ];
         requires = [ "workbench-wayvnc.service" ];
+        path = [ pkgs.procps ];
         serviceConfig = {
           ExecStart = "${pkgs.novnc}/bin/novnc --listen 0.0.0.0:6080 --vnc 127.0.0.1:5900";
           Restart = "on-failure";
