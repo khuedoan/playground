@@ -32,7 +32,14 @@ try {
 
   await card.getByPlaceholder("Ask Pi to do something in this workspace…").fill(prompt)
   await card.getByRole("button", {name: "Send"}).click()
-  await card.locator(".message-assistant").waitFor({timeout: agentTimeout})
+  const assistant = card.locator(".message-assistant")
+  const agentError = card.locator(".message-error")
+  await Promise.race([
+    assistant.waitFor({timeout: agentTimeout}),
+    agentError.waitFor({timeout: agentTimeout}).then(async () => {
+      throw new Error((await agentError.textContent()) || "Pi failed without an error message")
+    }),
+  ])
   await page.waitForTimeout(4_000)
   await page.screenshot({path: `${artifacts}/workbench-demo-final.png`, fullPage: true})
 } finally {

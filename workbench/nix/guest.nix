@@ -130,18 +130,40 @@ in
       };
 
       systemd.tmpfiles.rules = [
-        "z /workspace 0770 workbench workbench -"
         "d /home/workbench/.pi 0700 workbench workbench -"
         "d /home/workbench/.pi/agent 0700 workbench workbench -"
         "L+ /home/workbench/.pi/agent/models.json - - - - ${piModels}"
       ];
+      systemd.services.workbench-prepare-workspace = {
+        description = "Prepare the persistent workspace for the unprivileged tools";
+        wantedBy = [ "multi-user.target" ];
+        before = [
+          "code-server.service"
+          "workbench-guest-agent.service"
+        ];
+        unitConfig.RequiresMountsFor = [ "/workspace" ];
+        serviceConfig = {
+          Type = "oneshot";
+          RemainAfterExit = true;
+        };
+        script = ''
+          ${pkgs.coreutils}/bin/install -d -m 0770 -o workbench -g workbench /workspace
+          ${pkgs.coreutils}/bin/install -d -m 0700 -o workbench -g workbench /workspace/.pi/sessions
+        '';
+      };
+      systemd.services.code-server = {
+        after = [ "workbench-prepare-workspace.service" ];
+        requires = [ "workbench-prepare-workspace.service" ];
+      };
       systemd.services.workbench-guest-agent = {
         description = "Workbench guest agent with persistent Pi RPC";
         wantedBy = [ "multi-user.target" ];
         after = [
           "local-fs.target"
           "network-online.target"
+          "workbench-prepare-workspace.service"
         ];
+        requires = [ "workbench-prepare-workspace.service" ];
         wants = [ "network-online.target" ];
         environment = {
           HOME = "/home/workbench";
