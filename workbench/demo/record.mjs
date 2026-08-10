@@ -22,9 +22,9 @@ async function waitForRenderedDesktop(card) {
   // Reconnect after the workspace is running, then require real dark pixels from
   // the terminal instead of accepting noVNC's blank white canvas.
   await frame.goto(frame.url(), {waitUntil: "domcontentloaded", timeout: 60_000})
-  await frame.locator("#noVNC_canvas").waitFor({state: "visible", timeout: 60_000})
+  await frame.locator("#noVNC_container canvas").waitFor({state: "visible", timeout: 60_000})
   await frame.waitForFunction(() => {
-    const canvas = document.querySelector("#noVNC_canvas")
+    const canvas = document.querySelector("#noVNC_container canvas")
     if (!(canvas instanceof HTMLCanvasElement) || canvas.width < 640 || canvas.height < 360) {
       return false
     }
