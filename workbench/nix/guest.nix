@@ -40,11 +40,32 @@ let
       };
     }
   );
+  footConfig = pkgs.writeText "workbench-foot.ini" ''
+    font=DejaVu Sans Mono:size=11
+    pad=18x18
+
+    [colors]
+    background=10151a
+    foreground=d8dee9
+  '';
+  desktopShell = pkgs.writeShellScript "workbench-desktop-shell" ''
+    cd /workspace
+    printf '\n'
+    printf '  WORKBENCH NIXOS MICROVM\n'
+    printf '  -----------------------\n'
+    printf '  Compositor   Sway\n'
+    printf '  Display      %s\n' "$WAYLAND_DISPLAY"
+    printf '  Workspace    %s\n\n' "$PWD"
+    exec ${pkgs.bashInteractive}/bin/bash --noprofile --norc
+  '';
   swayConfig = pkgs.writeText "workbench-sway.conf" ''
     output HEADLESS-1 resolution 1280x720
     default_border pixel 2
     focus_follows_mouse no
-    exec ${pkgs.foot}/bin/foot
+    for_window [app_id="foot"] fullscreen enable
+    for_window [class=".*[Bb]lender.*"] move scratchpad
+    no_focus [class=".*[Bb]lender.*"]
+    exec ${pkgs.foot}/bin/foot --config=${footConfig} --title="Workbench Wayland terminal" ${desktopShell}
     exec WAYLAND_DISPLAY= LIBGL_ALWAYS_SOFTWARE=1 ${pkgs.blender}/bin/blender --factory-startup -noaudio --gpu-backend opengl
   '';
   startWayvnc = pkgs.writeShellScript "workbench-wayvnc" ''
@@ -289,6 +310,7 @@ in
       programs.wayvnc.enable = true;
       environment.systemPackages = with pkgs; [
         blender
+        dejavu_fonts
         foot
         novnc
         sway

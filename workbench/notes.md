@@ -31,3 +31,9 @@
 - Runs #40 and #42 kept Blender alive through Mesa software OpenGL and Xwayland, then exposed two test-only issues: `pgrep` was absent globally and Nix's Blender wrapper does not use `blender` as its exact kernel process name.
 - Run #44 passed Rust, Phoenix, Nix, and the complete KVM E2E job on commit `53a03a4`. The gate booted the real MicroVM, executed Pi's real `bash` tool through the deterministic mock API, verified the GUI/code-server/Blender processes, restarted the guest, and confirmed the file persisted.
 - Successful browser artifact: H.264 at 1440×900, 25 fps, 152.84 seconds, 2,118,935 bytes. Final screenshot: 1440×1722, 249,489 bytes.
+
+## 2026-08-10 — visible Wayland recording
+
+- Run #46 was functionally green, but its final screenshot exposed a visual regression: Blender's software-rendered Xwayland surface was pure white in the noVNC frame.
+- Decision: keep the real Blender process running on Sway's scratchpad while presenting a fullscreen Foot terminal on the visible workspace. The terminal prints the Sway compositor, Wayland display, and persistent workspace path so the recording visibly demonstrates the guest desktop instead of relying only on backend assertions.
+- Added an explicit monospace font and dark terminal palette to make the captured desktop deterministic and legible.
