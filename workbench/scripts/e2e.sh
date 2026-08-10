@@ -8,6 +8,11 @@ host_url="${HOST_AGENT_URL:-http://127.0.0.1:9090}"
 
 mkdir -p "$artifacts"
 
+if ((${#SECRET_KEY_BASE} < 64)); then
+  echo "SECRET_KEY_BASE must contain at least 64 bytes" >&2
+  exit 1
+fi
+
 if [ ! -c /dev/kvm ]; then
   echo "the end-to-end suite requires /dev/kvm" >&2
   exit 1
