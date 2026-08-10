@@ -282,6 +282,7 @@ in
         environment = {
           HOME = "/home/workbench";
           WLR_BACKENDS = "headless";
+          WLR_HEADLESS_OUTPUTS = "1";
           WLR_LIBINPUT_NO_DEVICES = "1";
           WLR_RENDERER = "pixman";
           XDG_RUNTIME_DIR = "/run/workbench-wayland";
@@ -300,6 +301,7 @@ in
           User = "workbench";
           Group = "workbench";
         };
+        unitConfig.OnFailure = [ "workbench-gui-diagnostics.service" ];
       };
 
       systemd.services.workbench-wayvnc = {
@@ -318,6 +320,7 @@ in
           User = "workbench";
           Group = "workbench";
         };
+        unitConfig.OnFailure = [ "workbench-gui-diagnostics.service" ];
       };
 
       systemd.services.workbench-novnc = {
@@ -326,12 +329,27 @@ in
         after = [ "workbench-wayvnc.service" ];
         requires = [ "workbench-wayvnc.service" ];
         serviceConfig = {
-          ExecStart = "${pkgs.novnc}/bin/novnc --listen 6080 --vnc 127.0.0.1:5900";
+          ExecStart = "${pkgs.novnc}/bin/novnc --listen 0.0.0.0:6080 --vnc 127.0.0.1:5900";
           Restart = "on-failure";
           RestartSec = 2;
           User = "workbench";
           Group = "workbench";
         };
+        unitConfig.OnFailure = [ "workbench-gui-diagnostics.service" ];
+      };
+
+      systemd.services.workbench-gui-diagnostics = {
+        description = "Print failed GUI unit diagnostics to the serial console";
+        serviceConfig = {
+          Type = "oneshot";
+          StandardOutput = "journal+console";
+          StandardError = "journal+console";
+        };
+        script = ''
+          ${pkgs.systemd}/bin/systemctl --no-pager --full status workbench-sway.service workbench-wayvnc.service workbench-novnc.service || true
+          ${pkgs.systemd}/bin/journalctl --no-pager -u workbench-sway.service -u workbench-wayvnc.service -u workbench-novnc.service -n 120 || true
+          ${pkgs.iproute2}/bin/ss -ltnp || true
+        '';
       };
     })
   ];
