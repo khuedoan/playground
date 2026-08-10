@@ -17,11 +17,34 @@ async function waitForRenderedDesktop(card) {
   if (!frame) {
     throw new Error("Wayland desktop iframe did not create a browser frame")
   }
+  const desktopUrl = await iframe.getAttribute("src")
+  if (!desktopUrl) {
+    throw new Error("Wayland desktop iframe has no source URL")
+  }
 
   // The iframe can connect while wayvnc is still publishing its first frame.
   // Reconnect after the workspace is running, then require real dark pixels from
   // the terminal instead of accepting noVNC's blank white canvas.
-  await frame.goto(frame.url(), {waitUntil: "domcontentloaded", timeout: 60_000})
+  let navigationError
+  for (let attempt = 0; attempt < 12; attempt += 1) {
+    try {
+      const response = await frame.goto(desktopUrl, {
+        waitUntil: "domcontentloaded",
+        timeout: 10_000,
+      })
+      if (response && !response.ok()) {
+        throw new Error(`noVNC returned HTTP ${response.status()}`)
+      }
+      navigationError = undefined
+      break
+    } catch (error) {
+      navigationError = error
+      await new Promise(resolve => setTimeout(resolve, 1_000))
+    }
+  }
+  if (navigationError) {
+    throw new Error(`noVNC did not become reachable: ${navigationError.message}`)
+  }
   await frame.locator("#noVNC_container canvas").waitFor({state: "visible", timeout: 60_000})
   await frame.waitForFunction(() => {
     const canvas = document.querySelector("#noVNC_container canvas")
