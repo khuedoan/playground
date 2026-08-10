@@ -165,6 +165,23 @@ in
         ];
         requires = [ "workbench-prepare-workspace.service" ];
         wants = [ "network-online.target" ];
+        path = with pkgs; [
+          bashInteractive
+          cargo
+          coreutils
+          curl
+          fd
+          gcc
+          git
+          gnumake
+          jq
+          nodejs_24
+          procps
+          python3
+          ripgrep
+          rustc
+          systemd
+        ];
         environment = {
           HOME = "/home/workbench";
           PI_EXECUTABLE = "${pkgs.pi-coding-agent}/bin/pi";
@@ -174,13 +191,15 @@ in
         };
         serviceConfig = {
           ExecStart = "${guestAgent}/bin/workbench-guest-agent";
-          EnvironmentFile = "-/run/credentials/workbench/model.env";
+          EnvironmentFile = "%d/model.env";
+          LoadCredential = [ "model.env:/run/credentials/workbench/model.env" ];
           Restart = "on-failure";
           RestartSec = 2;
           User = "workbench";
           Group = "workbench";
           WorkingDirectory = "/workspace";
         };
+        unitConfig.RequiresMountsFor = [ "/run/credentials/workbench" ];
       };
     }
 

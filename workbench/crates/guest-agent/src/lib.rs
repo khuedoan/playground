@@ -73,6 +73,10 @@ impl PiManager {
         }
     }
 
+    pub fn has_api_key(&self) -> bool {
+        self.api_key.as_ref().is_some_and(|key| !key.is_empty())
+    }
+
     async fn spawn(&self, session: &str) -> Result<PiProcess, GuestError> {
         validate_session(session)?;
         let session_dir = self.workspace_root.join(".pi/sessions");
@@ -240,8 +244,12 @@ pub fn router(state: AppState) -> Router {
         .with_state(state)
 }
 
-async fn health() -> Json<Value> {
-    Json(serde_json::json!({"status": "ok", "agent": "pi"}))
+async fn health(State(state): State<AppState>) -> Json<Value> {
+    Json(serde_json::json!({
+        "status": "ok",
+        "agent": "pi",
+        "model_credentials": state.pi.has_api_key()
+    }))
 }
 
 async fn exec(

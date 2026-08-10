@@ -20,6 +20,7 @@ curl --silent http://127.0.0.1:9090/v1/workspaces > "$artifacts/host-state.json"
 
 agent_url="$(jq -r '.[0].agent_url // empty' "$artifacts/host-state.json" 2>/dev/null || true)"
 if [ -n "$agent_url" ]; then
+  curl --silent --show-error "$agent_url/healthz" > "$artifacts/guest-health.json" || true
   diagnostic_command='printf "github_models_token=%s\n" "${GITHUB_MODELS_TOKEN:+set}"; test -r /home/workbench/.pi/agent/models.json && echo models_config=readable || echo models_config=unreadable; test -w /workspace/.pi/sessions && echo session_dir=writable || echo session_dir=unwritable'
   jq -nc --arg command "$diagnostic_command" \
     '{command: $command, cwd: "/workspace", timeout_seconds: 30}' |
