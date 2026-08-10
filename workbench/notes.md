@@ -23,3 +23,11 @@
 - The mock emits a real Pi `bash` tool call, Pi executes the requested command, and a second streamed completion returns the expected assistant response. MicroVM boot, Phoenix reconciliation, Pi RPC, tool execution, GUI services, recording, and restart persistence remain covered.
 - E2E model artifact downloads: 1 GGUF to 0, lower is better. The browser agent timeout was reduced from 900 seconds to 60 seconds.
 - Full timing still requires the KVM GitHub Actions runner; this sandbox cannot boot the guest.
+
+## 2026-08-10 — green real-MicroVM gate
+
+- Run #34 showed that the mock flag was lost across `sudo env`, while Sway and noVNC lacked `dbus-daemon` and `ps` in their service paths.
+- Runs #36 and #38 proved the mock Pi tool call, noVNC recording, and guest services worked; they also exposed Sway's missing shell path and Blender's Wayland/EGL exit.
+- Runs #40 and #42 kept Blender alive through Mesa software OpenGL and Xwayland, then exposed two test-only issues: `pgrep` was absent globally and Nix's Blender wrapper does not use `blender` as its exact kernel process name.
+- Run #44 passed Rust, Phoenix, Nix, and the complete KVM E2E job on commit `53a03a4`. The gate booted the real MicroVM, executed Pi's real `bash` tool through the deterministic mock API, verified the GUI/code-server/Blender processes, restarted the guest, and confirmed the file persisted.
+- Successful browser artifact: H.264 at 1440×900, 25 fps, 152.84 seconds, 2,118,935 bytes. Final screenshot: 1440×1722, 249,489 bytes.
