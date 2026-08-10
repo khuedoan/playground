@@ -6,16 +6,16 @@ The result is a `microvm.nix`-only prototype. Phoenix stores product intent and 
 
 ## Result
 
-The production backend count is one: [`microvm.nix`](https://github.com/astro/microvm.nix). There is no Docker host backend, backend selector, Compose deployment, or container image. Docker is installed *inside* each MicroVM so Pi still has a complete developer environment without giving a workspace the host Docker socket.
+The production backend count is one: [`microvm.nix`](https://github.com/astro/microvm.nix). Pi receives a complete Linux developer environment directly from the declarative NixOS guest configuration.
 
 Each workspace includes:
 
 - a NixOS MicroVM running through Cloud Hypervisor and KVM;
-- a persistent `/workspace` volume and separate persistent Docker data volume;
+- a persistent `/workspace` volume;
 - a private TAP address on `10.88.0.0/16` with host NAT;
 - headless Sway/Wayland, wayvnc, noVNC, Blender, and code-server;
 - the Nixpkgs `pi-coding-agent` package and a persistent Rust Pi RPC bridge;
-- Rust, Node.js, Python, Git, build tools, and Docker inside the guest.
+- Rust, Node.js, Python, Git, and build tools inside the guest.
 
 The originating Work sandbox could compile and test the application code but could not boot a MicroVM because it exposes no KVM, `/proc`, cgroups, or Nix daemon. A real NixOS/KVM boot remains an explicit validation gate rather than a simulated result.
 
@@ -30,7 +30,6 @@ flowchart TD
     M --> V["NixOS MicroVM"]
     V --> G["Rust guest agent + Pi RPC"]
     V --> UI["Sway + noVNC + code-server"]
-    V --> D["Guest Docker daemon"]
 ```
 
 Phoenix persists `{command_id, workspace_id, generation, desired_state}` before enqueueing reconciliation. The host journal makes retries idempotent and rejects stale generations. For a new workspace, the host agent writes a small flake under `/var/lib/workbench/specs`, runs `microvm -f … -c …`, starts `microvm@<workspace>.service`, and waits for the guest agent on port 7070.
@@ -124,7 +123,7 @@ The script refuses to run without `/dev/kvm`, an active host agent, and a reacha
 
 ## Security boundary
 
-The MicroVM is the workspace isolation boundary; guest Docker never receives the host socket. This is still a prototype, not a finished hostile multi-tenant service. Before production, add user authentication and authorization, signed host/guest requests, per-workspace firewall rules, collision-free IP allocation, secret-brokered short-lived model credentials, image/flake review, resource admission control, and escape/cross-tenant release tests.
+The MicroVM is the workspace isolation boundary. This is still a prototype, not a finished hostile multi-tenant service. Before production, add user authentication and authorization, signed host/guest requests, per-workspace firewall rules, collision-free IP allocation, secret-brokered short-lived model credentials, image/flake review, resource admission control, and escape/cross-tenant release tests.
 
 Private networking also does not make hosted inference private. Configure Pi for an internal OpenAI-compatible, Ollama, vLLM, or LM Studio endpoint when prompts and files must not leave the network.
 

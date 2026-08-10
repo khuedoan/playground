@@ -11,7 +11,7 @@ Only `workbench/` in `khuedoan/playground`.
 ## Constraints
 
 - `microvm.nix` is the sole host backend.
-- Each guest includes Wayland, Blender, code-server, Pi, and Docker.
+- Each guest includes Wayland, Blender, code-server, Pi, and the language toolchains used by the agent.
 - Provisioning remains idempotent across retries and host-agent restarts.
 - No claim of an end-to-end VM boot without a KVM-capable NixOS host.
 
@@ -19,5 +19,5 @@ Only `workbench/` in `khuedoan/playground`.
 
 - Rust and Phoenix tests pass.
 - Nix files format and evaluate on a Nix-capable runner.
-- No Docker host backend, Compose file, Dockerfile, or backend selector remains.
+- No alternate host backend or backend selector remains.
 - A draft PR records any validation that requires a NixOS/KVM host.

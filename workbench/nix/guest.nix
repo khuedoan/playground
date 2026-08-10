@@ -56,14 +56,12 @@ in
         home = "/home/workbench";
         createHome = true;
         extraGroups = [
-          "docker"
           "video"
           "wheel"
         ];
       };
       security.sudo.wheelNeedsPassword = false;
 
-      virtualisation.docker.enable = true;
       nix.settings.experimental-features = [
         "nix-command"
         "flakes"

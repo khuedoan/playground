@@ -2,9 +2,7 @@
 
 ## Isolation boundary
 
-Each workspace runs as a NixOS MicroVM with its own kernel, memory allocation, TAP interface, persistent workspace volume, persistent guest-Docker volume, Wayland compositor, and Pi process. Cloud Hypervisor and KVM provide a substantially stronger boundary than a privileged workspace container.
-
-Docker runs only inside the guest. Workspaces never receive `/var/run/docker.sock` from the host.
+Each workspace runs as a NixOS MicroVM with its own kernel, memory allocation, TAP interface, persistent workspace volume, Wayland compositor, and Pi process. Cloud Hypervisor and KVM provide a substantially stronger boundary than a privileged shared-kernel sandbox.
 
 The host agent runs as root because it creates MicroVM definitions and controls `microvm@…` systemd services. Keep its HTTP listener on loopback and allow only Phoenix to call it. The guest agent, code-server, and noVNC are intentionally unauthenticated on the private workspace subnet in this prototype; do not route that subnet to untrusted clients.
 

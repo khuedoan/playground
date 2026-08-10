@@ -101,7 +101,7 @@ defmodule WorkbenchWeb.WorkspaceLive do
           />
           <button type="submit">Launch</button>
         </div>
-        <p>4 vCPU · 8 GB · KVM isolation · guest Docker · Wayland desktop</p>
+        <p>4 vCPU · 8 GB · KVM isolation · Wayland desktop</p>
       </.form>
     </section>
 
@@ -171,7 +171,7 @@ defmodule WorkbenchWeb.WorkspaceLive do
 
           <div class="conversation" id={"conversation-#{workspace.id}"}>
             <p :if={Map.get(@conversations, workspace.id, []) == []} class="conversation-empty">
-              Ask Pi to inspect files, run tests, use Docker, or work in Blender.
+              Ask Pi to inspect files, run tests, or work in Blender.
             </p>
             <div
               :for={entry <- Map.get(@conversations, workspace.id, [])}

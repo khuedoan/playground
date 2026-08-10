@@ -112,11 +112,6 @@
                     mountPoint = "/workspace";
                     size = diskGiB * 1024;
                   }
-                  {
-                    image = "docker.img";
-                    mountPoint = "/var/lib/docker";
-                    size = 20 * 1024;
-                  }
                 ];
               };
 
