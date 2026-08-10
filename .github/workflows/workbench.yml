@@ -31,20 +31,6 @@ jobs:
 
   phoenix:
     runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:17-alpine
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: workbench_test
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U postgres -d workbench_test"
-          --health-interval 2s
-          --health-timeout 3s
-          --health-retries 30
     defaults:
       run:
         working-directory: workbench/apps/control_plane
@@ -59,6 +45,13 @@ jobs:
           node-version: "24"
           cache: npm
           cache-dependency-path: workbench/apps/control_plane/assets/package-lock.json
+      - name: Start PostgreSQL
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes postgresql
+          sudo systemctl start postgresql
+          sudo -u postgres psql --set ON_ERROR_STOP=1 --command "ALTER USER postgres PASSWORD 'postgres';"
+          sudo -u postgres createdb workbench_test
       - run: mix deps.get
       - run: mix format --check-formatted
       - run: mix compile --warnings-as-errors
