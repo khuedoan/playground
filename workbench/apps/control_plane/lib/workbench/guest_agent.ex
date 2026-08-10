@@ -17,9 +17,9 @@ defmodule Workbench.GuestAgent do
              "id" => Ecto.UUID.generate()
            }),
          :ok <- await_completion(workspace.agent_url, session, baseline["messageCount"] || 0),
-         {:ok, %{"data" => %{"messages" => messages}}} <-
-           rpc(workspace.agent_url, session, %{"type" => "get_messages"}) do
-      extract_reply(messages)
+         {:ok, %{"data" => reply}} <-
+           rpc(workspace.agent_url, session, %{"type" => "get_last_assistant_text"}) do
+      extract_last_assistant_text(reply)
     end
   end
 
@@ -65,23 +65,13 @@ defmodule Workbench.GuestAgent do
     end
   end
 
-  defp extract_reply(messages) do
-    text =
-      messages
-      |> Enum.reverse()
-      |> Enum.find_value(fn
-        %{"role" => "assistant", "content" => content} when is_list(content) ->
-          content
-          |> Enum.flat_map(fn
-            %{"type" => "text", "text" => text} -> [text]
-            _block -> []
-          end)
-          |> Enum.join("\n")
-
-        _message ->
-          nil
-      end)
-
-    if is_binary(text) and text != "", do: {:ok, text}, else: {:error, :empty_agent_reply}
+  @doc false
+  def extract_last_assistant_text(%{"text" => text}) when is_binary(text) do
+    case String.trim(text) do
+      "" -> {:error, :empty_agent_reply}
+      reply -> {:ok, reply}
+    end
   end
+
+  def extract_last_assistant_text(_reply), do: {:error, :empty_agent_reply}
 end
