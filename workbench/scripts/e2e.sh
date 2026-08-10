@@ -62,7 +62,7 @@ for url in "$agent_url/healthz" "$code_url" "$desktop_url"; do
   done
 done
 
-verification_command='test -s /workspace/workbench-demo.txt && systemctl is-active workbench-mock-llm.service workbench-sway.service workbench-wayvnc.service workbench-novnc.service code-server.service && pgrep -x blender >/dev/null'
+verification_command='test -s /workspace/workbench-demo.txt && systemctl is-active workbench-mock-llm.service workbench-sway.service workbench-wayvnc.service workbench-novnc.service code-server.service && pgrep --full --list-full "/bin/blender( |$)"'
 jq -nc --arg command "$verification_command" '{command: $command, cwd: "/workspace", timeout_seconds: 60}' |
   curl --fail --silent -H 'content-type: application/json' --data-binary @- "$agent_url/v1/exec" |
   tee "$artifacts/guest-verification.json" |
