@@ -19,5 +19,6 @@ Only `workbench/` in `khuedoan/playground`.
 
 - Rust and Phoenix tests pass.
 - Nix files format and evaluate on a Nix-capable runner.
+- GitHub Actions boots and exercises a real KVM MicroVM and uploads its recorded browser session.
 - No alternate host backend or backend selector remains.
 - A draft PR records any validation that requires a NixOS/KVM host.

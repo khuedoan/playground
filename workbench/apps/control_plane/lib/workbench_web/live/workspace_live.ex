@@ -10,6 +10,7 @@ defmodule WorkbenchWeb.WorkspaceLive do
     {:ok,
      socket
      |> assign(:page_title, "Private agent workspaces")
+     |> assign(:workspace_profile, Application.fetch_env!(:workbench, :workspace_profile))
      |> assign(:form, to_form(%{"title" => ""}, as: :workspace))
      |> assign(:conversations, %{})
      |> assign(:busy_agents, MapSet.new())
@@ -101,7 +102,10 @@ defmodule WorkbenchWeb.WorkspaceLive do
           />
           <button type="submit">Launch</button>
         </div>
-        <p>4 vCPU · 8 GB · KVM isolation · Wayland desktop</p>
+        <p>
+          {@workspace_profile.vcpus} vCPU · {Float.round(@workspace_profile.memory_mib / 1024, 1)} GB ·
+          KVM isolation · Wayland desktop
+        </p>
       </.form>
     </section>
 

@@ -14,8 +14,9 @@ defmodule Workbench.HostAgent.Http do
   @impl true
   def ensure(%{"workspace_id" => workspace_id} = payload) do
     base = Application.fetch_env!(:workbench, :host_agent_url)
+    timeout = Application.fetch_env!(:workbench, :host_agent_timeout_ms)
 
-    case Req.put("#{base}/v1/workspaces/#{workspace_id}", json: payload, receive_timeout: 240_000) do
+    case Req.put("#{base}/v1/workspaces/#{workspace_id}", json: payload, receive_timeout: timeout) do
       {:ok, %{status: status, body: body}} when status in 200..299 -> {:ok, body}
       {:ok, %{status: status, body: body}} -> {:error, {:host_agent, status, body}}
       {:error, reason} -> {:error, {:transport, reason}}

@@ -10,6 +10,10 @@ on:
       - "workbench/**"
       - ".github/workflows/workbench.yml"
 
+permissions:
+  contents: read
+  models: read
+
 jobs:
   rust:
     runs-on: ubuntu-latest
@@ -78,3 +82,93 @@ jobs:
       - uses: DeterminateSystems/nix-installer-action@v22
       - run: nix flake check --no-build --print-build-logs
       - run: nix build .#checks.x86_64-linux.host-agent .#checks.x86_64-linux.guest-agent --print-build-logs
+
+  e2e:
+    needs: [rust, phoenix, nix]
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    defaults:
+      run:
+        working-directory: workbench
+    env:
+      ARTIFACTS_DIR: ${{ github.workspace }}/workbench/demo/artifacts
+      CONTROL_URL: http://127.0.0.1:4000
+      DATABASE_URL: ecto://postgres:postgres@127.0.0.1/workbench_e2e
+      DEMO_AGENT_TIMEOUT_MS: "900000"
+      DEMO_BOOT_TIMEOUT_MS: "1800000"
+      GITHUB_MODELS_TOKEN: ${{ github.token }}
+      HOST_AGENT_TIMEOUT_MS: "1800000"
+      HOST_AGENT_URL: http://127.0.0.1:9090
+      MIX_ENV: prod
+      PI_MODEL: openai/gpt-4.1-mini
+      PI_PROVIDER: github-models
+      SECRET_KEY_BASE: 1111111111111111111111111111111111111111111111111111111111111111
+      WORKBENCH_DISK_GIB: "8"
+      WORKBENCH_MEMORY_MIB: "3072"
+      WORKBENCH_VCPUS: "2"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: DeterminateSystems/nix-installer-action@v22
+      - uses: erlef/setup-beam@v1
+        with:
+          otp-version: "29.0"
+          elixir-version: "1.20"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Install host dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes dnsmasq-base ffmpeg postgresql
+          sudo systemctl start postgresql
+          sudo -u postgres psql --set ON_ERROR_STOP=1 --command "ALTER USER postgres PASSWORD 'postgres';"
+
+      - name: Build Phoenix
+        working-directory: workbench/apps/control_plane
+        run: |
+          mix deps.get
+          mix compile --warnings-as-errors
+
+      - name: Build browser assets
+        run: |
+          npm ci --prefix apps/control_plane/assets
+          npm run build --prefix apps/control_plane/assets
+          npm ci --prefix demo
+          cd demo
+          npx playwright install --with-deps chromium
+
+      - name: Build the host runtime
+        run: |
+          mkdir -p .tmp
+          nix build .#host-agent --out-link .tmp/host-agent --print-build-logs
+          nix build .#microvm --out-link .tmp/microvm --print-build-logs
+
+      - name: Prepare KVM and MicroVM host services
+        run: |
+          sudo env \
+            GITHUB_MODELS_TOKEN="$GITHUB_MODELS_TOKEN" \
+            PI_MODEL="$PI_MODEL" \
+            PI_PROVIDER="$PI_PROVIDER" \
+            WORKBENCH_FLAKE_ROOT="$PWD" \
+            WORKBENCH_HOST_AGENT_BIN="$PWD/.tmp/host-agent/bin/workbench-host-agent" \
+            WORKBENCH_MICROVM_BIN="$PWD/.tmp/microvm/bin/microvm" \
+            "$PWD/scripts/ci/prepare-host.sh"
+
+      - name: Boot and exercise a real MicroVM
+        run: ./scripts/e2e.sh
+
+      - name: Collect MicroVM diagnostics
+        if: always()
+        run: |
+          sudo "$PWD/scripts/ci/collect-diagnostics.sh" "$ARTIFACTS_DIR"
+          sudo chown -R "$USER:$USER" "$ARTIFACTS_DIR"
+
+      - name: Upload the genuine demo and logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: workbench-real-microvm-${{ github.run_id }}
+          path: workbench/demo/artifacts
+          if-no-files-found: error
+          retention-days: 7

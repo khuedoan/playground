@@ -3,6 +3,8 @@ import {chromium} from "playwright"
 
 const controlUrl = process.env.CONTROL_URL || "http://127.0.0.1:4000"
 const artifacts = process.env.ARTIFACTS_DIR || "/artifacts"
+const bootTimeout = Number(process.env.DEMO_BOOT_TIMEOUT_MS || "900000")
+const agentTimeout = Number(process.env.DEMO_AGENT_TIMEOUT_MS || "600000")
 const prompt = process.env.DEMO_PROMPT ||
   "Create /workspace/workbench-demo.txt containing the current UTC time, verify it with a shell command, then briefly tell me what you did."
 
@@ -25,12 +27,12 @@ try {
   await page.getByRole("button", {name: "Launch"}).click()
 
   const card = page.locator("article.workspace-card").filter({hasText: title})
-  await card.getByText("running", {exact: true}).waitFor({timeout: 300_000})
+  await card.getByText("running", {exact: true}).waitFor({timeout: bootTimeout})
   await page.waitForTimeout(3_000)
 
   await card.getByPlaceholder("Ask Pi to do something in this workspace…").fill(prompt)
   await card.getByRole("button", {name: "Send"}).click()
-  await card.locator(".message-assistant").waitFor({timeout: 600_000})
+  await card.locator(".message-assistant").waitFor({timeout: agentTimeout})
   await page.waitForTimeout(4_000)
   await page.screenshot({path: `${artifacts}/workbench-demo-final.png`, fullPage: true})
 } finally {

@@ -1,0 +1,14 @@
+[Unit]
+Description=Workbench host agent for the real CI MicroVM
+After=network-online.target workbench-dns.service
+Wants=network-online.target workbench-dns.service
+
+[Service]
+EnvironmentFile=/run/workbench-e2e/host.env
+ExecStart=/bin/sh -c 'exec "$WORKBENCH_HOST_AGENT_BIN"'
+Restart=on-failure
+RestartSec=2
+User=root
+
+[Install]
+WantedBy=multi-user.target

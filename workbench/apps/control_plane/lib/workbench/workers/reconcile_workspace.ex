@@ -26,17 +26,14 @@ defmodule Workbench.Workers.ReconcileWorkspace do
   end
 
   defp payload(workspace) do
+    profile = Application.fetch_env!(:workbench, :workspace_profile)
+
     %{
       "command_id" => workspace.command_id,
       "workspace_id" => workspace.id,
       "generation" => workspace.generation,
       "desired_state" => Atom.to_string(workspace.desired_state),
-      "profile" => %{
-        "vcpus" => 4,
-        "memory_mib" => 8192,
-        "disk_gib" => 40,
-        "gui" => true
-      }
+      "profile" => Map.new(profile, fn {key, value} -> {Atom.to_string(key), value} end)
     }
   end
 end

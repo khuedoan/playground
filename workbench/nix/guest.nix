@@ -8,6 +8,30 @@
 let
   cfg = config.workbench;
   guestAgent = self.packages.${pkgs.system}.guest-agent;
+  piModels = pkgs.writeText "workbench-pi-models.json" (
+    builtins.toJSON {
+      providers.github-models = {
+        baseUrl = "https://models.github.ai/inference";
+        api = "openai-completions";
+        apiKey = "$GITHUB_MODELS_TOKEN";
+        authHeader = true;
+        compat = {
+          supportsDeveloperRole = false;
+          supportsReasoningEffort = false;
+        };
+        models = [
+          {
+            id = "openai/gpt-4.1-mini";
+            name = "GitHub Models GPT-4.1 Mini";
+            reasoning = false;
+            input = [ "text" ];
+            contextWindow = 128000;
+            maxTokens = 4096;
+          }
+        ];
+      };
+    }
+  );
   swayConfig = pkgs.writeText "workbench-sway.conf" ''
     output HEADLESS-1 resolution 1280x720
     default_border pixel 2
@@ -105,7 +129,12 @@ in
         extraArguments = [ "/workspace" ];
       };
 
-      systemd.tmpfiles.rules = [ "z /workspace 0770 workbench workbench -" ];
+      systemd.tmpfiles.rules = [
+        "z /workspace 0770 workbench workbench -"
+        "d /home/workbench/.pi 0700 workbench workbench -"
+        "d /home/workbench/.pi/agent 0700 workbench workbench -"
+        "L+ /home/workbench/.pi/agent/models.json - - - - ${piModels}"
+      ];
       systemd.services.workbench-guest-agent = {
         description = "Workbench guest agent with persistent Pi RPC";
         wantedBy = [ "multi-user.target" ];

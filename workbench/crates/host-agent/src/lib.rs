@@ -202,6 +202,7 @@ impl MicrovmBackend {
             "ANTHROPIC_API_KEY",
             "OPENAI_API_KEY",
             "GOOGLE_API_KEY",
+            "GITHUB_MODELS_TOKEN",
             "PI_PROVIDER",
             "PI_MODEL",
         ] {

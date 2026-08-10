@@ -5,7 +5,7 @@ project_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$project_root"
 
 if [ ! -c /dev/kvm ]; then
-  echo "A KVM-capable NixOS host is required for the real demo; no simulated recording is used." >&2
+  echo "A KVM-capable Linux host is required for the real demo; no simulated recording is used." >&2
   exit 1
 fi
 

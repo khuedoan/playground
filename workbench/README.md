@@ -111,6 +111,8 @@ make check
 
 `nix flake check` builds both Rust agents. `cargo test` covers command idempotency, stale generations, concurrent retries, generated workspace flakes, and MicroVM lifecycle commands. Phoenix tests cover durable jobs, audit events, reconciliation, and LiveView behavior.
 
+GitHub Actions also runs `scripts/e2e.sh` on a KVM-enabled Linux runner. It provisions the production host agent and official MicroVM runner, boots a real Cloud Hypervisor guest, creates a workspace through Phoenix, asks the real Pi process to modify and verify a file using GitHub Models, checks code-server and the Wayland/noVNC/Blender services, restarts the MicroVM, and verifies the workspace file persisted. The job uploads the browser video and host/guest diagnostics as `workbench-real-microvm-<run-id>`.
+
 ## Real demo recording
 
 After the NixOS host and Phoenix are running:
@@ -119,7 +121,7 @@ After the NixOS host and Phoenix are running:
 ./scripts/demo.sh
 ```
 
-The script refuses to run without `/dev/kvm`, an active host agent, and a reachable Phoenix UI. Playwright then creates a real MicroVM through the UI, waits for a real Pi response, and records `demo/artifacts/workbench-demo.webm`. It has no mock or simulated-success path.
+The script refuses to run without `/dev/kvm`, an active host agent, and a reachable Phoenix UI. Playwright then creates a real MicroVM through the UI, waits for a real Pi response, and records `demo/artifacts/workbench-demo.webm`. It has no mock or simulated-success path. When `ffmpeg` is available it also emits `demo/artifacts/workbench-demo.mp4`.
 
 ## Security boundary
 

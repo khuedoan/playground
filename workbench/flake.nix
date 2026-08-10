@@ -138,6 +138,7 @@
         {
           host-agent = rustPackage pkgs "workbench-host-agent" "workbench-host-agent";
           guest-agent = rustPackage pkgs "workbench-guest-agent" "workbench-guest-agent";
+          microvm = microvm.packages.${system}.microvm;
           default = self.packages.${system}.host-agent;
         }
       );
