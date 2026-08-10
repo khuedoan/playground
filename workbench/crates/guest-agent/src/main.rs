@@ -19,6 +19,8 @@ struct Options {
     pi_provider: Option<String>,
     #[arg(long, env = "PI_MODEL")]
     pi_model: Option<String>,
+    #[arg(long, env = "PI_API_KEY")]
+    pi_api_key: Option<String>,
 }
 
 #[tokio::main]
@@ -27,11 +29,18 @@ async fn main() -> Result<()> {
         .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
         .init();
     let options = Options::parse();
+    let pi_api_key = options
+        .pi_api_key
+        .or_else(|| match options.pi_provider.as_deref() {
+            Some("github-models") => std::env::var("GITHUB_MODELS_TOKEN").ok(),
+            _ => None,
+        });
     let pi = Arc::new(PiManager::new(
         options.pi_executable,
         options.workspace_root.clone(),
         options.pi_provider,
         options.pi_model,
+        pi_api_key,
     ));
     let app = router(AppState {
         workspace_root: options.workspace_root,

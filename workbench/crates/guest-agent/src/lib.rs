@@ -52,6 +52,7 @@ pub struct PiManager {
     sessions: Mutex<HashMap<String, PiProcess>>,
     provider: Option<String>,
     model: Option<String>,
+    api_key: Option<String>,
 }
 
 impl PiManager {
@@ -60,6 +61,7 @@ impl PiManager {
         workspace_root: PathBuf,
         provider: Option<String>,
         model: Option<String>,
+        api_key: Option<String>,
     ) -> Self {
         Self {
             executable,
@@ -67,6 +69,7 @@ impl PiManager {
             sessions: Mutex::new(HashMap::new()),
             provider,
             model,
+            api_key,
         }
     }
 
@@ -98,6 +101,9 @@ impl PiManager {
         }
         if let Some(model) = &self.model {
             command.args(["--model", model]);
+        }
+        if let Some(api_key) = &self.api_key {
+            command.arg("--api-key").arg(api_key);
         }
         let mut child = command
             .spawn()

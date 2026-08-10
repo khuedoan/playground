@@ -18,4 +18,13 @@ ip address show > "$artifacts/ip-address.txt" || true
 ip route show > "$artifacts/ip-route.txt" || true
 curl --silent http://127.0.0.1:9090/v1/workspaces > "$artifacts/host-state.json" || true
 
+agent_url="$(jq -r '.[0].agent_url // empty' "$artifacts/host-state.json" 2>/dev/null || true)"
+if [ -n "$agent_url" ]; then
+  diagnostic_command='printf "github_models_token=%s\n" "${GITHUB_MODELS_TOKEN:+set}"; test -r /home/workbench/.pi/agent/models.json && echo models_config=readable || echo models_config=unreadable; test -w /workspace/.pi/sessions && echo session_dir=writable || echo session_dir=unwritable'
+  jq -nc --arg command "$diagnostic_command" \
+    '{command: $command, cwd: "/workspace", timeout_seconds: 30}' |
+    curl --silent --show-error -H 'content-type: application/json' --data-binary @- \
+      "$agent_url/v1/exec" > "$artifacts/guest-environment.json" || true
+fi
+
 chmod -R a+rX "$artifacts"
