@@ -295,7 +295,10 @@ in
       systemd.services.workbench-sway = {
         description = "Workbench headless Sway desktop";
         wantedBy = [ "multi-user.target" ];
-        path = [ pkgs.dbus ];
+        path = [
+          pkgs.bash
+          pkgs.dbus
+        ];
         environment = {
           HOME = "/home/workbench";
           WLR_BACKENDS = "headless";
