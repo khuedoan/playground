@@ -37,3 +37,4 @@
 - Run #46 was functionally green, but its final screenshot exposed a visual regression: Blender's software-rendered Xwayland surface was pure white in the noVNC frame.
 - Decision: keep the real Blender process running on Sway's scratchpad while presenting a fullscreen Foot terminal on the visible workspace. The terminal prints the Sway compositor, Wayland display, and persistent workspace path so the recording visibly demonstrates the guest desktop instead of relying only on backend assertions.
 - Added an explicit monospace font and dark terminal palette to make the captured desktop deterministic and legible.
+- The Playwright recorder reconnects noVNC after the workspace is running and fails unless the canvas contains a rendered dark framebuffer, preventing a green E2E result from publishing another blank screenshot.
