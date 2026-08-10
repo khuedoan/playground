@@ -102,7 +102,7 @@
                     proto = "virtiofs";
                     tag = "credentials";
                     source = credentialDirectory;
-                    mountPoint = "/run/credentials/workbench";
+                    mountPoint = "/mnt/workbench-credentials";
                     readOnly = true;
                   }
                 ];

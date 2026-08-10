@@ -158,7 +158,10 @@ in
       systemd.services.workbench-model-credentials = {
         description = "Stage ephemeral model credentials for the unprivileged guest agent";
         before = [ "workbench-guest-agent.service" ];
-        unitConfig.RequiresMountsFor = [ "/run/credentials/workbench" ];
+        unitConfig = {
+          OnFailure = [ "workbench-guest-agent-diagnostics.service" ];
+          RequiresMountsFor = [ "/mnt/workbench-credentials" ];
+        };
         serviceConfig = {
           Type = "oneshot";
           RemainAfterExit = true;
@@ -166,7 +169,7 @@ in
         script = ''
           ${pkgs.coreutils}/bin/install -d -m 0750 -o root -g workbench /run/workbench
           ${pkgs.coreutils}/bin/install -m 0400 -o workbench -g workbench \
-            /run/credentials/workbench/model.env /run/workbench/model.env
+            /mnt/workbench-credentials/model.env /run/workbench/model.env
         '';
       };
       systemd.services.workbench-guest-agent = {
@@ -226,6 +229,11 @@ in
           StandardError = "journal+console";
         };
         script = ''
+          ${pkgs.util-linux}/bin/mountpoint /mnt/workbench-credentials || true
+          ${pkgs.coreutils}/bin/stat --format='credential_mount=%n mode=%a uid=%u gid=%g' \
+            /mnt/workbench-credentials /mnt/workbench-credentials/model.env || true
+          ${pkgs.systemd}/bin/systemctl --no-pager --full status workbench-model-credentials.service || true
+          ${pkgs.systemd}/bin/journalctl --no-pager -u workbench-model-credentials.service -n 40 || true
           ${pkgs.systemd}/bin/systemctl --no-pager --full status workbench-guest-agent.service || true
           ${pkgs.systemd}/bin/journalctl --no-pager -u workbench-guest-agent.service -n 40 || true
         '';
