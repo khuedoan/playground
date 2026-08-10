@@ -44,7 +44,7 @@ let
     font=DejaVu Sans Mono:size=11
     pad=18x18
 
-    [colors]
+    [colors-dark]
     background=10151a
     foreground=d8dee9
   '';
@@ -307,10 +307,10 @@ in
     }
 
     (lib.mkIf cfg.gui.enable {
+      fonts.packages = [ pkgs.dejavu_fonts ];
       programs.wayvnc.enable = true;
       environment.systemPackages = with pkgs; [
         blender
-        dejavu_fonts
         foot
         novnc
         sway
