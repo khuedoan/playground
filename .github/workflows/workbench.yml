@@ -155,7 +155,7 @@ jobs:
       - name: Collect MicroVM diagnostics
         if: always()
         run: |
-          sudo "$PWD/scripts/ci/collect-diagnostics.sh" "$ARTIFACTS_DIR"
+          sudo bash "$PWD/scripts/ci/collect-diagnostics.sh" "$ARTIFACTS_DIR"
           sudo chown -R "$USER:$USER" "$ARTIFACTS_DIR"
 
       - name: Upload the genuine demo and logs
