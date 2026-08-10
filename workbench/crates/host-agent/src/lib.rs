@@ -51,7 +51,6 @@ pub struct MicrovmBackend {
     flake_root: PathBuf,
     spec_root: PathBuf,
     state_root: PathBuf,
-    credential_root: PathBuf,
     health_timeout: Duration,
 }
 
@@ -62,7 +61,6 @@ impl MicrovmBackend {
         flake_root: PathBuf,
         spec_root: PathBuf,
         state_root: PathBuf,
-        credential_root: PathBuf,
         health_timeout: Duration,
     ) -> Self {
         Self {
@@ -71,7 +69,6 @@ impl MicrovmBackend {
             flake_root,
             spec_root,
             state_root,
-            credential_root,
             health_timeout,
         }
     }
@@ -101,10 +98,6 @@ impl MicrovmBackend {
         self.spec_root.join(name)
     }
 
-    fn credential_dir(&self, name: &str) -> PathBuf {
-        self.credential_root.join(name)
-    }
-
     fn runner(&self, name: &str) -> PathBuf {
         self.state_root.join(name).join("current/bin/microvm-run")
     }
@@ -128,7 +121,6 @@ impl MicrovmBackend {
         }
         let name = Self::vm_name(request.workspace_id);
         let (address, gateway, mac) = Self::network(request.workspace_id);
-        let credentials = self.credential_dir(&name);
         Ok(format!(
             r#"{{
   inputs.workbench.url = {flake_url};
@@ -145,7 +137,6 @@ impl MicrovmBackend {
       gateway = {gateway};
       mac = {mac};
       tapInterface = {tap};
-      credentialDirectory = {credentials};
     }};
   }};
 }}
@@ -162,7 +153,6 @@ impl MicrovmBackend {
             gateway = nix_string(&gateway.to_string()),
             mac = nix_string(&mac),
             tap = nix_string(&Self::tap_name(request.workspace_id)),
-            credentials = nix_string(&credentials.display().to_string()),
         ))
     }
 
@@ -189,44 +179,6 @@ impl MicrovmBackend {
                 .with_context(|| format!("replace {}", path.display()))?;
         }
         Ok((path, changed))
-    }
-
-    async fn write_credentials(&self, name: &str) -> Result<()> {
-        let directory = self.credential_dir(name);
-        tokio::fs::create_dir_all(&directory)
-            .await
-            .with_context(|| format!("create {}", directory.display()))?;
-        let path = directory.join("model.env");
-        let mut contents = String::new();
-        for key in [
-            "ANTHROPIC_API_KEY",
-            "OPENAI_API_KEY",
-            "GOOGLE_API_KEY",
-            "GITHUB_MODELS_TOKEN",
-            "PI_PROVIDER",
-            "PI_MODEL",
-        ] {
-            if let Ok(value) = std::env::var(key) {
-                if value.contains('\n') || value.contains('\r') {
-                    anyhow::bail!("{key} contains a newline");
-                }
-                contents.push_str(key);
-                contents.push('=');
-                contents.push_str(&serde_json::to_string(&value)?);
-                contents.push('\n');
-            }
-        }
-        tokio::fs::write(&path, contents)
-            .await
-            .with_context(|| format!("write {}", path.display()))?;
-        #[cfg(unix)]
-        {
-            use std::os::unix::fs::PermissionsExt;
-            tokio::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o600))
-                .await
-                .with_context(|| format!("chmod {}", path.display()))?;
-        }
-        Ok(())
     }
 
     async fn run(&self, executable: &Path, args: &[String]) -> Result<String> {
@@ -315,7 +267,6 @@ impl VmBackend for MicrovmBackend {
         let (address, _, _) = Self::network(request.workspace_id);
         match request.desired_state {
             DesiredState::Running => {
-                self.write_credentials(&name).await?;
                 let (spec, changed) = self.write_spec(request).await?;
                 let runner_exists = tokio::fs::try_exists(self.runner(&name)).await?;
                 if !runner_exists {
@@ -349,7 +300,6 @@ impl VmBackend for MicrovmBackend {
                 self.stop(&name).await?;
                 Self::remove_tree(&self.state_root.join(&name)).await?;
                 Self::remove_tree(&self.spec_dir(&name)).await?;
-                Self::remove_tree(&self.credential_dir(&name)).await?;
                 Ok(status_for(request, ActualState::Deleted))
             }
         }
@@ -704,7 +654,6 @@ mod tests {
             flake_root,
             directory.path().join("specs"),
             state_root,
-            directory.path().join("credentials"),
             Duration::ZERO,
         );
         let id = Uuid::new_v4();

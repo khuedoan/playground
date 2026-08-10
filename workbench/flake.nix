@@ -63,7 +63,6 @@
           gateway,
           mac,
           tapInterface,
-          credentialDirectory,
           system ? "x86_64-linux",
         }:
         nixpkgs.lib.nixosSystem {
@@ -96,13 +95,6 @@
                     tag = "ro-store";
                     source = "/nix/store";
                     mountPoint = "/nix/.ro-store";
-                    readOnly = true;
-                  }
-                  {
-                    proto = "virtiofs";
-                    tag = "credentials";
-                    source = credentialDirectory;
-                    mountPoint = "/mnt/workbench-credentials";
                     readOnly = true;
                   }
                 ];
@@ -166,7 +158,6 @@
             gateway = "10.88.0.1";
             mac = "02:b0:00:00:00:42";
             tapInterface = "wb-check";
-            credentialDirectory = "/run/workbench/credentials/workbench-check";
           };
         in
         {

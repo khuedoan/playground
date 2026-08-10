@@ -37,12 +37,6 @@ struct Options {
     microvm_state_root: PathBuf,
     #[arg(
         long,
-        env = "WORKBENCH_CREDENTIAL_ROOT",
-        default_value = "/run/workbench/credentials"
-    )]
-    credential_root: PathBuf,
-    #[arg(
-        long,
         env = "WORKBENCH_GUEST_HEALTH_TIMEOUT_SECONDS",
         default_value_t = 180
     )]
@@ -61,7 +55,6 @@ async fn main() -> Result<()> {
         options.flake_root,
         options.spec_root,
         options.microvm_state_root,
-        options.credential_root,
         Duration::from_secs(options.guest_health_timeout_seconds),
     ));
     let store = Arc::new(VmStore::open(options.state, backend).await?);

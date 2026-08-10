@@ -8,25 +8,29 @@
 let
   cfg = config.workbench;
   guestAgent = self.packages.${pkgs.system}.guest-agent;
+  localCoderModel = pkgs.fetchurl {
+    name = "qwen2.5-coder-0.5b-instruct-q4_0.gguf";
+    url = "https://huggingface.co/Qwen/Qwen2.5-Coder-0.5B-Instruct-GGUF/resolve/56c037aa51c4d689c272c21ea2a8b9c13341e8b2/qwen2.5-coder-0.5b-instruct-q4_0.gguf";
+    hash = "sha256-lzkFXgRtYqk35beHkBIgnvQOvqihVpqWAo3kkfPwkdU=";
+  };
   piModels = pkgs.writeText "workbench-pi-models.json" (
     builtins.toJSON {
-      providers.github-models = {
-        baseUrl = "https://models.github.ai/inference";
+      providers.local-llama = {
+        baseUrl = "http://127.0.0.1:8080/v1";
         api = "openai-completions";
-        apiKey = "$GITHUB_MODELS_TOKEN";
-        authHeader = true;
+        apiKey = "none";
         compat = {
           supportsDeveloperRole = false;
           supportsReasoningEffort = false;
         };
         models = [
           {
-            id = "openai/gpt-4.1-mini";
-            name = "GitHub Models GPT-4.1 Mini";
+            id = "local-coder";
+            name = "Local Qwen2.5 Coder 0.5B";
             reasoning = false;
             input = [ "text" ];
-            contextWindow = 128000;
-            maxTokens = 4096;
+            contextWindow = 8192;
+            maxTokens = 512;
           }
         ];
       };
@@ -155,21 +159,44 @@ in
         after = [ "workbench-prepare-workspace.service" ];
         requires = [ "workbench-prepare-workspace.service" ];
       };
-      systemd.services.workbench-model-credentials = {
-        description = "Stage ephemeral model credentials for the unprivileged guest agent";
-        before = [ "workbench-guest-agent.service" ];
-        unitConfig = {
-          OnFailure = [ "workbench-guest-agent-diagnostics.service" ];
-          RequiresMountsFor = [ "/mnt/workbench-credentials" ];
+      services.llama-cpp = {
+        enable = true;
+        settings = {
+          model = localCoderModel;
+          alias = "local-coder";
+          host = "127.0.0.1";
+          port = 8080;
+          ctx-size = 8192;
+          n-predict = 512;
+          threads = 2;
+          parallel = 1;
+          temp = 0.1;
+          jinja = true;
         };
+      };
+      systemd.services.llama-cpp = {
+        unitConfig.OnFailure = [ "workbench-guest-agent-diagnostics.service" ];
+        serviceConfig.RestartSec = lib.mkForce 2;
+      };
+      systemd.services.workbench-local-model-ready = {
+        description = "Wait for the local coding model";
+        after = [ "llama-cpp.service" ];
+        requires = [ "llama-cpp.service" ];
+        before = [ "workbench-guest-agent.service" ];
+        unitConfig.OnFailure = [ "workbench-guest-agent-diagnostics.service" ];
         serviceConfig = {
           Type = "oneshot";
           RemainAfterExit = true;
         };
         script = ''
-          ${pkgs.coreutils}/bin/install -d -m 0750 -o root -g workbench /run/workbench
-          ${pkgs.coreutils}/bin/install -m 0400 -o workbench -g workbench \
-            /mnt/workbench-credentials/model.env /run/workbench/model.env
+          for attempt in $(${pkgs.coreutils}/bin/seq 1 240); do
+            if ${pkgs.curl}/bin/curl --fail --silent http://127.0.0.1:8080/health >/dev/null; then
+              exit 0
+            fi
+            ${pkgs.coreutils}/bin/sleep 0.5
+          done
+          echo "local coding model did not become ready" >&2
+          exit 1
         '';
       };
       systemd.services.workbench-guest-agent = {
@@ -178,11 +205,11 @@ in
         after = [
           "local-fs.target"
           "network-online.target"
-          "workbench-model-credentials.service"
+          "workbench-local-model-ready.service"
           "workbench-prepare-workspace.service"
         ];
         requires = [
-          "workbench-model-credentials.service"
+          "workbench-local-model-ready.service"
           "workbench-prepare-workspace.service"
         ];
         wants = [ "network-online.target" ];
@@ -206,13 +233,15 @@ in
         environment = {
           HOME = "/home/workbench";
           PI_EXECUTABLE = "${pkgs.pi-coding-agent}/bin/pi";
+          PI_API_KEY = "none";
+          PI_MODEL = "local-coder";
+          PI_PROVIDER = "local-llama";
           WORKBENCH_GUEST_LISTEN = "0.0.0.0:7070";
           WORKBENCH_WORKSPACE_ROOT = "/workspace";
           WORKBENCH_WORKSPACE_ID = cfg.workspaceId;
         };
         serviceConfig = {
           ExecStart = "${guestAgent}/bin/workbench-guest-agent";
-          EnvironmentFile = "/run/workbench/model.env";
           Restart = "on-failure";
           RestartSec = 2;
           User = "workbench";
@@ -229,11 +258,9 @@ in
           StandardError = "journal+console";
         };
         script = ''
-          ${pkgs.util-linux}/bin/mountpoint /mnt/workbench-credentials || true
-          ${pkgs.coreutils}/bin/stat --format='credential_mount=%n mode=%a uid=%u gid=%g' \
-            /mnt/workbench-credentials /mnt/workbench-credentials/model.env || true
-          ${pkgs.systemd}/bin/systemctl --no-pager --full status workbench-model-credentials.service || true
-          ${pkgs.systemd}/bin/journalctl --no-pager -u workbench-model-credentials.service -n 40 || true
+          ${pkgs.curl}/bin/curl --silent --show-error http://127.0.0.1:8080/health || true
+          ${pkgs.systemd}/bin/systemctl --no-pager --full status llama-cpp.service workbench-local-model-ready.service || true
+          ${pkgs.systemd}/bin/journalctl --no-pager -u llama-cpp.service -u workbench-local-model-ready.service -n 80 || true
           ${pkgs.systemd}/bin/systemctl --no-pager --full status workbench-guest-agent.service || true
           ${pkgs.systemd}/bin/journalctl --no-pager -u workbench-guest-agent.service -n 40 || true
         '';

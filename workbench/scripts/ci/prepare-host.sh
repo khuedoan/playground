@@ -9,9 +9,6 @@ fi
 : "${WORKBENCH_HOST_AGENT_BIN:?set WORKBENCH_HOST_AGENT_BIN}"
 : "${WORKBENCH_MICROVM_BIN:?set WORKBENCH_MICROVM_BIN}"
 : "${WORKBENCH_FLAKE_ROOT:?set WORKBENCH_FLAKE_ROOT}"
-: "${GITHUB_MODELS_TOKEN:?set GITHUB_MODELS_TOKEN}"
-: "${PI_PROVIDER:?set PI_PROVIDER}"
-: "${PI_MODEL:?set PI_MODEL}"
 
 script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 unit_dir="$script_dir/systemd"
@@ -37,7 +34,7 @@ test -c /dev/net/tun
 
 install -d -m 0750 -o microvm -g kvm /var/lib/microvms
 install -d -m 0700 -o root -g root /var/lib/workbench /var/lib/workbench/specs
-install -d -m 0700 -o root -g root /run/workbench/credentials /run/workbench-e2e
+install -d -m 0700 -o root -g root /run/workbench-e2e
 
 if ! ip link show workbench0 >/dev/null 2>&1; then
   ip link add workbench0 type bridge
@@ -74,11 +71,7 @@ umask 077
   printf 'WORKBENCH_FLAKE_ROOT=%s\n' "$WORKBENCH_FLAKE_ROOT"
   printf 'WORKBENCH_SPEC_ROOT=/var/lib/workbench/specs\n'
   printf 'WORKBENCH_MICROVM_STATE_ROOT=/var/lib/microvms\n'
-  printf 'WORKBENCH_CREDENTIAL_ROOT=/run/workbench/credentials\n'
   printf 'WORKBENCH_GUEST_HEALTH_TIMEOUT_SECONDS=300\n'
-  printf 'GITHUB_MODELS_TOKEN=%s\n' "$GITHUB_MODELS_TOKEN"
-  printf 'PI_PROVIDER=%s\n' "$PI_PROVIDER"
-  printf 'PI_MODEL=%s\n' "$PI_MODEL"
   printf 'RUST_LOG=info\n'
 } > /run/workbench-e2e/host.env
 

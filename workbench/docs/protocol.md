@@ -52,6 +52,6 @@ Pi uses strict LF-delimited JSONL. The guest reader splits only on `\n`; it does
 
 ## MicroVM lifecycle mapping
 
-For `running`, the host agent writes a generated flake, creates or updates the runner with the `microvm` command, starts `microvm@<workspace>.service`, and waits for the guest TCP endpoint. `stopped` stops that unit without deleting its volumes. `deleted` stops it and removes the exact MicroVM state, generated flake, and ephemeral credential-share directories.
+For `running`, the host agent writes a generated flake, creates or updates the runner with the `microvm` command, starts `microvm@<workspace>.service`, and waits for the guest TCP endpoint. `stopped` stops that unit without deleting its volumes. `deleted` stops it and removes the exact MicroVM state and generated flake.
 
 The `VmBackend` trait is retained only as an internal test seam for the durable journal. The production binary constructs `MicrovmBackend` directly and exposes no backend selector.

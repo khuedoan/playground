@@ -12,7 +12,6 @@ on:
 
 permissions:
   contents: read
-  models: read
 
 jobs:
   rust:
@@ -89,13 +88,10 @@ jobs:
       DATABASE_URL: ecto://postgres:postgres@127.0.0.1/workbench_e2e
       DEMO_AGENT_TIMEOUT_MS: "900000"
       DEMO_BOOT_TIMEOUT_MS: "1800000"
-      GITHUB_MODELS_TOKEN: ${{ github.token }}
       HOST_AGENT_TIMEOUT_MS: "1800000"
       HOST_AGENT_URL: http://127.0.0.1:9090
       MIX_ENV: prod
       PHX_HOST: 127.0.0.1
-      PI_MODEL: openai/gpt-4.1-mini
-      PI_PROVIDER: github-models
       SECRET_KEY_BASE: "1111111111111111111111111111111111111111111111111111111111111111"
       WORKBENCH_DISK_GIB: "8"
       WORKBENCH_MEMORY_MIB: "3072"
@@ -141,9 +137,6 @@ jobs:
       - name: Prepare KVM and MicroVM host services
         run: |
           sudo env \
-            GITHUB_MODELS_TOKEN="$GITHUB_MODELS_TOKEN" \
-            PI_MODEL="$PI_MODEL" \
-            PI_PROVIDER="$PI_PROVIDER" \
             WORKBENCH_FLAKE_ROOT="$PWD" \
             WORKBENCH_HOST_AGENT_BIN="$PWD/.tmp/host-agent/bin/workbench-host-agent" \
             WORKBENCH_MICROVM_BIN="$PWD/.tmp/microvm/bin/microvm" \

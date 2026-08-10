@@ -73,7 +73,7 @@ impl PiManager {
         }
     }
 
-    pub fn has_api_key(&self) -> bool {
+    pub fn has_model_access(&self) -> bool {
         self.api_key.as_ref().is_some_and(|key| !key.is_empty())
     }
 
@@ -248,7 +248,7 @@ async fn health(State(state): State<AppState>) -> Json<Value> {
     Json(serde_json::json!({
         "status": "ok",
         "agent": "pi",
-        "model_credentials": state.pi.has_api_key()
+        "model_access": state.pi.has_model_access()
     }))
 }
 

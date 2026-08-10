@@ -56,23 +56,12 @@ Add the module to the host flake:
       modules = [
         workbench.nixosModules.host
         {
-          services.workbench = {
-            enable = true;
-            environmentFile = "/run/secrets/workbench-model.env";
-          };
+          services.workbench.enable = true;
         }
       ];
     };
   };
 }
-```
-
-The environment file stays outside the Nix store and can contain:
-
-```bash
-OPENAI_API_KEY=...
-PI_PROVIDER=openai
-PI_MODEL=...
 ```
 
 Apply the host configuration and verify the private API:
@@ -111,7 +100,7 @@ make check
 
 `nix flake check` builds both Rust agents. `cargo test` covers command idempotency, stale generations, concurrent retries, generated workspace flakes, and MicroVM lifecycle commands. Phoenix tests cover durable jobs, audit events, reconciliation, and LiveView behavior.
 
-GitHub Actions also runs `scripts/e2e.sh` on a KVM-enabled Linux runner. It provisions the production host agent and official MicroVM runner, boots a real Cloud Hypervisor guest, creates a workspace through Phoenix, asks the real Pi process to modify and verify a file using GitHub Models, checks code-server and the Wayland/noVNC/Blender services, restarts the MicroVM, and verifies the workspace file persisted. The job uploads the browser video and host/guest diagnostics as `workbench-real-microvm-<run-id>`.
+GitHub Actions also runs `scripts/e2e.sh` on a KVM-enabled Linux runner. It provisions the production host agent and official MicroVM runner, boots a real Cloud Hypervisor guest, creates a workspace through Phoenix, asks the real Pi process to modify and verify a file using the guest's local llama.cpp coding model, checks code-server and the Wayland/noVNC/Blender services, restarts the MicroVM, and verifies the workspace file persisted. The job uploads the browser video and host/guest diagnostics as `workbench-real-microvm-<run-id>`.
 
 ## Real demo recording
 
@@ -127,6 +116,6 @@ The script refuses to run without `/dev/kvm`, an active host agent, and a reacha
 
 The MicroVM is the workspace isolation boundary. This is still a prototype, not a finished hostile multi-tenant service. Before production, add user authentication and authorization, signed host/guest requests, per-workspace firewall rules, collision-free IP allocation, secret-brokered short-lived model credentials, image/flake review, resource admission control, and escape/cross-tenant release tests.
 
-Private networking also does not make hosted inference private. Configure Pi for an internal OpenAI-compatible, Ollama, vLLM, or LM Studio endpoint when prompts and files must not leave the network.
+The prototype defaults to a small local GGUF coding model, so the demo prompt and file content never leave the MicroVM. A production deployment can replace it with a stronger model served by a private OpenAI-compatible inference endpoint.
 
 See [docs/protocol.md](docs/protocol.md), [docs/security.md](docs/security.md), [notes.md](notes.md), and [experiment.md](experiment.md).

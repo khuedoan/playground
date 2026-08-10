@@ -6,7 +6,7 @@ const artifacts = process.env.ARTIFACTS_DIR || "/artifacts"
 const bootTimeout = Number(process.env.DEMO_BOOT_TIMEOUT_MS || "900000")
 const agentTimeout = Number(process.env.DEMO_AGENT_TIMEOUT_MS || "600000")
 const prompt = process.env.DEMO_PROMPT ||
-  "Create /workspace/workbench-demo.txt containing the current UTC time, verify it with a shell command, then briefly tell me what you did."
+  "Use the bash tool to run exactly: date -u +%FT%TZ > /workspace/workbench-demo.txt && test -s /workspace/workbench-demo.txt. Do not only show me the command. After it succeeds, reply exactly: Created and verified workbench-demo.txt"
 
 await mkdir(artifacts, {recursive: true})
 const browser = await chromium.launch({headless: true})

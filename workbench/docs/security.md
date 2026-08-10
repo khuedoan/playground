@@ -6,13 +6,11 @@ Each workspace runs as a NixOS MicroVM with its own kernel, memory allocation, T
 
 The host agent runs as root because it creates MicroVM definitions and controls `microvm@…` systemd services. Keep its HTTP listener on loopback and allow only Phoenix to call it. The guest agent, code-server, and noVNC are intentionally unauthenticated on the private workspace subnet in this prototype; do not route that subnet to untrusted clients.
 
-## Credentials
+## Model privacy
 
-The NixOS module accepts a host-side environment file outside the Nix store. The host agent copies only supported model variables into a root-owned file under `/run/workbench/credentials/<workspace>` and shares that directory read-only in spirit through virtiofs at boot. The directory is removed when the workspace is deleted and disappears on host reboot.
+Each guest runs Pi against a llama.cpp server bound to guest loopback. The pinned Qwen2.5 Coder GGUF is part of the declarative guest closure; prompts, tool schemas, and model output stay inside the MicroVM.
 
-This avoids embedding secrets in generated flakes, Nix derivations, command arguments, or the host command journal. It is not a complete secret-broker design: use scoped, short-lived credentials and rotate them independently of VM state.
-
-Private-network access does not automatically make inference private. Hosted model providers receive whatever Pi sends as context. For sensitive data, configure Pi with an internal Ollama, vLLM, LM Studio, or OpenAI-compatible endpoint and block direct internet egress from workspace TAP interfaces.
+Private-network access would not automatically make hosted inference private. If the local model is replaced, use an internal inference endpoint and block direct internet egress from workspace TAP interfaces. Do not put long-lived provider secrets in generated flakes or the Nix store.
 
 ## Before hostile multi-tenancy
 
@@ -23,5 +21,5 @@ Private-network access does not automatically make inference private. Hosted mod
 - Enforce CPU, memory, disk, VM-count, and build admission limits.
 - Pin and review flake inputs, use binary-cache signatures, and define an update policy.
 - Encrypt PostgreSQL and MicroVM volumes and define deletion/backup semantics.
-- Move model access behind a secret broker or internal inference gateway.
+- Keep model access local or place it behind an internal inference gateway and secret broker.
 - Run MicroVM escape, cross-workspace reachability, and stale-volume tests as release gates.

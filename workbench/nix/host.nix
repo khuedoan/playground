@@ -28,11 +28,6 @@ in
       description = "Bridge used by workspace TAP interfaces.";
     };
 
-    environmentFile = lib.mkOption {
-      type = lib.types.nullOr lib.types.str;
-      default = null;
-      description = "Root-only environment file containing model credentials and Pi selection.";
-    };
   };
 
   config = lib.mkIf cfg.enable {
@@ -71,7 +66,6 @@ in
     systemd.tmpfiles.rules = [
       "d /var/lib/workbench 0700 root root -"
       "d /var/lib/workbench/specs 0700 root root -"
-      "d /run/workbench/credentials 0700 root root -"
     ];
 
     systemd.services.workbench-host-agent = {
@@ -91,11 +85,9 @@ in
         WORKBENCH_FLAKE_ROOT = toString self;
         WORKBENCH_SPEC_ROOT = "/var/lib/workbench/specs";
         WORKBENCH_MICROVM_STATE_ROOT = "/var/lib/microvms";
-        WORKBENCH_CREDENTIAL_ROOT = "/run/workbench/credentials";
       };
       serviceConfig = {
         ExecStart = "${hostAgent}/bin/workbench-host-agent";
-        EnvironmentFile = lib.optional (cfg.environmentFile != null) cfg.environmentFile;
         Restart = "on-failure";
         RestartSec = 2;
         User = "root";

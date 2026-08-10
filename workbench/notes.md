@@ -12,6 +12,6 @@
 ## 2026-08-10 — real GitHub Actions end-to-end gate
 
 - Added a KVM job that installs the official MicroVM systemd service topology on the ephemeral Linux runner, then exercises the normal Phoenix-to-host-agent provisioning path.
-- Pi uses the job-scoped GitHub Models token with `models: read`; the token is copied into the guest through the same root-owned credential channel used by production model keys.
+- Pi uses the real Qwen2.5 Coder GGUF through a guest-local llama.cpp server, so the gate needs no model-provider secret and sends no prompt outside the MicroVM.
 - The gate requires a real guest boot, Pi tool use, code-server, Sway, wayvnc, noVNC, Blender, and persistence across a MicroVM restart.
 - Playwright records the real UI session and the workflow uploads the video together with systemd and network diagnostics.
