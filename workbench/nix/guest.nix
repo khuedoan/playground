@@ -45,7 +45,7 @@ let
     default_border pixel 2
     focus_follows_mouse no
     exec ${pkgs.foot}/bin/foot
-    exec ${pkgs.blender}/bin/blender
+    exec WAYLAND_DISPLAY= LIBGL_ALWAYS_SOFTWARE=1 ${pkgs.blender}/bin/blender --factory-startup -noaudio --gpu-backend opengl
   '';
   startWayvnc = pkgs.writeShellScript "workbench-wayvnc" ''
     set -eu
@@ -80,6 +80,7 @@ in
         3000
         7070
       ] ++ lib.optional cfg.gui.enable 6080;
+      hardware.graphics.enable = cfg.gui.enable;
 
       users.groups.workbench.gid = 1000;
       users.users.workbench = {
@@ -298,6 +299,7 @@ in
         path = [
           pkgs.bash
           pkgs.dbus
+          pkgs.xwayland
         ];
         environment = {
           HOME = "/home/workbench";
