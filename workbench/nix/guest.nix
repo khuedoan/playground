@@ -112,6 +112,7 @@ in
         jq
         nodejs_24
         pi-coding-agent
+        procps
         python3
         ripgrep
         rustc
