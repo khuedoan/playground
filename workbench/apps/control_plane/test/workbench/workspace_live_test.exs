@@ -4,16 +4,27 @@ defmodule WorkbenchWeb.WorkspaceLiveTest do
 
   alias Workbench.Workers.ReconcileWorkspace
 
-  test "renders the private workspace dashboard and queues a launch", %{conn: conn} do
+  test "renders the agent workbench and queues multiple independent threads", %{conn: conn} do
     {:ok, view, html} = live(conn, ~p"/")
-    assert html =~ "Your private network"
-    assert html =~ "No workspaces yet"
+    assert html =~ "Start a thread"
+    assert html =~ "Warm pool online"
 
     view
     |> form("#new-workspace", workspace: %{title: "Browser-created workspace"})
     |> render_submit()
 
-    assert has_element?(view, "article.workspace-card", "Browser-created workspace")
-    assert_enqueued(worker: ReconcileWorkspace)
+    view
+    |> form("#new-workspace", workspace: %{title: "Parallel workspace"})
+    |> render_submit()
+
+    assert has_element?(view, "#thread-" <> first_id(), "Browser-created workspace")
+    assert has_element?(view, ".thread-item", "Parallel workspace")
+    assert length(all_enqueued(worker: ReconcileWorkspace)) == 2
+  end
+
+  defp first_id do
+    Workbench.Workspaces.list_workspaces()
+    |> Enum.find(&(&1.title == "Browser-created workspace"))
+    |> Map.fetch!(:id)
   end
 end

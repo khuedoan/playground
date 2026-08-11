@@ -97,6 +97,7 @@ jobs:
       WORKBENCH_E2E_MOCK_LLM: "true"
       WORKBENCH_MEMORY_MIB: "3072"
       WORKBENCH_VCPUS: "2"
+      WORKBENCH_WARM_POOL_SIZE: "2"
     steps:
       - uses: actions/checkout@v4
       - uses: DeterminateSystems/nix-installer-action@v22
@@ -142,6 +143,10 @@ jobs:
             WORKBENCH_HOST_AGENT_BIN="$PWD/.tmp/host-agent/bin/workbench-host-agent" \
             WORKBENCH_E2E_MOCK_LLM="$WORKBENCH_E2E_MOCK_LLM" \
             WORKBENCH_MICROVM_BIN="$PWD/.tmp/microvm/bin/microvm" \
+            WORKBENCH_POOL_DISK_GIB="$WORKBENCH_DISK_GIB" \
+            WORKBENCH_POOL_MEMORY_MIB="$WORKBENCH_MEMORY_MIB" \
+            WORKBENCH_POOL_VCPUS="$WORKBENCH_VCPUS" \
+            WORKBENCH_WARM_POOL_SIZE="$WORKBENCH_WARM_POOL_SIZE" \
             "$PWD/scripts/ci/prepare-host.sh"
 
       - name: Boot and exercise a real MicroVM

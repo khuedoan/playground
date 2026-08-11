@@ -85,6 +85,11 @@ in
         WORKBENCH_FLAKE_ROOT = toString self;
         WORKBENCH_SPEC_ROOT = "/var/lib/workbench/specs";
         WORKBENCH_MICROVM_STATE_ROOT = "/var/lib/microvms";
+        WORKBENCH_POOL_STATE = "/var/lib/workbench/pool.json";
+        WORKBENCH_WARM_POOL_SIZE = "3";
+        WORKBENCH_POOL_VCPUS = "4";
+        WORKBENCH_POOL_MEMORY_MIB = "8192";
+        WORKBENCH_POOL_DISK_GIB = "40";
       };
       serviceConfig = {
         ExecStart = "${hostAgent}/bin/workbench-host-agent";

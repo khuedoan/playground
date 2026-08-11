@@ -8,8 +8,8 @@ const agentTimeout = Number(process.env.DEMO_AGENT_TIMEOUT_MS || "600000")
 const prompt = process.env.DEMO_PROMPT ||
   "Use the bash tool to run exactly: date -u +%FT%TZ > /workspace/workbench-demo.txt && test -s /workspace/workbench-demo.txt. Do not only show me the command. After it succeeds, reply exactly: Created and verified workbench-demo.txt"
 
-async function waitForRenderedDesktop(card) {
-  const iframe = card.locator('iframe[title$=" desktop"]')
+async function waitForRenderedDesktop(page) {
+  const iframe = page.locator('.workspace-inspector iframe[title$=" desktop"]')
   await iframe.waitFor({state: "visible", timeout: 60_000})
 
   const iframeHandle = await iframe.elementHandle()
@@ -82,36 +82,50 @@ const video = page.video()
 
 try {
   await page.goto(controlUrl, {waitUntil: "networkidle", timeout: 60_000})
-  await page.getByText("Your private network").waitFor()
-  await page.waitForTimeout(1_500)
+  await page.getByText("Warm pool online").waitFor()
+  await page.waitForTimeout(1_000)
 
-  const title = `MicroVM demo ${new Date().toISOString().slice(11, 19)}`
-  await page.getByPlaceholder("e.g. Inspect customer dataset").fill(title)
-  await page.getByRole("button", {name: "Launch"}).click()
+  const suffix = new Date().toISOString().slice(11, 19)
+  const primaryTitle = `MicroVM demo ${suffix}`
+  const parallelTitle = `Parallel review ${suffix}`
+  const titleInput = page.getByPlaceholder("Name a new thread")
+  await titleInput.fill(primaryTitle)
+  await page.getByRole("button", {name: "Start new thread"}).click()
+  await page.getByRole("button", {name: new RegExp(primaryTitle)}).waitFor()
+  await titleInput.fill(parallelTitle)
+  await page.getByRole("button", {name: "Start new thread"}).click()
 
-  const card = page.locator("article.workspace-card").filter({hasText: title})
-  const running = card.getByText("running", {exact: true})
-  const failed = card.getByText("failed", {exact: true})
-  await Promise.race([
-    running.waitFor({timeout: bootTimeout}),
-    failed.waitFor({timeout: bootTimeout}).then(async () => {
-      throw new Error((await card.textContent()) || "MicroVM provisioning failed")
-    }),
-  ])
-  await page.waitForTimeout(3_000)
-  await waitForRenderedDesktop(card)
+  const primaryThread = page.getByRole("button", {name: new RegExp(primaryTitle)})
+  const parallelThread = page.getByRole("button", {name: new RegExp(parallelTitle)})
+  await parallelThread.waitFor()
 
-  await card.getByPlaceholder("Ask Pi to do something in this workspace…").fill(prompt)
-  await card.getByRole("button", {name: "Send"}).click()
-  const assistant = card.locator(".message-assistant")
-  const agentError = card.locator(".message-error")
+  const waitUntilRunning = async thread => {
+    await Promise.race([
+      thread.locator(".thread-status-running").waitFor({timeout: bootTimeout}),
+      thread.locator(".thread-status-failed").waitFor({timeout: bootTimeout}).then(async () => {
+        throw new Error((await thread.textContent()) || "MicroVM provisioning failed")
+      }),
+    ])
+  }
+  await Promise.all([waitUntilRunning(primaryThread), waitUntilRunning(parallelThread)])
+  await primaryThread.click()
+  await page.waitForTimeout(1_000)
+  await waitForRenderedDesktop(page)
+
+  await page.getByPlaceholder("Ask Workbench to make a change…").fill(prompt)
+  await page.getByRole("button", {name: "Send message"}).click()
+  const assistant = page.locator(".thread-main .message-assistant")
+  const agentError = page.locator(".thread-main .message-error")
   await Promise.race([
     assistant.waitFor({timeout: agentTimeout}),
     agentError.waitFor({timeout: agentTimeout}).then(async () => {
       throw new Error((await agentError.textContent()) || "Pi failed without an error message")
     }),
   ])
-  await page.waitForTimeout(4_000)
+  await page.waitForTimeout(2_000)
+  if (await page.locator(".thread-item").count() !== 2) {
+    throw new Error("expected both parallel agent threads to remain visible")
+  }
   await page.screenshot({path: `${artifacts}/workbench-demo-final.png`, fullPage: true})
 } finally {
   await page.close()

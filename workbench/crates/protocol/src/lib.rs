@@ -23,7 +23,7 @@ pub enum ActualState {
     Failed,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(default)]
 pub struct VmProfile {
     pub vcpus: u16,
@@ -61,6 +61,8 @@ pub struct VmStatus {
     pub command_id: Uuid,
     pub desired_state: DesiredState,
     pub actual_state: ActualState,
+    #[serde(default)]
+    pub slot_id: Option<String>,
     pub ip_address: Option<String>,
     pub desktop_url: Option<String>,
     pub code_url: Option<String>,

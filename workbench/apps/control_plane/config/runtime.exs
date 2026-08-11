@@ -26,6 +26,10 @@ config :workbench,
        :host_agent_timeout_ms,
        String.to_integer(System.get_env("HOST_AGENT_TIMEOUT_MS", "900000"))
 
+config :workbench,
+       :pool_size,
+       String.to_integer(System.get_env("WORKBENCH_WARM_POOL_SIZE", "3"))
+
 config :workbench, :workspace_profile, %{
   vcpus: String.to_integer(System.get_env("WORKBENCH_VCPUS", "4")),
   memory_mib: String.to_integer(System.get_env("WORKBENCH_MEMORY_MIB", "8192")),

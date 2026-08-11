@@ -9,32 +9,37 @@ defmodule WorkbenchWeb.WorkspaceLive do
 
     {:ok,
      socket
-     |> assign(:page_title, "Private agent workspaces")
+     |> assign(:page_title, "Workbench")
      |> assign(:workspace_profile, Application.fetch_env!(:workbench, :workspace_profile))
+     |> assign(:pool_size, Application.fetch_env!(:workbench, :pool_size))
      |> assign(:form, to_form(%{"title" => ""}, as: :workspace))
-     |> assign(:conversations, %{})
      |> assign(:busy_agents, MapSet.new())
-     |> assign(:workspaces, Workspaces.list_workspaces())}
+     |> assign(:selected_id, nil)
+     |> assign_threads()}
   end
 
   @impl true
   def handle_event("create", %{"workspace" => %{"title" => title}}, socket) do
     case Workspaces.create_workspace(%{title: String.trim(title)}) do
-      {:ok, _workspace} ->
+      {:ok, workspace} ->
         {:noreply,
          socket
          |> assign(:form, to_form(%{"title" => ""}, as: :workspace))
-         |> assign(:workspaces, Workspaces.list_workspaces())}
+         |> assign_threads(workspace.id)}
 
       {:error, changeset} ->
         {:noreply, assign(socket, :form, to_form(changeset, as: :workspace))}
     end
   end
 
+  def handle_event("select_thread", %{"id" => id}, socket) do
+    {:noreply, assign_threads(socket, id)}
+  end
+
   def handle_event("desired", %{"id" => id, "state" => desired}, socket) do
     workspace = Workspaces.get_workspace!(id)
     {:ok, _updated} = Workspaces.set_desired(workspace, String.to_existing_atom(desired))
-    {:noreply, assign(socket, :workspaces, Workspaces.list_workspaces())}
+    {:noreply, assign_threads(socket, id)}
   end
 
   def handle_event("prompt", %{"workspace_id" => id, "message" => raw_message}, socket) do
@@ -44,172 +49,266 @@ defmodule WorkbenchWeb.WorkspaceLive do
       {:noreply, socket}
     else
       workspace = Workspaces.get_workspace!(id)
+      {:ok, _entry} = Workspaces.append_message(workspace, :user, message)
       owner = self()
 
       Task.start(fn ->
         send(owner, {:agent_reply, id, Workbench.GuestAgent.prompt(workspace, message)})
       end)
 
-      entry = %{role: :user, text: message}
-      conversations = Map.update(socket.assigns.conversations, id, [entry], &(&1 ++ [entry]))
-
       {:noreply,
        socket
-       |> assign(:conversations, conversations)
-       |> assign(:busy_agents, MapSet.put(socket.assigns.busy_agents, id))}
+       |> assign(:busy_agents, MapSet.put(socket.assigns.busy_agents, id))
+       |> assign_threads(id)}
     end
   end
 
   @impl true
   def handle_info({:workspace_updated, _workspace}, socket) do
-    {:noreply, assign(socket, :workspaces, Workspaces.list_workspaces())}
+    {:noreply, assign_threads(socket)}
+  end
+
+  def handle_info({:message_added, message}, socket) do
+    if message.workspace_id == socket.assigns.selected_id do
+      {:noreply, assign(socket, :messages, Workspaces.list_messages(message.workspace_id))}
+    else
+      {:noreply, socket}
+    end
   end
 
   def handle_info({:agent_reply, id, result}, socket) do
-    entry =
+    workspace = Workspaces.get_workspace!(id)
+
+    {role, text} =
       case result do
-        {:ok, text} -> %{role: :assistant, text: text}
-        {:error, reason} -> %{role: :error, text: "Agent error: #{inspect(reason)}"}
+        {:ok, text} -> {:assistant, text}
+        {:error, reason} -> {:error, "Agent error: #{inspect(reason)}"}
       end
 
-    conversations = Map.update(socket.assigns.conversations, id, [entry], &(&1 ++ [entry]))
+    {:ok, _entry} = Workspaces.append_message(workspace, role, text)
 
     {:noreply,
      socket
-     |> assign(:conversations, conversations)
-     |> assign(:busy_agents, MapSet.delete(socket.assigns.busy_agents, id))}
+     |> assign(:busy_agents, MapSet.delete(socket.assigns.busy_agents, id))
+     |> assign_threads()}
   end
 
   @impl true
   def render(assigns) do
     ~H"""
-    <section class="hero">
-      <div>
-        <p class="eyebrow">Isolated Linux environments</p>
-        <h1>Your private network,<br /><span>one agent per workspace.</span></h1>
-        <p class="hero-copy">
-          Phoenix keeps the workflow durable. Rust reconciles MicroVMs. Pi works inside its own NixOS guest.
-        </p>
-      </div>
-
-      <.form for={@form} id="new-workspace" phx-submit="create" class="create-card">
-        <label for={@form[:title].id}>Start a workspace</label>
-        <div class="create-row">
-          <.input
-            field={@form[:title]}
-            placeholder="e.g. Inspect customer dataset"
-            autocomplete="off"
-          />
-          <button type="submit">Launch</button>
-        </div>
-        <p>
-          {@workspace_profile.vcpus} vCPU · {Float.round(@workspace_profile.memory_mib / 1024, 1)} GB ·
-          KVM isolation · Wayland desktop
-        </p>
-      </.form>
-    </section>
-
-    <section class="workspace-section">
-      <div class="section-heading">
-        <h2>Workspaces</h2>
-        <span>{length(@workspaces)} total</span>
-      </div>
-
-      <div :if={@workspaces == []} class="empty-state">
-        <div class="empty-glyph">›_</div>
-        <h3>No workspaces yet</h3>
-        <p>Create one above. The lifecycle will continue even if you close this tab.</p>
-      </div>
-
-      <article :for={workspace <- @workspaces} id={"workspace-#{workspace.id}"} class="workspace-card">
-        <div class="workspace-summary">
-          <div class="workspace-icon">{String.first(workspace.title)}</div>
+    <div class="workbench-shell">
+      <aside class="thread-sidebar">
+        <header class="sidebar-brand">
+          <div class="brand-mark">›_</div>
           <div>
-            <h3>{workspace.title}</h3>
-            <p>{String.slice(workspace.id, 0, 8)} · generation {workspace.generation}</p>
+            <strong>Workbench</strong>
+            <span>MicroVM agents</span>
           </div>
-          <span class={"status status-#{workspace.status}"}>
-            <i></i>{human_status(workspace.status)}
-          </span>
-          <span class="boot-time">{boot_time(workspace)}</span>
+        </header>
+
+        <.form for={@form} id="new-workspace" phx-submit="create" class="new-thread-form">
+          <.input field={@form[:title]} placeholder="Name a new thread" autocomplete="off" />
+          <button type="submit" aria-label="Start new thread">+</button>
+        </.form>
+
+        <div class="thread-section-label">
+          <span>Threads</span>
+          <small>{active_thread_count(@workspaces)} / {@pool_size}</small>
         </div>
 
-        <div :if={workspace.status == :running} class="workspace-body">
-          <div class="desktop-frame">
-            <div class="desktop-bar">
-              <span></span><span></span><span></span>
-              <strong>Wayland desktop</strong>
-              <a href={workspace.desktop_url} target="_blank">Open ↗</a>
-            </div>
-            <iframe src={workspace.desktop_url} title={"#{workspace.title} desktop"}></iframe>
-          </div>
-          <aside class="workspace-actions">
-            <div>
-              <span>MicroVM IP</span>
-              <strong>{workspace.ip_address || "discovering"}</strong>
-            </div>
-            <a href={workspace.code_url} target="_blank" class="primary-action">Open code-server ↗</a>
-            <button phx-click="desired" phx-value-id={workspace.id} phx-value-state="stopped">
-              Stop workspace
-            </button>
-            <button
-              class="danger"
-              phx-click="desired"
-              phx-value-id={workspace.id}
-              phx-value-state="deleted"
-            >
-              Delete
-            </button>
-          </aside>
+        <nav class="thread-list" aria-label="Agent threads">
+          <button
+            :for={workspace <- @workspaces}
+            type="button"
+            id={"thread-#{workspace.id}"}
+            class={["thread-item", @selected_id == workspace.id && "is-active"]}
+            phx-click="select_thread"
+            phx-value-id={workspace.id}
+          >
+            <span class={["thread-status", "thread-status-#{workspace.status}"]}></span>
+            <span class="thread-copy">
+              <strong>{workspace.title}</strong>
+              <small>{thread_summary(workspace, @busy_agents)}</small>
+            </span>
+            <time>{boot_time(workspace)}</time>
+          </button>
+        </nav>
+
+        <div :if={@workspaces == []} class="sidebar-empty">
+          <span>⌘</span>
+          <p>Create a thread to lease a ready, isolated Linux workspace.</p>
         </div>
 
-        <section :if={workspace.status == :running} class="agent-panel">
-          <header>
-            <div class="pi-mark">π</div>
-            <div>
-              <h4>Pi coding agent</h4>
-              <p>Runs inside this workspace with access to its Linux environment.</p>
-            </div>
-            <span :if={MapSet.member?(@busy_agents, workspace.id)} class="agent-working">working…</span>
-          </header>
-
-          <div class="conversation" id={"conversation-#{workspace.id}"}>
-            <p :if={Map.get(@conversations, workspace.id, []) == []} class="conversation-empty">
-              Ask Pi to inspect files, run tests, or work in Blender.
-            </p>
-            <div
-              :for={entry <- Map.get(@conversations, workspace.id, [])}
-              class={"message message-#{entry.role}"}
-            >
-              <strong>{if entry.role == :user, do: "You", else: "Pi"}</strong>
-              <p>{entry.text}</p>
-            </div>
+        <footer class="sidebar-footer">
+          <span class="pool-dot"></span>
+          <div>
+            <strong>Warm pool online</strong>
+            <small>MicroVMs ready to lease</small>
           </div>
+        </footer>
+      </aside>
 
-          <form phx-submit="prompt" class="prompt-form">
-            <input type="hidden" name="workspace_id" value={workspace.id} />
-            <textarea
-              name="message"
-              placeholder="Ask Pi to do something in this workspace…"
-              disabled={MapSet.member?(@busy_agents, workspace.id)}
-              required
-            ></textarea>
-            <button type="submit" disabled={MapSet.member?(@busy_agents, workspace.id)}>Send</button>
-          </form>
+      <main class="thread-main">
+        <section :if={is_nil(@selected_workspace)} class="welcome-panel">
+          <div class="welcome-glyph">›_</div>
+          <h1>Start a thread</h1>
+          <p>Each agent gets an isolated Wayland workspace with code-server, shell access, and durable storage.</p>
         </section>
 
-        <div :if={workspace.status in [:stopped, :failed]} class="inline-actions">
-          <p :if={workspace.failure}>{workspace.failure}</p>
-          <button phx-click="desired" phx-value-id={workspace.id} phx-value-state="running">Start workspace</button>
+        <%= if @selected_workspace do %>
+          <header class="thread-header">
+            <div>
+              <p>Agent thread</p>
+              <h1>{@selected_workspace.title}</h1>
+            </div>
+            <span class={["status-pill", "status-#{@selected_workspace.status}"]}>
+              <i></i>{human_status(@selected_workspace.status)}
+            </span>
+          </header>
+
+          <section class="conversation-feed" id={"conversation-#{@selected_workspace.id}"}>
+            <div :if={@messages == []} class="conversation-starter">
+              <div class="agent-avatar">›_</div>
+              <h2>What should I work on?</h2>
+              <p>
+                Ask the agent to inspect files, run commands, edit code, or use the graphical workspace.
+                This thread and its files persist independently.
+              </p>
+              <div class="suggestion-row">
+                <span>Inspect this workspace</span>
+                <span>Run the test suite</span>
+                <span>Open Blender</span>
+              </div>
+            </div>
+
+            <article :for={entry <- @messages} class={["message", "message-#{entry.role}"]}>
+              <div class="message-avatar">{if entry.role == :user, do: "Y", else: "›_"}</div>
+              <div>
+                <strong>{if entry.role == :user, do: "You", else: "Workbench"}</strong>
+                <p>{entry.text}</p>
+              </div>
+            </article>
+
+            <div
+              :if={MapSet.member?(@busy_agents, @selected_workspace.id)}
+              class="agent-progress"
+            >
+              <span></span><span></span><span></span>
+              Agent is working in the MicroVM
+            </div>
+          </section>
+
+          <footer class="composer-wrap">
+            <form
+              :if={@selected_workspace.status == :running}
+              id={"prompt-#{@selected_workspace.id}"}
+              phx-submit="prompt"
+              class="prompt-form"
+            >
+              <input type="hidden" name="workspace_id" value={@selected_workspace.id} />
+              <textarea
+                name="message"
+                placeholder="Ask Workbench to make a change…"
+                disabled={MapSet.member?(@busy_agents, @selected_workspace.id)}
+                required
+              ></textarea>
+              <div class="composer-meta">
+                <span>Local tools · isolated network</span>
+                <button
+                  type="submit"
+                  aria-label="Send message"
+                  disabled={MapSet.member?(@busy_agents, @selected_workspace.id)}
+                >↑</button>
+              </div>
+            </form>
+
+            <div :if={@selected_workspace.status in [:queued, :provisioning]} class="lifecycle-note">
+              <span class="spinner"></span>
+              Leasing a prewarmed MicroVM…
+            </div>
+            <div :if={@selected_workspace.status == :failed} class="lifecycle-note is-error">
+              {@selected_workspace.failure}
+            </div>
+            <button
+              :if={@selected_workspace.status in [:stopped, :failed]}
+              class="start-thread"
+              phx-click="desired"
+              phx-value-id={@selected_workspace.id}
+              phx-value-state="running"
+            >Start thread</button>
+          </footer>
+        <% end %>
+      </main>
+
+      <aside class="workspace-inspector">
+        <%= if @selected_workspace do %>
+          <header>
+            <div>
+              <p>Workspace</p>
+              <h2>Live environment</h2>
+            </div>
+            <span class="secure-label"><i></i> isolated</span>
+          </header>
+
+          <div :if={@selected_workspace.status == :running} class="desktop-frame">
+            <div class="desktop-bar">
+              <span></span><span></span><span></span>
+              <strong>Wayland</strong>
+              <a href={@selected_workspace.desktop_url} target="_blank">Open ↗</a>
+            </div>
+            <iframe
+              src={@selected_workspace.desktop_url}
+              title={"#{@selected_workspace.title} desktop"}
+            ></iframe>
+          </div>
+
+          <div :if={@selected_workspace.status != :running} class="desktop-placeholder">
+            <div>›_</div>
+            <p>{human_status(@selected_workspace.status)}</p>
+          </div>
+
+          <dl class="workspace-facts">
+            <div>
+              <dt>MicroVM</dt>
+              <dd>{String.slice(@selected_workspace.id, 0, 8)}</dd>
+            </div>
+            <div>
+              <dt>Address</dt>
+              <dd>{@selected_workspace.ip_address || "waiting"}</dd>
+            </div>
+            <div>
+              <dt>Resources</dt>
+              <dd>{@workspace_profile.vcpus} CPU · {memory_gib(@workspace_profile)} GB</dd>
+            </div>
+            <div>
+              <dt>Ready</dt>
+              <dd>{boot_time(@selected_workspace) || "—"}</dd>
+            </div>
+          </dl>
+
+          <div :if={@selected_workspace.status == :running} class="inspector-actions">
+            <a href={@selected_workspace.code_url} target="_blank" class="open-code">Open code-server ↗</a>
+            <button
+              phx-click="desired"
+              phx-value-id={@selected_workspace.id}
+              phx-value-state="stopped"
+            >Stop</button>
+          </div>
           <button
-            class="danger"
+            :if={@selected_workspace.status != :deleted}
+            class="delete-thread"
             phx-click="desired"
-            phx-value-id={workspace.id}
+            phx-value-id={@selected_workspace.id}
             phx-value-state="deleted"
-          >Delete</button>
-        </div>
-      </article>
-    </section>
+          >Delete thread and reset workspace</button>
+        <% else %>
+          <div class="inspector-empty">
+            <span>□</span>
+            <p>Select a thread to inspect its desktop and runtime.</p>
+          </div>
+        <% end %>
+      </aside>
+    </div>
     """
   end
 
@@ -231,7 +330,35 @@ defmodule WorkbenchWeb.WorkspaceLive do
     """
   end
 
+  defp assign_threads(socket, preferred_id \\ nil) do
+    workspaces = Workspaces.list_workspaces()
+    requested_id = preferred_id || socket.assigns.selected_id
+
+    selected =
+      Enum.find(workspaces, &(&1.id == requested_id)) ||
+        Enum.find(workspaces, &(&1.status != :deleted)) ||
+        List.first(workspaces)
+
+    socket
+    |> assign(:workspaces, workspaces)
+    |> assign(:selected_id, selected && selected.id)
+    |> assign(:selected_workspace, selected)
+    |> assign(:messages, if(selected, do: Workspaces.list_messages(selected.id), else: []))
+  end
+
   defp human_status(status), do: status |> Atom.to_string() |> String.replace("_", " ")
-  defp boot_time(%{boot_ms: nil}), do: ""
-  defp boot_time(%{boot_ms: ms}), do: "ready in #{Float.round(ms / 1000, 1)}s"
+
+  defp thread_summary(workspace, busy_agents) do
+    cond do
+      MapSet.member?(busy_agents, workspace.id) -> "working"
+      workspace.status == :running -> "ready · #{workspace.ip_address || "networking"}"
+      true -> human_status(workspace.status)
+    end
+  end
+
+  defp boot_time(%{boot_ms: nil}), do: nil
+  defp boot_time(%{boot_ms: ms}) when ms < 1_000, do: "#{ms} ms"
+  defp boot_time(%{boot_ms: ms}), do: "#{Float.round(ms / 1_000, 1)} s"
+  defp memory_gib(profile), do: Float.round(profile.memory_mib / 1_024, 1)
+  defp active_thread_count(workspaces), do: Enum.count(workspaces, &(&1.status != :deleted))
 end

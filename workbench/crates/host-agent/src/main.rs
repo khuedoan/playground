@@ -6,6 +6,7 @@ use tokio::net::TcpListener;
 use tower_http::trace::TraceLayer;
 use tracing::info;
 use workbench_host_agent::{AppState, MicrovmBackend, VmStore, router};
+use workbench_protocol::VmProfile;
 
 #[derive(Debug, Parser)]
 struct Options {
@@ -37,12 +38,26 @@ struct Options {
     microvm_state_root: PathBuf,
     #[arg(
         long,
+        env = "WORKBENCH_POOL_STATE",
+        default_value = "/var/lib/workbench/pool.json"
+    )]
+    pool_state: PathBuf,
+    #[arg(
+        long,
         env = "WORKBENCH_GUEST_HEALTH_TIMEOUT_SECONDS",
         default_value_t = 180
     )]
     guest_health_timeout_seconds: u64,
     #[arg(long, env = "WORKBENCH_E2E_MOCK_LLM", default_value_t = false)]
     e2e_mock_llm: bool,
+    #[arg(long, env = "WORKBENCH_WARM_POOL_SIZE", default_value_t = 3)]
+    warm_pool_size: u16,
+    #[arg(long, env = "WORKBENCH_POOL_VCPUS", default_value_t = 4)]
+    pool_vcpus: u16,
+    #[arg(long, env = "WORKBENCH_POOL_MEMORY_MIB", default_value_t = 8192)]
+    pool_memory_mib: u32,
+    #[arg(long, env = "WORKBENCH_POOL_DISK_GIB", default_value_t = 40)]
+    pool_disk_gib: u32,
 }
 
 #[tokio::main]
@@ -57,9 +72,18 @@ async fn main() -> Result<()> {
         options.flake_root,
         options.spec_root,
         options.microvm_state_root,
+        options.pool_state,
         Duration::from_secs(options.guest_health_timeout_seconds),
         options.e2e_mock_llm,
-    ));
+        options.warm_pool_size,
+        VmProfile {
+            vcpus: options.pool_vcpus,
+            memory_mib: options.pool_memory_mib,
+            disk_gib: options.pool_disk_gib,
+            gui: true,
+        },
+    )?);
+    backend.warm_pool().await?;
     let store = Arc::new(VmStore::open(options.state, backend).await?);
     let app = router(AppState { store }).layer(TraceLayer::new_for_http());
     let listener = TcpListener::bind(options.listen).await?;

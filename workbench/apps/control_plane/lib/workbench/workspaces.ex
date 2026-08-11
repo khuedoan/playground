@@ -1,7 +1,7 @@
 defmodule Workbench.Workspaces do
   import Ecto.Query
   alias Ecto.Multi
-  alias Workbench.{Repo, Workspace, WorkspaceEvent}
+  alias Workbench.{Repo, ThreadMessage, Workspace, WorkspaceEvent}
   alias Workbench.Workers.ReconcileWorkspace
 
   def list_workspaces do
@@ -9,6 +9,34 @@ defmodule Workbench.Workspaces do
   end
 
   def get_workspace!(id), do: Repo.get!(Workspace, id)
+
+  def list_messages(workspace_id) do
+    Repo.all(
+      from message in ThreadMessage,
+        where: message.workspace_id == ^workspace_id,
+        order_by: [asc: message.inserted_at, asc: message.id]
+    )
+  end
+
+  def append_message(%Workspace{} = workspace, role, text)
+      when role in [:user, :assistant, :error] do
+    %ThreadMessage{}
+    |> ThreadMessage.changeset(%{workspace_id: workspace.id, role: role, text: text})
+    |> Repo.insert()
+    |> case do
+      {:ok, message} ->
+        Phoenix.PubSub.broadcast(
+          Workbench.PubSub,
+          "workspaces",
+          {:message_added, message}
+        )
+
+        {:ok, message}
+
+      error ->
+        error
+    end
+  end
 
   def list_events(workspace_id) do
     Repo.all(

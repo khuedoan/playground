@@ -4,6 +4,7 @@ config :workbench,
   ecto_repos: [Workbench.Repo],
   host_agent_client: Workbench.HostAgent.Http,
   host_agent_timeout_ms: 900_000,
+  pool_size: 3,
   workspace_profile: %{vcpus: 4, memory_mib: 8192, disk_gib: 40, gui: true}
 
 config :workbench, Oban,

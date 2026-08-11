@@ -30,4 +30,19 @@ defmodule Workbench.WorkspacesTest do
       args: %{workspace_id: workspace.id, generation: stopped.generation}
     )
   end
+
+  test "thread messages remain attached to their isolated workspace" do
+    {:ok, first} = Workspaces.create_workspace(%{title: "First thread"})
+    {:ok, second} = Workspaces.create_workspace(%{title: "Second thread"})
+
+    assert {:ok, _message} = Workspaces.append_message(first, :user, "Inspect this workspace")
+    assert {:ok, _message} = Workspaces.append_message(first, :assistant, "Inspection complete")
+
+    assert Enum.map(Workspaces.list_messages(first.id), &{&1.role, &1.text}) == [
+             {:user, "Inspect this workspace"},
+             {:assistant, "Inspection complete"}
+           ]
+
+    assert Workspaces.list_messages(second.id) == []
+  end
 end

@@ -10,10 +10,19 @@ fi
 : "${WORKBENCH_MICROVM_BIN:?set WORKBENCH_MICROVM_BIN}"
 : "${WORKBENCH_FLAKE_ROOT:?set WORKBENCH_FLAKE_ROOT}"
 mock_llm="${WORKBENCH_E2E_MOCK_LLM:-false}"
+warm_pool_size="${WORKBENCH_WARM_POOL_SIZE:-2}"
+pool_vcpus="${WORKBENCH_POOL_VCPUS:-${WORKBENCH_VCPUS:-4}}"
+pool_memory_mib="${WORKBENCH_POOL_MEMORY_MIB:-${WORKBENCH_MEMORY_MIB:-8192}}"
+pool_disk_gib="${WORKBENCH_POOL_DISK_GIB:-${WORKBENCH_DISK_GIB:-40}}"
 case "$mock_llm" in
   true|false) ;;
   *) echo "WORKBENCH_E2E_MOCK_LLM must be true or false" >&2; exit 1 ;;
 esac
+for value in "$warm_pool_size" "$pool_vcpus" "$pool_memory_mib" "$pool_disk_gib"; do
+  case "$value" in
+    ''|*[!0-9]*) echo "warm-pool capacity and resources must be integers" >&2; exit 1 ;;
+  esac
+done
 
 script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 unit_dir="$script_dir/systemd"
@@ -76,6 +85,11 @@ umask 077
   printf 'WORKBENCH_FLAKE_ROOT=%s\n' "$WORKBENCH_FLAKE_ROOT"
   printf 'WORKBENCH_SPEC_ROOT=/var/lib/workbench/specs\n'
   printf 'WORKBENCH_MICROVM_STATE_ROOT=/var/lib/microvms\n'
+  printf 'WORKBENCH_POOL_STATE=/var/lib/workbench/pool.json\n'
+  printf 'WORKBENCH_WARM_POOL_SIZE=%s\n' "$warm_pool_size"
+  printf 'WORKBENCH_POOL_VCPUS=%s\n' "$pool_vcpus"
+  printf 'WORKBENCH_POOL_MEMORY_MIB=%s\n' "$pool_memory_mib"
+  printf 'WORKBENCH_POOL_DISK_GIB=%s\n' "$pool_disk_gib"
   printf 'WORKBENCH_GUEST_HEALTH_TIMEOUT_SECONDS=300\n'
   printf 'WORKBENCH_E2E_MOCK_LLM=%s\n' "$mock_llm"
   printf 'RUST_LOG=info\n'
@@ -85,7 +99,7 @@ systemctl daemon-reload
 systemctl restart workbench-dns.service
 systemctl restart workbench-host-agent.service
 
-for attempt in $(seq 1 60); do
+for attempt in $(seq 1 1800); do
   if curl --fail --silent http://127.0.0.1:9090/healthz >/dev/null; then
     exit 0
   fi

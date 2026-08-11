@@ -1,5 +1,5 @@
 use std::{
-    collections::{BTreeMap, HashMap},
+    collections::{BTreeMap, HashMap, HashSet},
     net::{Ipv4Addr, SocketAddrV4},
     path::{Path, PathBuf},
     sync::Arc,
@@ -15,12 +15,12 @@ use axum::{
     routing::get,
 };
 use chrono::Utc;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use tokio::{net::TcpStream, process::Command, sync::Mutex};
 use tracing::info;
 use uuid::Uuid;
-use workbench_protocol::{ActualState, DesiredState, EnsureVmRequest, VmStatus};
+use workbench_protocol::{ActualState, DesiredState, EnsureVmRequest, VmProfile, VmStatus};
 
 const GUEST_AGENT_PORT: u16 = 7070;
 const CODE_SERVER_PORT: u16 = 3000;
@@ -51,8 +51,27 @@ pub struct MicrovmBackend {
     flake_root: PathBuf,
     spec_root: PathBuf,
     state_root: PathBuf,
+    pool_state_path: PathBuf,
     health_timeout: Duration,
     e2e_mock_llm: bool,
+    pool_size: u16,
+    pool_profile: VmProfile,
+    assignments: Mutex<PoolAssignments>,
+}
+
+#[derive(Debug, Clone)]
+struct PoolSlot {
+    index: u16,
+    name: String,
+    address: Ipv4Addr,
+    gateway: Ipv4Addr,
+    mac: String,
+    tap: String,
+}
+
+#[derive(Debug, Default, Serialize, Deserialize)]
+struct PoolAssignments {
+    owners: BTreeMap<Uuid, u16>,
 }
 
 impl MicrovmBackend {
@@ -62,39 +81,72 @@ impl MicrovmBackend {
         flake_root: PathBuf,
         spec_root: PathBuf,
         state_root: PathBuf,
+        pool_state_path: PathBuf,
         health_timeout: Duration,
         e2e_mock_llm: bool,
-    ) -> Self {
-        Self {
+        pool_size: u16,
+        pool_profile: VmProfile,
+    ) -> Result<Self> {
+        if !(1..=64).contains(&pool_size) {
+            anyhow::bail!("warm pool size must be between 1 and 64");
+        }
+        Self::validate_profile(&pool_profile)?;
+        let assignments = Self::load_assignments(&pool_state_path, pool_size)?;
+        Ok(Self {
             microvm,
             systemctl,
             flake_root,
             spec_root,
             state_root,
+            pool_state_path,
             health_timeout,
             e2e_mock_llm,
+            pool_size,
+            pool_profile,
+            assignments: Mutex::new(assignments),
+        })
+    }
+
+    fn validate_profile(profile: &VmProfile) -> Result<()> {
+        if !(1..=64).contains(&profile.vcpus) {
+            anyhow::bail!("vcpus must be between 1 and 64");
         }
+        if !(512..=131_072).contains(&profile.memory_mib) {
+            anyhow::bail!("memory_mib must be between 512 and 131072");
+        }
+        if !(1..=2048).contains(&profile.disk_gib) {
+            anyhow::bail!("disk_gib must be between 1 and 2048");
+        }
+        Ok(())
     }
 
-    fn vm_name(id: Uuid) -> String {
-        format!("workbench-{id}")
+    fn load_assignments(path: &Path, pool_size: u16) -> Result<PoolAssignments> {
+        let assignments = match std::fs::read(path) {
+            Ok(bytes) => serde_json::from_slice::<PoolAssignments>(&bytes)
+                .with_context(|| format!("invalid warm-pool state {}", path.display()))?,
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+                PoolAssignments::default()
+            }
+            Err(error) => return Err(error).with_context(|| format!("read {}", path.display())),
+        };
+        let mut used = HashSet::new();
+        for index in assignments.owners.values() {
+            if *index >= pool_size || !used.insert(*index) {
+                anyhow::bail!("warm-pool state contains an invalid or duplicate slot");
+            }
+        }
+        Ok(assignments)
     }
 
-    fn tap_name(id: Uuid) -> String {
-        let compact = id.simple().to_string();
-        format!("wb-{}", &compact[..11])
-    }
-
-    fn network(id: Uuid) -> (Ipv4Addr, Ipv4Addr, String) {
-        let bytes = id.as_bytes();
-        let final_octet = u16::from(bytes[15]) % 253 + 2;
-        let address = Ipv4Addr::new(10, 88, bytes[14], final_octet as u8);
-        let gateway = Ipv4Addr::new(10, 88, 0, 1);
-        let mac = format!(
-            "02:b0:{:02x}:{:02x}:{:02x}:{:02x}",
-            bytes[0], bytes[1], bytes[14], bytes[15]
-        );
-        (address, gateway, mac)
+    fn slot(&self, index: u16) -> PoolSlot {
+        PoolSlot {
+            index,
+            name: format!("workbench-pool-{index:02}"),
+            address: Ipv4Addr::new(10, 88, 0, 100 + index as u8),
+            gateway: Ipv4Addr::new(10, 88, 0, 1),
+            mac: format!("02:b0:00:00:00:{:02x}", index + 1),
+            tap: format!("wb-pool-{index:02}"),
+        }
     }
 
     fn spec_dir(&self, name: &str) -> PathBuf {
@@ -109,21 +161,12 @@ impl MicrovmBackend {
         format!("microvm@{name}.service")
     }
 
-    fn render_spec(&self, request: &EnsureVmRequest) -> Result<String> {
+    fn render_spec(&self, slot: &PoolSlot) -> Result<String> {
         if !self.flake_root.is_absolute() {
             anyhow::bail!("WORKBENCH_FLAKE_ROOT must be an absolute path");
         }
-        if !(1..=64).contains(&request.profile.vcpus) {
-            anyhow::bail!("vcpus must be between 1 and 64");
-        }
-        if !(512..=131_072).contains(&request.profile.memory_mib) {
-            anyhow::bail!("memory_mib must be between 512 and 131072");
-        }
-        if !(1..=2048).contains(&request.profile.disk_gib) {
-            anyhow::bail!("disk_gib must be between 1 and 2048");
-        }
-        let name = Self::vm_name(request.workspace_id);
-        let (address, gateway, mac) = Self::network(request.workspace_id);
+        let profile = &self.pool_profile;
+        let workspace_id = Uuid::from_u128(u128::from(slot.index) + 1);
         Ok(format!(
             r#"{{
   inputs.workbench.url = {flake_url};
@@ -146,29 +189,28 @@ impl MicrovmBackend {
 }}
 "#,
             flake_url = nix_string(&format!("path:{}", self.flake_root.display())),
-            name_attr = nix_string(&name),
-            name = nix_string(&name),
-            workspace_id = nix_string(&request.workspace_id.to_string()),
-            vcpus = request.profile.vcpus,
-            memory_mib = request.profile.memory_mib,
-            disk_gib = request.profile.disk_gib,
-            gui = request.profile.gui,
-            address = nix_string(&address.to_string()),
-            gateway = nix_string(&gateway.to_string()),
-            mac = nix_string(&mac),
-            tap = nix_string(&Self::tap_name(request.workspace_id)),
+            name_attr = nix_string(&slot.name),
+            name = nix_string(&slot.name),
+            workspace_id = nix_string(&workspace_id.to_string()),
+            vcpus = profile.vcpus,
+            memory_mib = profile.memory_mib,
+            disk_gib = profile.disk_gib,
+            gui = profile.gui,
+            address = nix_string(&slot.address.to_string()),
+            gateway = nix_string(&slot.gateway.to_string()),
+            mac = nix_string(&slot.mac),
+            tap = nix_string(&slot.tap),
             mock_llm = self.e2e_mock_llm,
         ))
     }
 
-    async fn write_spec(&self, request: &EnsureVmRequest) -> Result<(PathBuf, bool)> {
-        let name = Self::vm_name(request.workspace_id);
-        let directory = self.spec_dir(&name);
+    async fn write_spec(&self, slot: &PoolSlot) -> Result<(PathBuf, bool)> {
+        let directory = self.spec_dir(&slot.name);
         tokio::fs::create_dir_all(&directory)
             .await
             .with_context(|| format!("create {}", directory.display()))?;
         let path = directory.join("flake.nix");
-        let contents = self.render_spec(request)?;
+        let contents = self.render_spec(slot)?;
         let changed = match tokio::fs::read_to_string(&path).await {
             Ok(current) => current != contents,
             Err(error) if error.kind() == std::io::ErrorKind::NotFound => true,
@@ -220,12 +262,114 @@ impl MicrovmBackend {
         Ok(())
     }
 
-    async fn remove_tree(path: &Path) -> Result<()> {
-        match tokio::fs::remove_dir_all(path).await {
+    async fn remove_file(path: &Path) -> Result<()> {
+        match tokio::fs::remove_file(path).await {
             Ok(()) => Ok(()),
             Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(()),
             Err(error) => Err(error).with_context(|| format!("remove {}", path.display())),
         }
+    }
+
+    async fn persist_assignments(&self, assignments: &PoolAssignments) -> Result<()> {
+        if let Some(parent) = self.pool_state_path.parent() {
+            tokio::fs::create_dir_all(parent)
+                .await
+                .with_context(|| format!("create {}", parent.display()))?;
+        }
+        let temporary = self.pool_state_path.with_extension("json.tmp");
+        let bytes = serde_json::to_vec_pretty(assignments)?;
+        tokio::fs::write(&temporary, bytes)
+            .await
+            .with_context(|| format!("write {}", temporary.display()))?;
+        tokio::fs::rename(&temporary, &self.pool_state_path)
+            .await
+            .with_context(|| format!("replace {}", self.pool_state_path.display()))?;
+        Ok(())
+    }
+
+    async fn assign_slot(&self, workspace_id: Uuid) -> Result<PoolSlot> {
+        let mut assignments = self.assignments.lock().await;
+        if let Some(index) = assignments.owners.get(&workspace_id) {
+            return Ok(self.slot(*index));
+        }
+        let used: HashSet<u16> = assignments.owners.values().copied().collect();
+        let index = (0..self.pool_size)
+            .find(|candidate| !used.contains(candidate))
+            .ok_or_else(|| anyhow::anyhow!("warm pool exhausted; delete a thread or add capacity"))?;
+        assignments.owners.insert(workspace_id, index);
+        self.persist_assignments(&assignments).await?;
+        info!(%workspace_id, slot = index, "leased warm MicroVM slot");
+        Ok(self.slot(index))
+    }
+
+    async fn assigned_slot(&self, workspace_id: Uuid) -> Option<PoolSlot> {
+        self.assignments
+            .lock()
+            .await
+            .owners
+            .get(&workspace_id)
+            .map(|index| self.slot(*index))
+    }
+
+    async fn release_slot(&self, workspace_id: Uuid) -> Result<()> {
+        let mut assignments = self.assignments.lock().await;
+        assignments.owners.remove(&workspace_id);
+        self.persist_assignments(&assignments).await
+    }
+
+    async fn prepare_slot(&self, slot: &PoolSlot) -> Result<()> {
+        let (spec, changed) = self.write_spec(slot).await?;
+        let runner_exists = tokio::fs::try_exists(self.runner(&slot.name)).await?;
+        if !runner_exists {
+            self.run(
+                &self.microvm,
+                &[
+                    "-f".to_owned(),
+                    spec.display().to_string(),
+                    "-c".to_owned(),
+                    slot.name.clone(),
+                ],
+            )
+            .await?;
+        } else if changed {
+            self.stop(&slot.name).await?;
+            self.run(&self.microvm, &["-u".to_owned(), slot.name.clone()])
+                .await?;
+        }
+        Ok(())
+    }
+
+    pub async fn warm_pool(&self) -> Result<()> {
+        for index in 0..self.pool_size {
+            self.prepare_slot(&self.slot(index)).await?;
+        }
+        for index in 0..self.pool_size {
+            let slot = self.slot(index);
+            if !self.is_active(&slot.name).await? {
+                self.run(
+                    &self.systemctl,
+                    &["start".to_owned(), Self::unit(&slot.name)],
+                )
+                .await?;
+            }
+        }
+        for index in 0..self.pool_size {
+            let slot = self.slot(index);
+            self.wait_healthy(slot.address).await?;
+            info!(slot = index, address = %slot.address, "warm MicroVM slot ready");
+        }
+        Ok(())
+    }
+
+    async fn scrub_and_rewarm(&self, slot: &PoolSlot) -> Result<()> {
+        self.stop(&slot.name).await?;
+        Self::remove_file(&self.state_root.join(&slot.name).join("workspace.img")).await?;
+        self.run(
+            &self.systemctl,
+            &["start".to_owned(), Self::unit(&slot.name)],
+        )
+        .await?;
+        self.wait_healthy(slot.address).await
     }
 
     async fn wait_healthy(&self, address: Ipv4Addr) -> Result<()> {
@@ -246,13 +390,15 @@ impl MicrovmBackend {
         anyhow::bail!("guest agent at {socket} did not become ready")
     }
 
-    fn running_status(request: &EnsureVmRequest, address: Ipv4Addr) -> VmStatus {
+    fn running_status(request: &EnsureVmRequest, slot: &PoolSlot) -> VmStatus {
+        let address = slot.address;
         VmStatus {
             workspace_id: request.workspace_id,
             generation: request.generation,
             command_id: request.command_id,
             desired_state: request.desired_state,
             actual_state: ActualState::Running,
+            slot_id: Some(slot.name.clone()),
             ip_address: Some(address.to_string()),
             desktop_url: Some(format!(
                 "http://{address}:{NOVNC_PORT}/vnc.html?autoconnect=1&resize=scale"
@@ -268,44 +414,35 @@ impl MicrovmBackend {
 #[async_trait]
 impl VmBackend for MicrovmBackend {
     async fn apply(&self, request: &EnsureVmRequest) -> Result<VmStatus> {
-        let name = Self::vm_name(request.workspace_id);
-        let (address, _, _) = Self::network(request.workspace_id);
+        if request.profile != self.pool_profile {
+            anyhow::bail!("requested profile does not match the prewarmed pool profile");
+        }
         match request.desired_state {
             DesiredState::Running => {
-                let (spec, changed) = self.write_spec(request).await?;
-                let runner_exists = tokio::fs::try_exists(self.runner(&name)).await?;
-                if !runner_exists {
+                let slot = self.assign_slot(request.workspace_id).await?;
+                if !self.is_active(&slot.name).await? {
                     self.run(
-                        &self.microvm,
-                        &[
-                            "-f".to_owned(),
-                            spec.display().to_string(),
-                            "-c".to_owned(),
-                            name.clone(),
-                        ],
+                        &self.systemctl,
+                        &["start".to_owned(), Self::unit(&slot.name)],
                     )
                     .await?;
-                } else if changed {
-                    self.stop(&name).await?;
-                    self.run(&self.microvm, &["-u".to_owned(), name.clone()])
-                        .await?;
                 }
-                if !self.is_active(&name).await? {
-                    self.run(&self.systemctl, &["start".to_owned(), Self::unit(&name)])
-                        .await?;
-                }
-                self.wait_healthy(address).await?;
-                Ok(Self::running_status(request, address))
+                self.wait_healthy(slot.address).await?;
+                Ok(Self::running_status(request, &slot))
             }
             DesiredState::Stopped => {
-                self.stop(&name).await?;
-                Ok(status_for(request, ActualState::Stopped))
+                let slot = self.assigned_slot(request.workspace_id).await;
+                if let Some(slot) = &slot {
+                    self.stop(&slot.name).await?;
+                }
+                Ok(status_for(request, ActualState::Stopped, slot.as_ref()))
             }
             DesiredState::Deleted => {
-                self.stop(&name).await?;
-                Self::remove_tree(&self.state_root.join(&name)).await?;
-                Self::remove_tree(&self.spec_dir(&name)).await?;
-                Ok(status_for(request, ActualState::Deleted))
+                if let Some(slot) = self.assigned_slot(request.workspace_id).await {
+                    self.scrub_and_rewarm(&slot).await?;
+                    self.release_slot(request.workspace_id).await?;
+                }
+                Ok(status_for(request, ActualState::Deleted, None))
             }
         }
     }
@@ -321,13 +458,18 @@ fn nix_string(value: &str) -> String {
     )
 }
 
-fn status_for(request: &EnsureVmRequest, actual_state: ActualState) -> VmStatus {
+fn status_for(
+    request: &EnsureVmRequest,
+    actual_state: ActualState,
+    slot: Option<&PoolSlot>,
+) -> VmStatus {
     VmStatus {
         workspace_id: request.workspace_id,
         generation: request.generation,
         command_id: request.command_id,
         desired_state: request.desired_state,
         actual_state,
+        slot_id: slot.map(|slot| slot.name.clone()),
         ip_address: None,
         desktop_url: None,
         code_url: None,
@@ -524,7 +666,7 @@ mod tests {
                 DesiredState::Stopped => ActualState::Stopped,
                 DesiredState::Deleted => ActualState::Deleted,
             };
-            Ok(status_for(request, actual_state))
+            Ok(status_for(request, actual_state, None))
         }
     }
 
@@ -636,15 +778,63 @@ mod tests {
             flake_root,
             directory.path().join("specs"),
             directory.path().join("microvms"),
+            directory.path().join("pool.json"),
             Duration::ZERO,
             true,
-        );
-        let id = Uuid::new_v4();
-        let spec = backend
-            .render_spec(&request(id, Uuid::new_v4(), 1))
-            .unwrap();
+            1,
+            VmProfile::default(),
+        )
+        .unwrap();
+        let spec = backend.render_spec(&backend.slot(0)).unwrap();
 
         assert!(spec.contains("mockLlm = true"));
+        assert!(spec.contains("workbench-pool-00"));
+    }
+
+    #[tokio::test]
+    async fn concurrent_threads_lease_distinct_slots_and_exhaust_capacity() {
+        let directory = tempfile::tempdir().unwrap();
+        let flake_root = directory.path().join("source");
+        std::fs::create_dir(&flake_root).unwrap();
+        let backend = Arc::new(
+            MicrovmBackend::new(
+                directory.path().join("microvm"),
+                directory.path().join("systemctl"),
+                flake_root,
+                directory.path().join("specs"),
+                directory.path().join("microvms"),
+                directory.path().join("pool.json"),
+                Duration::ZERO,
+                false,
+                2,
+                VmProfile::default(),
+            )
+            .unwrap(),
+        );
+        let first_id = Uuid::new_v4();
+        let second_id = Uuid::new_v4();
+        let first = tokio::spawn({
+            let backend = backend.clone();
+            async move { backend.assign_slot(first_id).await }
+        });
+        let second = tokio::spawn({
+            let backend = backend.clone();
+            async move { backend.assign_slot(second_id).await }
+        });
+
+        let (first, second) = tokio::join!(first, second);
+        let first = first.unwrap().unwrap();
+        let second = second.unwrap().unwrap();
+        assert_ne!(first.index, second.index);
+        assert_eq!(backend.assign_slot(first_id).await.unwrap().index, first.index);
+        assert!(
+            backend
+                .assign_slot(Uuid::new_v4())
+                .await
+                .unwrap_err()
+                .to_string()
+                .contains("warm pool exhausted")
+        );
     }
 
     #[tokio::test]
@@ -681,14 +871,20 @@ mod tests {
             flake_root,
             directory.path().join("specs"),
             state_root,
+            directory.path().join("pool.json"),
             Duration::ZERO,
             false,
-        );
+            1,
+            VmProfile::default(),
+        )
+        .unwrap();
+        backend.warm_pool().await.unwrap();
         let id = Uuid::new_v4();
         let request = request(id, Uuid::new_v4(), 1);
         let status = backend.apply(&request).await.unwrap();
 
         assert_eq!(status.actual_state, ActualState::Running);
+        assert_eq!(status.slot_id.as_deref(), Some("workbench-pool-00"));
         assert_eq!(
             status
                 .ip_address
@@ -707,7 +903,7 @@ mod tests {
                 .contains(":6080/vnc.html")
         );
         assert!(status.code_url.as_deref().unwrap().contains(":3000"));
-        let name = MicrovmBackend::vm_name(id);
+        let name = "workbench-pool-00";
         let spec =
             std::fs::read_to_string(directory.path().join("specs").join(&name).join("flake.nix"))
                 .unwrap();
