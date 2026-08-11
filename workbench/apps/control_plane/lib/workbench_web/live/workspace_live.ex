@@ -152,7 +152,9 @@ defmodule WorkbenchWeb.WorkspaceLive do
         <section :if={is_nil(@selected_workspace)} class="welcome-panel">
           <div class="welcome-glyph">›_</div>
           <h1>Start a thread</h1>
-          <p>Each agent gets an isolated Wayland workspace with code-server, shell access, and durable storage.</p>
+          <p>
+            Each agent gets an isolated Wayland workspace with code-server, shell access, and durable storage.
+          </p>
         </section>
 
         <%= if @selected_workspace do %>
@@ -193,8 +195,7 @@ defmodule WorkbenchWeb.WorkspaceLive do
               :if={MapSet.member?(@busy_agents, @selected_workspace.id)}
               class="agent-progress"
             >
-              <span></span><span></span><span></span>
-              Agent is working in the MicroVM
+              <span></span><span></span><span></span> Agent is working in the MicroVM
             </div>
           </section>
 
@@ -223,8 +224,7 @@ defmodule WorkbenchWeb.WorkspaceLive do
             </form>
 
             <div :if={@selected_workspace.status in [:queued, :provisioning]} class="lifecycle-note">
-              <span class="spinner"></span>
-              Leasing a prewarmed MicroVM…
+              <span class="spinner"></span> Leasing a prewarmed MicroVM…
             </div>
             <div :if={@selected_workspace.status == :failed} class="lifecycle-note is-error">
               {@selected_workspace.failure}

@@ -295,7 +295,9 @@ impl MicrovmBackend {
         let used: HashSet<u16> = assignments.owners.values().copied().collect();
         let index = (0..self.pool_size)
             .find(|candidate| !used.contains(candidate))
-            .ok_or_else(|| anyhow::anyhow!("warm pool exhausted; delete a thread or add capacity"))?;
+            .ok_or_else(|| {
+                anyhow::anyhow!("warm pool exhausted; delete a thread or add capacity")
+            })?;
         assignments.owners.insert(workspace_id, index);
         self.persist_assignments(&assignments).await?;
         info!(%workspace_id, slot = index, "leased warm MicroVM slot");
@@ -826,7 +828,10 @@ mod tests {
         let first = first.unwrap().unwrap();
         let second = second.unwrap().unwrap();
         assert_ne!(first.index, second.index);
-        assert_eq!(backend.assign_slot(first_id).await.unwrap().index, first.index);
+        assert_eq!(
+            backend.assign_slot(first_id).await.unwrap().index,
+            first.index
+        );
         assert!(
             backend
                 .assign_slot(Uuid::new_v4())
