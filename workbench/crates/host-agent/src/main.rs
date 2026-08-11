@@ -5,7 +5,7 @@ use clap::Parser;
 use tokio::net::TcpListener;
 use tower_http::trace::TraceLayer;
 use tracing::info;
-use workbench_host_agent::{AppState, MicrovmBackend, VmStore, router};
+use workbench_host_agent::{AppState, MicrovmBackend, MicrovmBackendConfig, VmStore, router};
 use workbench_protocol::VmProfile;
 
 #[derive(Debug, Parser)]
@@ -66,23 +66,23 @@ async fn main() -> Result<()> {
         .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
         .init();
     let options = Options::parse();
-    let backend = Arc::new(MicrovmBackend::new(
-        options.microvm,
-        options.systemctl,
-        options.flake_root,
-        options.spec_root,
-        options.microvm_state_root,
-        options.pool_state,
-        Duration::from_secs(options.guest_health_timeout_seconds),
-        options.e2e_mock_llm,
-        options.warm_pool_size,
-        VmProfile {
+    let backend = Arc::new(MicrovmBackend::new(MicrovmBackendConfig {
+        microvm: options.microvm,
+        systemctl: options.systemctl,
+        flake_root: options.flake_root,
+        spec_root: options.spec_root,
+        state_root: options.microvm_state_root,
+        pool_state_path: options.pool_state,
+        health_timeout: Duration::from_secs(options.guest_health_timeout_seconds),
+        e2e_mock_llm: options.e2e_mock_llm,
+        pool_size: options.warm_pool_size,
+        pool_profile: VmProfile {
             vcpus: options.pool_vcpus,
             memory_mib: options.pool_memory_mib,
             disk_gib: options.pool_disk_gib,
             gui: true,
         },
-    )?);
+    })?);
     backend.warm_pool().await?;
     let store = Arc::new(VmStore::open(options.state, backend).await?);
     let app = router(AppState { store }).layer(TraceLayer::new_for_http());

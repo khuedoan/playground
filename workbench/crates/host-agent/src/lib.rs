@@ -59,6 +59,19 @@ pub struct MicrovmBackend {
     assignments: Mutex<PoolAssignments>,
 }
 
+pub struct MicrovmBackendConfig {
+    pub microvm: PathBuf,
+    pub systemctl: PathBuf,
+    pub flake_root: PathBuf,
+    pub spec_root: PathBuf,
+    pub state_root: PathBuf,
+    pub pool_state_path: PathBuf,
+    pub health_timeout: Duration,
+    pub e2e_mock_llm: bool,
+    pub pool_size: u16,
+    pub pool_profile: VmProfile,
+}
+
 #[derive(Debug, Clone)]
 struct PoolSlot {
     index: u16,
@@ -75,34 +88,23 @@ struct PoolAssignments {
 }
 
 impl MicrovmBackend {
-    pub fn new(
-        microvm: PathBuf,
-        systemctl: PathBuf,
-        flake_root: PathBuf,
-        spec_root: PathBuf,
-        state_root: PathBuf,
-        pool_state_path: PathBuf,
-        health_timeout: Duration,
-        e2e_mock_llm: bool,
-        pool_size: u16,
-        pool_profile: VmProfile,
-    ) -> Result<Self> {
-        if !(1..=64).contains(&pool_size) {
+    pub fn new(config: MicrovmBackendConfig) -> Result<Self> {
+        if !(1..=64).contains(&config.pool_size) {
             anyhow::bail!("warm pool size must be between 1 and 64");
         }
-        Self::validate_profile(&pool_profile)?;
-        let assignments = Self::load_assignments(&pool_state_path, pool_size)?;
+        Self::validate_profile(&config.pool_profile)?;
+        let assignments = Self::load_assignments(&config.pool_state_path, config.pool_size)?;
         Ok(Self {
-            microvm,
-            systemctl,
-            flake_root,
-            spec_root,
-            state_root,
-            pool_state_path,
-            health_timeout,
-            e2e_mock_llm,
-            pool_size,
-            pool_profile,
+            microvm: config.microvm,
+            systemctl: config.systemctl,
+            flake_root: config.flake_root,
+            spec_root: config.spec_root,
+            state_root: config.state_root,
+            pool_state_path: config.pool_state_path,
+            health_timeout: config.health_timeout,
+            e2e_mock_llm: config.e2e_mock_llm,
+            pool_size: config.pool_size,
+            pool_profile: config.pool_profile,
             assignments: Mutex::new(assignments),
         })
     }
@@ -774,18 +776,18 @@ mod tests {
         let directory = tempfile::tempdir().unwrap();
         let flake_root = directory.path().join("source");
         std::fs::create_dir(&flake_root).unwrap();
-        let backend = MicrovmBackend::new(
-            directory.path().join("microvm"),
-            directory.path().join("systemctl"),
+        let backend = MicrovmBackend::new(MicrovmBackendConfig {
+            microvm: directory.path().join("microvm"),
+            systemctl: directory.path().join("systemctl"),
             flake_root,
-            directory.path().join("specs"),
-            directory.path().join("microvms"),
-            directory.path().join("pool.json"),
-            Duration::ZERO,
-            true,
-            1,
-            VmProfile::default(),
-        )
+            spec_root: directory.path().join("specs"),
+            state_root: directory.path().join("microvms"),
+            pool_state_path: directory.path().join("pool.json"),
+            health_timeout: Duration::ZERO,
+            e2e_mock_llm: true,
+            pool_size: 1,
+            pool_profile: VmProfile::default(),
+        })
         .unwrap();
         let spec = backend.render_spec(&backend.slot(0)).unwrap();
 
@@ -799,18 +801,18 @@ mod tests {
         let flake_root = directory.path().join("source");
         std::fs::create_dir(&flake_root).unwrap();
         let backend = Arc::new(
-            MicrovmBackend::new(
-                directory.path().join("microvm"),
-                directory.path().join("systemctl"),
+            MicrovmBackend::new(MicrovmBackendConfig {
+                microvm: directory.path().join("microvm"),
+                systemctl: directory.path().join("systemctl"),
                 flake_root,
-                directory.path().join("specs"),
-                directory.path().join("microvms"),
-                directory.path().join("pool.json"),
-                Duration::ZERO,
-                false,
-                2,
-                VmProfile::default(),
-            )
+                spec_root: directory.path().join("specs"),
+                state_root: directory.path().join("microvms"),
+                pool_state_path: directory.path().join("pool.json"),
+                health_timeout: Duration::ZERO,
+                e2e_mock_llm: false,
+                pool_size: 2,
+                pool_profile: VmProfile::default(),
+            })
             .unwrap(),
         );
         let first_id = Uuid::new_v4();
@@ -870,18 +872,18 @@ mod tests {
             ),
         );
 
-        let backend = MicrovmBackend::new(
+        let backend = MicrovmBackend::new(MicrovmBackendConfig {
             microvm,
             systemctl,
             flake_root,
-            directory.path().join("specs"),
+            spec_root: directory.path().join("specs"),
             state_root,
-            directory.path().join("pool.json"),
-            Duration::ZERO,
-            false,
-            1,
-            VmProfile::default(),
-        )
+            pool_state_path: directory.path().join("pool.json"),
+            health_timeout: Duration::ZERO,
+            e2e_mock_llm: false,
+            pool_size: 1,
+            pool_profile: VmProfile::default(),
+        })
         .unwrap();
         backend.warm_pool().await.unwrap();
         let id = Uuid::new_v4();
@@ -910,7 +912,7 @@ mod tests {
         assert!(status.code_url.as_deref().unwrap().contains(":3000"));
         let name = "workbench-pool-00";
         let spec =
-            std::fs::read_to_string(directory.path().join("specs").join(&name).join("flake.nix"))
+            std::fs::read_to_string(directory.path().join("specs").join(name).join("flake.nix"))
                 .unwrap();
         assert!(spec.contains("workbench.lib.mkWorkspace"));
         assert!(spec.contains("memoryMib = 8192"));
