@@ -1,0 +1,13 @@
+[Unit]
+Description=Save MicroVM '%i' booted configuration
+Before=microvm@%i.service
+PartOf=microvm@%i.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=/var/lib/microvms/%i
+User=microvm
+Group=kvm
+ExecStart=/bin/sh -c 'rm -f booted && ln -s "$(readlink current)" booted'
+ExecStop=/bin/rm -f booted

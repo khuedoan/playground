@@ -1,0 +1,13 @@
+[Unit]
+Description=Setup MicroVM '%i' TAP interfaces
+Before=microvm@%i.service
+After=network.target microvm-set-booted@%i.service
+PartOf=microvm@%i.service
+ConditionPathExists=/var/lib/microvms/%i/current/bin/tap-up
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/var/lib/microvms/%i/current/bin/tap-up
+ExecStartPost=/usr/local/libexec/workbench-attach-taps
+ExecStop=/var/lib/microvms/%i/booted/bin/tap-down

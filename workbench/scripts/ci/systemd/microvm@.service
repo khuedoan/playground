@@ -1,0 +1,18 @@
+[Unit]
+Description=MicroVM '%i'
+Requires=microvm-tap-interfaces@%i.service microvm-virtiofsd@%i.service microvm-set-booted@%i.service
+After=network.target microvm-tap-interfaces@%i.service microvm-virtiofsd@%i.service microvm-set-booted@%i.service
+ConditionPathExists=/var/lib/microvms/%i/current/bin/microvm-run
+
+[Service]
+Type=simple
+WorkingDirectory=/var/lib/microvms/%i
+ExecStart=/var/lib/microvms/%i/current/bin/microvm-run
+ExecStop=/var/lib/microvms/%i/booted/bin/microvm-shutdown
+Restart=always
+RestartSec=5
+User=microvm
+Group=kvm
+TimeoutStartSec=300
+LimitNOFILE=1048576
+LimitMEMLOCK=infinity

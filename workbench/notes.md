@@ -1,0 +1,49 @@
+# Work log
+
+## 2026-08-10 — baseline
+
+- Recovered the original MVP from commit `81e5887`.
+- Baseline checks from the original experiment: 7 Rust tests and 4 Phoenix/PostgreSQL tests passed; runtime validation was blocked by the originating sandbox.
+- Decision: make `microvm.nix` the only production provisioning backend and define the developer environment directly in NixOS.
+- Primary metric: production provisioning backends, count, lower is better. Baseline: multiple exposed choices; target: 1 production backend (`microvm.nix`) with test doubles kept private to tests.
+- Secondary metric: obsolete production artifacts, count, lower is better. Baseline: 7; target: 0.
+- Constraint: this Work sandbox has no KVM, `/proc`, cgroups, or Nix daemon, so it can validate source/tests but cannot boot a MicroVM. A NixOS/KVM CI or host run remains the release gate.
+
+## 2026-08-10 — real GitHub Actions end-to-end gate
+
+- Added a KVM job that installs the official MicroVM systemd service topology on the ephemeral Linux runner, then exercises the normal Phoenix-to-host-agent provisioning path.
+- Pi uses the real Qwen2.5 Coder GGUF through a guest-local llama.cpp server, so the gate needs no model-provider secret and sends no prompt outside the MicroVM.
+- The gate requires a real guest boot, Pi tool use, code-server, Sway, wayvnc, noVNC, Blender, and persistence across a MicroVM restart.
+- Playwright records the real UI session and the workflow uploads the video together with systemd and network diagnostics.
+
+## 2026-08-10 — deterministic E2E model API
+
+- Replaced Qwen download and llama.cpp inference in the GitHub Actions E2E configuration with a deterministic OpenAI-compatible API inside the real MicroVM.
+- Kept the production default unchanged: normal generated guests still use the pinned local Qwen model and llama.cpp.
+- The mock emits a real Pi `bash` tool call, Pi executes the requested command, and a second streamed completion returns the expected assistant response. MicroVM boot, Phoenix reconciliation, Pi RPC, tool execution, GUI services, recording, and restart persistence remain covered.
+- E2E model artifact downloads: 1 GGUF to 0, lower is better. The browser agent timeout was reduced from 900 seconds to 60 seconds.
+- Full timing still requires the KVM GitHub Actions runner; this sandbox cannot boot the guest.
+
+## 2026-08-10 — green real-MicroVM gate
+
+- Run #34 showed that the mock flag was lost across `sudo env`, while Sway and noVNC lacked `dbus-daemon` and `ps` in their service paths.
+- Runs #36 and #38 proved the mock Pi tool call, noVNC recording, and guest services worked; they also exposed Sway's missing shell path and Blender's Wayland/EGL exit.
+- Runs #40 and #42 kept Blender alive through Mesa software OpenGL and Xwayland, then exposed two test-only issues: `pgrep` was absent globally and Nix's Blender wrapper does not use `blender` as its exact kernel process name.
+- Run #44 passed Rust, Phoenix, Nix, and the complete KVM E2E job on commit `53a03a4`. The gate booted the real MicroVM, executed Pi's real `bash` tool through the deterministic mock API, verified the GUI/code-server/Blender processes, restarted the guest, and confirmed the file persisted.
+- Successful browser artifact: H.264 at 1440×900, 25 fps, 152.84 seconds, 2,118,935 bytes. Final screenshot: 1440×1722, 249,489 bytes.
+
+## 2026-08-10 — visible Wayland recording
+
+- Run #46 was functionally green, but its final screenshot exposed a visual regression: Blender's software-rendered Xwayland surface was pure white in the noVNC frame.
+- Decision: keep the real Blender process running on Sway's scratchpad while presenting a fullscreen Foot terminal on the visible workspace. The terminal prints the Sway compositor, Wayland display, and persistent workspace path so the recording visibly demonstrates the guest desktop instead of relying only on backend assertions.
+- Added an explicit monospace font and dark terminal palette to make the captured desktop deterministic and legible.
+- The Playwright recorder reconnects noVNC after the workspace is running and fails unless the canvas contains a rendered dark framebuffer, preventing a green E2E result from publishing another blank screenshot.
+
+## 2026-08-11 — sub-second concurrent threads
+
+- The previous create path took 128.3 seconds from the UI because every thread rebuilt and cold-booted its own guest. The guest boot itself was about 16 seconds; roughly 111 seconds was repeated Nix realization work on the interactive path.
+- Replaced per-thread provisioning with a fixed, persistent warm pool. The host agent prepares every slot and checks guest health before exposing its API, then atomically assigns a ready slot to each new thread. Stop retains the disk; delete wipes, reheats, and releases it.
+- Added persistent per-thread messages and a dark three-pane UI with a thread list, focused conversation, and live Wayland/code/runtime inspector. Multiple running threads remain visible and independently selectable.
+- Run #64 passed Rust, Phoenix, Nix, and the genuine KVM E2E gate on commit `212714e`. Two real Cloud Hypervisor guests ran concurrently on distinct slots and IP addresses. Their measured UI-to-running lease times were 105 ms and 19 ms, both below the 1,000 ms target.
+- The same gate proved cross-thread file isolation, real Pi `bash` tool use through the deterministic mock API, a non-blank dark Wayland framebuffer, code-server and Blender availability, and persistence after restarting the primary guest.
+- Final evidence: H.264 at 1440×900, 25 fps, 34.68 seconds, 573,661 bytes; final screenshot 1440×900, 110,271 bytes.

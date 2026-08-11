@@ -1,0 +1,10 @@
+[Unit]
+Description=DNS forwarder for Workbench CI MicroVMs
+After=network.target
+
+[Service]
+ExecStart=/usr/sbin/dnsmasq --keep-in-foreground --bind-interfaces --listen-address=10.88.0.1 --no-hosts --resolv-file=/etc/resolv.conf
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

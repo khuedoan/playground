@@ -1,0 +1,12 @@
+{
+  "private": true,
+  "scripts": {
+    "build": "esbuild js/app.js --bundle --target=es2022 --outdir=../priv/static/assets"
+  },
+  "dependencies": {
+    "esbuild": "^0.25.0",
+    "phoenix": "^1.8.0",
+    "phoenix_html": "^4.2.0",
+    "phoenix_live_view": "^1.2.0"
+  }
+}

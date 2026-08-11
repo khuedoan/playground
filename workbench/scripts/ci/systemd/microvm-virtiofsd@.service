@@ -1,0 +1,17 @@
+[Unit]
+Description=VirtioFS daemons for MicroVM '%i'
+Before=microvm@%i.service
+After=local-fs.target microvm-set-booted@%i.service
+PartOf=microvm@%i.service
+ConditionPathExists=/var/lib/microvms/%i/current/bin/virtiofsd-run
+
+[Service]
+Type=notify
+WorkingDirectory=/var/lib/microvms/%i
+ExecStart=/var/lib/microvms/%i/current/bin/virtiofsd-run
+LimitNOFILE=1048576
+NotifyAccess=all
+PrivateTmp=yes
+Restart=always
+RestartSec=5
+KillMode=mixed
