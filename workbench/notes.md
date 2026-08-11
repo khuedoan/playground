@@ -38,3 +38,12 @@
 - Decision: keep the real Blender process running on Sway's scratchpad while presenting a fullscreen Foot terminal on the visible workspace. The terminal prints the Sway compositor, Wayland display, and persistent workspace path so the recording visibly demonstrates the guest desktop instead of relying only on backend assertions.
 - Added an explicit monospace font and dark terminal palette to make the captured desktop deterministic and legible.
 - The Playwright recorder reconnects noVNC after the workspace is running and fails unless the canvas contains a rendered dark framebuffer, preventing a green E2E result from publishing another blank screenshot.
+
+## 2026-08-11 — sub-second concurrent threads
+
+- The previous create path took 128.3 seconds from the UI because every thread rebuilt and cold-booted its own guest. The guest boot itself was about 16 seconds; roughly 111 seconds was repeated Nix realization work on the interactive path.
+- Replaced per-thread provisioning with a fixed, persistent warm pool. The host agent prepares every slot and checks guest health before exposing its API, then atomically assigns a ready slot to each new thread. Stop retains the disk; delete wipes, reheats, and releases it.
+- Added persistent per-thread messages and a dark three-pane UI with a thread list, focused conversation, and live Wayland/code/runtime inspector. Multiple running threads remain visible and independently selectable.
+- Run #64 passed Rust, Phoenix, Nix, and the genuine KVM E2E gate on commit `212714e`. Two real Cloud Hypervisor guests ran concurrently on distinct slots and IP addresses. Their measured UI-to-running lease times were 105 ms and 19 ms, both below the 1,000 ms target.
+- The same gate proved cross-thread file isolation, real Pi `bash` tool use through the deterministic mock API, a non-blank dark Wayland framebuffer, code-server and Blender availability, and persistence after restarting the primary guest.
+- Final evidence: H.264 at 1440×900, 25 fps, 34.68 seconds, 573,661 bytes; final screenshot 1440×900, 110,271 bytes.
