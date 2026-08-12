@@ -1,0 +1,20 @@
+set shell := ["bash", "-euo", "pipefail", "-c"]
+
+install-openbao:
+  ./scripts/install-openbao.sh
+
+install-secretspec:
+  ./scripts/install-secretspec.sh
+
+bootstrap:
+  ./scripts/bootstrap.sh
+
+bootstrap-existing:
+  START_DEV=0 ./scripts/bootstrap.sh
+
+smoke-test:
+  ./scripts/smoke-test.sh
+
+stop:
+  pkill -f "bao server -dev" || true
+  pkill -f "openbao server -dev" || true
